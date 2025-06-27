@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
+@import "tailwindcss";
+@plugin "daisyui";
+
+
+@plugin "daisyui/theme" {
+  name: "defaulttheme";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+
+  --color-base-100: #292f36;
+  --color-base-200: #1a1e23;
+  --color-base-300: #43454d;
+  --color-base-content: #ffffff;
+
+  --color-primary: #12f7d6;
+  --color-primary-content: #000000;
+
+  --color-secondary: #98faec;
+  --color-secondary-content: #1a1e23;
+
+  --color-accent: #e54f26;
+  --color-accent-content: #ffffff;
+
+  --color-neutral: #0c73b8;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #28a9e0;
+  --color-info-content: #ffffff;
+
+  --color-success: #e7a020;
+  --color-success-content: #1a1e23;
+
+  --color-warning: #e7a020;
+  --color-warning-content: #292f36;
+
+  --color-error: #e54f26;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 1rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 2;
+  --noise: 0.1;
+}
+
+
+.ibm-plex-mono {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.ubuntu-light {
+  font-family: "Ubuntu", sans-serif;
+  font-weight: 300;
+  font-style: normal;
+}
+
+body {
+  font-family: "Ubuntu", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.ubuntu-medium {
+  font-family: "Ubuntu", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+}
+
+.ubuntu-bold {
+  font-family: "Ubuntu", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
