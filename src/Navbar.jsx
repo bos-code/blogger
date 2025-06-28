@@ -34,6 +34,12 @@ export function Navbar() {
             <li>
               <Link to="/signup">Sign Up</Link>
             </li>
+            <li>
+              <Link to="/blogpage">Blog</Link>
+            </li>
+            <li>
+              <Link to="/admin">dashbord</Link>
+            </li>
           </ul>
         </div>
       </div>
