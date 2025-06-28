@@ -6,18 +6,19 @@ import { auth } from "../firebaseconfig";
 
 import { doc, getDoc } from "firebase/firestore";
 
-
- const checkAdmin = async (uid) => {
+const checkAdmin = async (uid) => {
   const userDoc = await getDoc(doc(db, "users", uid));
-  console.log(`Checking admin status for user ${uid}:`, userDoc.exists(), userDoc.data());
+
+ 
   return userDoc.exists() && userDoc.data().role == "admin";
 };
+
 
 export default function AdminPanel() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-
+  
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
@@ -31,7 +32,7 @@ export default function AdminPanel() {
       title,
       content,
       createdAt: new Date(),
-      approved: true, // or false if you want admin approval later
+      approved: true,
     });
     setTitle("");
     setContent("");
@@ -54,7 +55,9 @@ export default function AdminPanel() {
         onChange={(e) => setContent(e.target.value)}
         className="textarea textarea-bordered w-full h-40 mb-4"
       ></textarea>
-      <button type="submit" className="btn btn-primary">Publish</button>
+      <button type="submit" className="btn btn-primary">
+        Publish
+      </button>
     </form>
   );
 }
