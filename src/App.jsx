@@ -7,10 +7,13 @@ import "./App.css";
 import Signup from "./pages/signup";
 import Blog from "./pages/blogpage";
 import Admin from "./pages/admin";
+import MouseOrb from "./mouseOrb";
 
 function App() {
   return (
     <>
+    
+    <MouseOrb />
       <Navbar />
       <Routes>
         <Route path="/" element={<Home />} />{" "}
