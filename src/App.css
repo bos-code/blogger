@@ -89,3 +89,28 @@ body {
   letter-spacing: 0%;
   text-transform: capitalize;
 }
+.custom-btn {
+  font-family: "Ubuntu", sans-serif;
+  font-weight: 500;
+  font-style: normal;
+  transition: all 0.3s ease-in-out;
+  padding: approx 0.5rem 1rem;
+  color: var(--color-base-content);
+  
+  &:hover {
+    color: var(--color-primary);
+    transform: scale(1.05);
+  }
+}
+.heading--primary {
+  font-family: "Ubuntu", sans-serif;
+  @apply mb-4 capitalize text-center flex flex-col items-center justify-center text-8xl text-primary font-extrabold tracking-tight;
+}
+
+
+.about-me {
+box-shadow: -4px -4px 2px 0px var(--color-primary);
+border: 4px solid;
+border-color: var(--color-base-content);
+border-radius: 10rem 0 10rem 0;
+}

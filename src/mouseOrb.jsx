@@ -76,7 +76,7 @@ const MouseOrb = () => {
           { scale: 1 },
           {
             scale: 1.5,
-            duration: 0.3,
+            duration: 0.1,
             ease: 'power2.out',
             yoyo: true,
             repeat: 1,
