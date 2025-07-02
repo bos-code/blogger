@@ -109,13 +109,13 @@ export function Navbar() {
           </a>
 
           {/* Mobile version: icons only */}
-          <a href="https://github.com/yourusername" className="btn btn-ghost btn-circle md:hidden">
+          <a href="https://github.com/bos-code" className="btn btn-ghost btn-circle md:hidden">
             <svg className="h-5 w-5" viewBox="0 0 24 24"  fill={'var(--color-primary)'}>...</svg>
           </a>
-          <a href="https://twitter.com/yourhandle" className="btn btn-ghost btn-circle md:hidden">
+          <a href="https://x.com/Dera46082" className="btn btn-ghost btn-circle md:hidden">
             <svg className="h-5 w-5"  fill={'var(--color-primary)'} viewBox="0 0 24 24">...</svg>
           </a>
-          <a href="https://linkedin.com/in/yourhandle" className="btn btn-ghost btn-circle md:hidden">
+          <a href="https://www.linkedin.com/in/chidera-okonkwo-38694433a/1" className="btn btn-ghost btn-circle md:hidden">
             <svg className="h-5 w-5" viewBox="0 0 24 24"  fill={'var(--color-primary)'}>...</svg>
           </a>
         </div>
