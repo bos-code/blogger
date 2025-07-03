@@ -147,7 +147,50 @@ export default function Home() {
           </button>
         </div>
         <div className="textbox">
-          <div className="text"></div>
+          <div className="text">
+            <h1 className="heading-primary mb-8 flex justify-start items-start flex-col">
+              <span className="htag ibm-plex">{"<h1>"}</span>
+              <span>hey,</span>
+              <span>
+                i'm <span className=" text-primary">Chidera</span>,
+              </span>
+              <span className="">
+                <span className="mr-6">Frontend developer</span>
+                <span className="htag ibm-plex md:block lg:inline">
+                  {"</h1>"}
+                </span>
+              </span>
+            </h1>
+            <p className="hero-descript ibm-plex">
+              <span className="htag ibm-plex">{"<p>"}</span>
+              <span className="text-base-content ">
+                I'm a passionate frontend developer with a knack for creating{" "}
+                <br />
+                beautiful and functional user interfaces.
+              </span>
+              <span className="htag ibm-plex">{"</p>"}</span>
+            </p>
+            <a className="link link-hover flex text-4xl capitalize justify-start items-center gap-4 link-primary mt-4">
+              let’s talk{" "}
+              <span className=" rel-card">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 14 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M0.583361 2.48988C0.583267 2.49564 0.583257 2.50139 0.583333 2.50715V9.5C0.583333 10.4638 1.3695 11.25 2.33333 11.25H11.6667C12.6305 11.25 13.4167 10.4638 13.4167 9.5V2.50721C13.4167 2.50141 13.4167 2.4956 13.4166 2.4898C13.4111 1.53063 12.6271 0.75 11.6667 0.75H2.33333C1.37287 0.75 0.588839 1.53067 0.583361 2.48988ZM1.81217 2.2398C1.90864 2.04904 2.10702 1.91667 2.33333 1.91667H11.6667C11.893 1.91667 12.0914 2.04904 12.1878 2.2398L7 5.87128L1.81217 2.2398ZM12.25 3.62038V9.5C12.25 9.8195 11.9862 10.0833 11.6667 10.0833H2.33333C2.01383 10.0833 1.75 9.8195 1.75 9.5V3.62038L6.66548 7.06122C6.86633 7.20182 7.13367 7.20182 7.33452 7.06122L12.25 3.62038Z"
+                    fill={"var(--color-primary)"}
+                  />
+                </svg>
+              </span>
+            </a>
+          </div>
           <div className="stack"></div>
         </div>
       </div>
