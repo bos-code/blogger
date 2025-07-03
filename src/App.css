@@ -49,7 +49,7 @@
 
 @layer base {
   body {
-    @apply bg-base-100 text-base-content;
+    @apply bg-base-100 text-base-content mx-10 md:mx-[64px] ;
   }
 }
 .ibm-plex {
@@ -111,26 +111,26 @@ body {
 }
 .heading--primary {
   font-family: "Ubuntu", sans-serif;
-  @apply mb-4 capitalize text-center flex flex-col items-center justify-center text-8xl text-primary font-extrabold tracking-tight;
+  @apply mb-4 capitalize text-center hidden md:flex flex-col items-center justify-center xl:text-7xl 2xl:text-6xl  text-secondary font-extrabold tracking-tight;
 }
 
 .about-me {
   box-shadow: -4px -4px 2px 0px var(--color-primary);
   border: 4px solid;
   border-color: var(--color-base-content);
-  border-radius: 120px 0 120px 0;
+  border-radius: 160px 0 160px 0;
 }
 
 .links a {
-  @apply flex gap-2  items-center;
+  @apply flex gap-2  text-xs 2xl:text-base items-center;
 }
 
 .fx {
-  @apply flex items-center justify-center;
+  @apply flex;
 }
 
 .heading-primary {
-  @apply text-[64px]  capitalize;
+  @apply 2xl:text-6xl  xl:text-4xl capitalize;
 }
 .heading-primary span {
   line-height: 1.2;
@@ -141,7 +141,7 @@ body {
 }
 
 .hero-descript {
-  @apply items-start justify-start flex-col gap-4 text-start text-[16px] flex;
+  @apply items-start justify-start flex-col gap-4 xl:gap-2 text-start 2xl:text-[16px] xl:text-sm  flex;
 }
 
 .rel-card {
@@ -169,5 +169,18 @@ body {
       transform: translate(-50%, -50%) scale(1.2);
     }
   }
- 
+}
+.stacks {
+  @apply inline-flex flex-col  items-start justify-around bg-base-200 rounded-[80px] xl:px-5 xl:py-8 2xl:px-8 2xl:py-12 ;
+}
+.stacks p {
+  @apply flex items-center gap-2 xl:gap-3 text-base xl:text-sm 2xl:text-lg;
+}
+
+.stats {
+  @apply text-primary  text-3xl xl:text-4xl 2xl:text-5xl font-bold capitalize overflow-hidden;
+}
+
+.stats-descrpt {
+  @apply text-base xl:text-sm capitalize;
 }

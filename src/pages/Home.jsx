@@ -4,23 +4,25 @@ import dera from "../assets/dera.png";
 export default function Home() {
   const stack = ["HTML", "CSS", "JavaScript", "React"];
   return (
-    <div className="p-6 text-center">
+    <div className="mx-auto  px-4 sm:px-6  xl:px-10">
       <h1 className="heading--primary">developer</h1>
-      <div className="hero__content flex items-center justify-center gap-40 mt-16">
-        <div className="about-me bg-base-100  rounded-lg shadow-md p-6 flex items-center justify-center gap-8 flex-col">
+      <div className="hero__content flex items-center justify-center gap-20 mt-16">
+        <div className="about-me bg-base-100  rounded-lg shadow-md p-6 flex  gap-5 xl:gap-6  flex-col">
           <img
             src={dera}
             alt="Dera"
-            className="w-24 h-24 rounded-full shadow-lg border-3 border-primary"
+            className="w-24 self-center  h-24 xl:w-32 xl:h-32 rounded-full shadow-lg border-3 border-primary"
           />
           <div className="text-content flex justify-center  items-center flex-col">
-            <h2 className="text-3xl ibm-plex font-bold capitalize ">dera</h2>
+            <h2 className="text-3xl xl:text-2xl 2xl:text-3xl ibm-plex font-bold capitalize ">
+              dera
+            </h2>
             <p className="text-sm ibm-plex-mono capitalize ">
               front-end develoer
             </p>
           </div>
-          <div className="fx flex-col gap-4">
-            <ul className=" flex flex-col gap-4 ibm-plex-mono text-sm">
+          <div className="fx flex-col gap-3  2xl:gap-4">
+            <ul className=" flex flex-col gap-2 2xl:gap-4 ibm-plex-mono text-sm">
               <li className="links">
                 <a href="#">
                   <svg
@@ -86,8 +88,8 @@ export default function Home() {
                   <span className="">Full-time / Freelancer</span>
                 </a>
               </li>
-              <li className="links">
-                <a href="#">
+              <li className="links hidden 2xl:block">
+                <a href="https://johndera-portfolio.vercel.app/">
                   <svg
                     width="14"
                     height="14"
@@ -112,13 +114,13 @@ export default function Home() {
                     </defs>
                   </svg>
 
-                  <span className="">
+                  <span className=" ">
                     https://johndera-portfolio.vercel.app/
                   </span>
                 </a>
               </li>
             </ul>
-            <div className="labels fx gap-4 ">
+            <div className="labels fx gap-2 ">
               {stack.map((item) => (
                 <div className="badge badge-primary rounded-full text-base-100">
                   {item}
@@ -126,7 +128,7 @@ export default function Home() {
               ))}
             </div>
           </div>
-          <button className="btn btn-lg rounded-full btn-wide bg-[var(--color-base-content)]  text-base-100">
+          <button className="btn xl:self-start  rounded-full 2xl:btn-wide bg-[var(--color-base-content)]  text-base-100">
             Download CV
             <svg
               width="24"
@@ -146,9 +148,9 @@ export default function Home() {
             </svg>
           </button>
         </div>
-        <div className="textbox">
+        <div className="textbox flex gap-10">
           <div className="text">
-            <h1 className="heading-primary mb-8 flex justify-start items-start flex-col">
+            <h1 className="heading-primary mb-4 xl:mb-6 flex justify-start items-start flex-col">
               <span className="htag ibm-plex">{"<h1>"}</span>
               <span>hey,</span>
               <span>
@@ -170,7 +172,7 @@ export default function Home() {
               </span>
               <span className="htag ibm-plex">{"</p>"}</span>
             </p>
-            <a className="link link-hover flex text-4xl capitalize justify-start items-center gap-4 link-primary mt-4">
+            <a className="link link-hover flex text-3xl xl:text-3xl 2xl:text-5xl capitalize justify-start items-center gap-4 link-primary mt-4">
               let’s talk{" "}
               <span className=" rel-card">
                 <svg
@@ -179,7 +181,6 @@ export default function Home() {
                   viewBox="0 0 14 12"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                  
                 >
                   <path
                     fill-rule="evenodd"
@@ -191,7 +192,29 @@ export default function Home() {
               </span>
             </a>
           </div>
-          <div className="stack"></div>
+          <div className="stacks">
+            <p>
+              <span className="stats">3</span>
+              <span className="stats-descrpt">
+                Programming
+                <br /> languages.
+              </span>
+            </p>
+            <p>
+              <span className="stats">2</span>
+              <span className="stats-descrpt">
+                Developmental
+                <br /> tools
+              </span>
+            </p>
+            <p>
+              <span className="stats">1</span>
+              <span className="stats-descrpt">
+                Years of
+                <br /> experience
+              </span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
