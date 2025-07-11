@@ -45,13 +45,22 @@
   --border: 1px;
   --depth: 2;
   --noise: 0.1;
+  --background: "../assets/whoop-bg.png";
 }
 
 @layer base {
   body {
-    @apply bg-base-100 text-base-content mx-10 md:mx-[64px] ;
+    @apply bg-base-100 text-base-content  ;
   }
 }
+@layer  utilities{
+  .page-padding{
+    @apply mx-10 md:mx-[64px];
+  }
+}
+
+
+
 .ibm-plex {
   font-family: "IBM Plex Mono", monospace;
 }
@@ -184,3 +193,5 @@ body {
 .stats-descrpt {
   @apply text-base xl:text-sm capitalize;
 }
+
+

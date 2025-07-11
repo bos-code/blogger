@@ -9,7 +9,6 @@ import { doc, getDoc } from "firebase/firestore";
 const checkAdmin = async (uid) => {
   const userDoc = await getDoc(doc(db, "users", uid));
 
- 
   return userDoc.exists() && userDoc.data().role == "admin";
 };
 
@@ -18,7 +17,7 @@ export default function AdminPanel() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  
+
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
@@ -38,7 +37,7 @@ export default function AdminPanel() {
     setContent("");
   };
 
-  if (!isAdmin) return <p>Access denied. Admins only.</p>;
+  if (!isAdmin) return;
 
   return (
     <form onSubmit={handleSubmit} className="p-4">
