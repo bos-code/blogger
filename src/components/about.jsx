@@ -6,7 +6,7 @@ function AboutMe() {
     <section
       className={`section-about    bg-cover  bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`}
     >
-      <div className="all bg-base-200/90 p-32 flex flex-col   items-center justify-center h-full">
+      <div className="all bg-base-200/90 p-32 flex flex-col gap-16  items-center justify-center h-full">
         <div className="scroll-container">
           <Scroll />
         </div>
