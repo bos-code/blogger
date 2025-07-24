@@ -151,26 +151,26 @@ export function Hero() {
         <div className="textbox flex gap-10">
           <div className="text">
             <h1 className="heading-primary mb-4 xl:mb-6 flex justify-start items-start flex-col">
-              <span className="htag ibm-plex">{"<h1>"}</span>
+              <span className="htag -ml-6 ibm-plex">{"<h1>"}</span>
               <span>hey,</span>
               <span>
                 i'm <span className=" text-primary">Chidera</span>,
               </span>
               <span className="">
                 <span className="mr-6">Frontend developer</span>
-                <span className="htag ibm-plex md:block lg:inline">
+                <span className="htag -ml-6 ibm-plex md:block lg:inline">
                   {"</h1>"}
                 </span>
               </span>
             </h1>
             <p className="hero-descript ibm-plex">
-              <span className="htag ibm-plex">{"<p>"}</span>
+              <span className="htag -ml-6 ibm-plex">{"<p>"}</span>
               <span className="text-base-content ">
                 I'm a passionate frontend developer with a knack for creating{" "}
                 <br />
                 beautiful and functional user interfaces.
               </span>
-              <span className="htag ibm-plex">{"</p>"}</span>
+              <span className="htag -ml-6 ibm-plex">{"</p>"}</span>
             </p>
             <a className="link link-hover flex text-3xl xl:text-3xl 2xl:text-5xl capitalize justify-start items-center gap-4 link-primary mt-4">
               let’s talk{" "}

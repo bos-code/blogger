@@ -1,6 +1,8 @@
 // src/pages/Home.jsx
 import { Hero } from "./Hero";
 
+import AboutMe from "../components/about";
+
 export default function Home() {
   return (
     <>
@@ -10,10 +12,4 @@ export default function Home() {
   );
 }
 
-function AboutMe() {
-  return (
-    <section
-      className={`section-about h-svh bg-cover  bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`}
-    ></section>
-  );
-}
+
