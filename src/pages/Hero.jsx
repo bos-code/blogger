@@ -114,9 +114,9 @@ export function Hero() {
                     </defs>
                   </svg>
 
-                  <span className=" ">
+                  <a href="https://johndera-portfolio.vercel.app/" target="_blank">
                     https://johndera-portfolio.vercel.app/
-                  </span>
+                  </a>
                 </a>
               </li>
             </ul>

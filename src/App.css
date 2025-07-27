@@ -46,6 +46,8 @@
   --depth: 2;
   --noise: 0.1;
   --background: "../assets/whoop-bg.png";
+  --font-sans: "Ubuntu", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
 }
 
 @layer base {
