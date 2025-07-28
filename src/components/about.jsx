@@ -16,11 +16,11 @@ function AboutMe() {
               About Me
             </div>
             <div className="content">
-              <p className="flex flex-col gap-4 bg-base-100 rounded-[40px] px-10 py-6 justify-center text-base ibm-plex-mono">
+              <div className="flex flex-col gap-4 bg-base-100 rounded-[40px] px-10 py-6 justify-center text-base ibm-plex-mono">
                 <span className="htag ibm-plex">{"<p>"}</span>
-                <h3 className="text-4xl font-bold">
+                <span className="text-4xl font-bold">
                   <Span>Hello!</Span>
-                </h3>
+                </span>
                 <p>
                   {" "}
                   My name is Sinan and I specialize in web developement that
@@ -45,7 +45,7 @@ function AboutMe() {
                   that I see the world through new eyes.
                 </p>
                 <span className="htag ibm-plex">{"</p>"}</span>
-              </p>
+              </div>
             </div>
           </div>
           <div className="image-container col-span-1">

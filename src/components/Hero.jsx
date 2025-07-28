@@ -89,7 +89,7 @@ export function Hero() {
                 </a>
               </li>
               <li className="links hidden 2xl:block">
-                <a href="https://johndera-portfolio.vercel.app/">
+                <a href="https://johndera-portfolio.vercel.app/"  target="_blank">
                   <svg
                     width="14"
                     height="14"
@@ -114,9 +114,9 @@ export function Hero() {
                     </defs>
                   </svg>
 
-                  <a href="https://johndera-portfolio.vercel.app/" target="_blank">
+                  <span>
                     https://johndera-portfolio.vercel.app/
-                  </a>
+                  </span>
                 </a>
               </li>
             </ul>
