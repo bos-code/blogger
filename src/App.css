@@ -12,7 +12,7 @@
   --color-base-100: #292f36;
   --color-base-200: #1a1e23;
   --color-base-300: #43454d;
-  --color-base-content: #ffffff;
+--color-base-content: #ffffff;
 
   --color-primary: #12f7d6;
 
@@ -69,6 +69,11 @@
 .ibm-plex-mono {
   font-family: "IBM Plex Mono", monospace;
   font-weight: 400;
+  font-style: normal;
+}
+.ibm-plex-md {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
   font-style: normal;
 }
 
