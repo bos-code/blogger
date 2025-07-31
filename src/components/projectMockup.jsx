@@ -1,10 +1,10 @@
 import ProjectCard from "./ProjectCard";
-import portfolio from "../assets/portfoilo.png";
-import project2 from "../assets/banquee.png"
-import project3 from "../assets/cashapp.png"
-import project4 from "../assets/fastUi.png"
-import project5 from "../assets/streamvibe.png"
-import project6 from "../assets/store.png"
+import portfolio from "../assets/portfolio.png"; // ✅ Fixed typo
+import project2 from "../assets/banquee.png";
+import project3 from "../assets/cashapp.png";
+import project4 from "../assets/fastUi.png";
+import project5 from "../assets/streamvibe.png";
+import project6 from "../assets/store.png";
 
 function ProjectMockup() {
   const projects = [
@@ -43,7 +43,6 @@ function ProjectMockup() {
   return (
     <div className="carousel w-full">
       {projects.map((project, idx) => {
-        // compute slide ids for looping
         const prevIdx = idx === 0 ? projects.length : idx;
         const nextIdx = idx + 2 > projects.length ? 1 : idx + 2;
 
