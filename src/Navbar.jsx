@@ -44,11 +44,10 @@ export function Navbar() {
             <li>
               <Link to="/blogpage">Blog</Link>
             </li>
-           
-              <li>
-                <Link to="/admin">Dashboard</Link>
-              </li>
-          
+
+            <li>
+              <Link to="/admin">Dashboard</Link>
+            </li>
           </ul>
         </div>
 
@@ -68,38 +67,33 @@ export function Navbar() {
           Blog
         </Link>
         {
-         
-            <Link to="/admin" className="custom-btn">Dashboard</Link>
-       
+          <Link to="/admin" className="custom-btn">
+            Dashboard
+          </Link>
         }
       </div>
 
       {/* Right side (search + social) */}
-      <div className="navbar-end gap-2">
-        {/* Search input */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="Search"
-            className="input input-bordered w-24 md:w-auto"
-          />
-          <button className="btn btn-ghost btn-circle">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+      <div className="navbar-end gap-12 pl-8">
+        <label className="input bg-white rounded-full  size-full">
+          <input type="search" required placeholder="Search" />
+          <svg
+            className="h-[1em] opacity-50"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <g
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeWidth="2.5"
               fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+              stroke={"var(--color-base-100)"}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </button>
-        </div>
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.3-4.3"></path>
+            </g>
+          </svg>
+        </label>
 
         {/* Social links */}
         <div className="flex gap-2 items-center">
