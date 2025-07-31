@@ -7,7 +7,8 @@ import "./App.css";
 import Signup from "./pages/signup";
 import Blog from "./pages/blogpage";
 import Admin from "./pages/admin";
-import MouseOrb from "./mouseOrb";
+import MouseOrb from "./components/mouseOrb";
+import FooterComp from "./components/footer";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/blogpage" element={<Blog />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
+      <FooterComp/>
     </>
   );
 }
