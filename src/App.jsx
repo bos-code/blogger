@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import MouseOrb from "./components/mouseOrb";
-import FooterComp from "./components/footer";
+import FooterComp from "./components/Footer";
 import { lazy, Suspense } from "react";
 import "./App.css";
 
