@@ -2,7 +2,7 @@ import ProjectCard from "./ProjectCard";
 import portfolio from "../assets/portfolio.png"; // ✅ Fixed typo
 import project2 from "../assets/banquee.png";
 import project3 from "../assets/cashapp.png";
-import project4 from "../assets/fastUi.png";
+import project4 from "../assets/fast.png";
 import project5 from "../assets/streamvibe.png";
 import project6 from "../assets/store.png";
 
