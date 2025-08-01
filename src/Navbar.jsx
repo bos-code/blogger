@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 
-
-export function Navbar() {
+export function Navbar({ logStatus }) {
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 border-b border-base-300 px-4 md:px-6 lg:px-8 xl:px-10 mb-16">
       {/* Left side (logo + mobile menu) */}
@@ -32,22 +31,17 @@ export function Navbar() {
             tabIndex={0}
             className="menu menu-lg dropdown-content bg-base-100 rounded-box z-10 mt-3 w-52 p-2 shadow"
           >
-            <li>
-              <Link to="/">Homepage</Link>
-            </li>
-            <li>
-              <Link to="/login">Login</Link>
-            </li>
-            <li>
-              <Link to="/signup">Sign Up</Link>
-            </li>
-            <li>
-              <Link to="/blogpage">Blog</Link>
-            </li>
-
-            <li>
-              <Link to="/admin">Dashboard</Link>
-            </li>
+            <li><Link to="/">Homepage</Link></li>
+            {!logStatus && (
+              <>
+                <li><Link to="/login">Login</Link></li>
+                <li><Link to="/signup">Sign Up</Link></li>
+              </>
+            )}
+            <li><Link to="/blogpage">Blog</Link></li>
+            {logStatus && (
+              <li><Link to="/admin">Dashboard</Link></li>
+            )}
           </ul>
         </div>
 
@@ -60,22 +54,19 @@ export function Navbar() {
 
       {/* Center links */}
       <div className="hidden md:flex gap-4 navbar-center">
-        <Link to="/" className=" custom-btn">
-          Home
-        </Link>
-        <Link to="/blogpage" className="custom-btn">
-          Blog
-        </Link>
-        {
-          <Link to="/admin" className="custom-btn">
-            Dashboard
-          </Link>
-        }
+        <Link to="/" className=" custom-btn">Home</Link>
+        <Link to="/blogpage" className="custom-btn">Blog</Link>
+        {!logStatus && (
+          <Link to="/login" className="custom-btn">Login</Link>
+        )}
+        {logStatus && (
+          <Link to="/admin" className="custom-btn">Dashboard</Link>
+        )}
       </div>
 
       {/* Right side (search + social) */}
       <div className="navbar-end gap-12 pl-8">
-        <label className="input bg-white rounded-full  size-full">
+        <label className="input bg-white rounded-full size-full">
           <input type="search" required placeholder="Search" />
           <svg
             className="h-[1em] opacity-50"
@@ -96,7 +87,7 @@ export function Navbar() {
         </label>
 
         {/* Social links */}
-        <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center">
           {/* Desktop version: icon + name */}
           <a
             href="https://github.com/yourusername"
@@ -188,5 +179,3 @@ export function Navbar() {
     </div>
   );
 }
-
-// Programming symbols only

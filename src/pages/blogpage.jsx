@@ -1,23 +1,17 @@
 // src/pages/Blog.jsx
-import { useEffect, useState } from "react";
-import { db } from "../firebaseconfig";
-import { collection, getDocs } from "firebase/firestore";
+import { useEffect } from "react";
+import { useState } from "react";
 
-export default function Blog() {
+export default function Blog({ bloglist }) {
   const [posts, setPosts] = useState([]);
 
-  useEffect(() => {
-    async function fetchPosts() {
-      const postSnapshot = await getDocs(collection(db, "posts"));
-      const postList = postSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setPosts(postList);
+ useEffect(() => {
+    if (bloglist && bloglist.length > 0) {
+      setPosts(bloglist);
     }
+  }, [bloglist]);
 
-    fetchPosts();
-  }, []);
+  console.log("Posts in Blog component:", posts);
 
   return (
     <div className="p-6">
@@ -28,9 +22,8 @@ export default function Blog() {
       ) : (
         posts.map((post) => (
           <div key={post.id}>
-             
             <div className="card bg-base-100 shadow mb-4 p-4">
-             
+
               <h2 className="text-xl text-[var(--color-primary)] font-semibold">
                 {post.title}
               </h2>

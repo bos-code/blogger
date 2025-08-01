@@ -13,17 +13,11 @@ const checkAdmin = async (uid) => {
 };
 
 
-export default function AdminPanel() {
-  const [isAdmin, setIsAdmin] = useState(false);
+export default function AdminPanel({ user, role }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
 
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (user) {
-      checkAdmin(user.uid).then(setIsAdmin);
-    }
-  }, []);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,10 +31,12 @@ export default function AdminPanel() {
     setContent("");
   };
 
-  if (!isAdmin) return;
+  
 
   return (
     <form onSubmit={handleSubmit} className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
+      <p>welcome {user?.name} ur role is {role}</p>
       <input
         type="text"
         placeholder="Post title"

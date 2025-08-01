@@ -4,7 +4,7 @@ import IconInstagram from "../assets/icon-instagram";
 
 function FooterComp() {
   return (
-    <footer className="footer sm:footer-horizontal bg-base-200 border-t-1  flex justify-between border-base-300 items-center px-32 py-4  text-base  ubuntu-light ">
+    <footer className="footer static bottom-0 sm:footer-horizontal bg-base-200 border-t-1  flex justify-between border-base-300 items-center px-32 py-4  text-base  ubuntu-light ">
 
       <aside className="grid-flow-col items-center  text-base  ubuntu-light ">
         <p>Copyright © {new Date().getFullYear()} - All right reserved</p>
