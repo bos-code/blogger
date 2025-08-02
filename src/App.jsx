@@ -123,7 +123,7 @@ function App() {
   }, []);
 
   return (
-    <>
+    <div className="App min-h-screen flex flex-col  ">
       <MouseOrb />
       <Navbar logStatus={logStatus} />
 
@@ -142,7 +142,7 @@ function App() {
       </Suspense>
 
       <FooterComp />
-    </>
+    </div>
   );
 }
 
