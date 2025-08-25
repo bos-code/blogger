@@ -3,8 +3,11 @@ import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 
 import { auth, db } from "../firebaseconfig";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useNavigate, Link } from "react-router-dom";
+import  { useBlog } from "../components/BlogContext";
 
-export default function Login({ dispatch, authError }) {
+export default function Login() {
+  const { dispatch, authError } = useBlog()
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
@@ -78,7 +81,7 @@ export default function Login({ dispatch, authError }) {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
+    <div className="flex items-center justify-center h-full ">
       <form
         className="card w-96 bg-base-100 shadow-xl p-8 space-y-4"
         onSubmit={handleLogin}

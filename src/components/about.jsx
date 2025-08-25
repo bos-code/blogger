@@ -6,12 +6,12 @@ function AboutMe() {
     <section
       className={`section-about    bg-cover  bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`}
     >
-      <div className="all bg-base-200/90 p-32 flex flex-col gap-16  items-center justify-center h-full">
+      <div className="all bg-base-200/90 xl:p-20 flex flex-col gap-16  items-center justify-center h-full">
         <div className="scroll-container">
           <Scroll />
         </div>
-        <div className="content-container grid grid-cols-3 gap-32 pl-10">
-          <div className="text-container flex flex-col gap-16 col-span-2 ">
+        <div className="content-container grid grid-cols-5 gap-12 pl-10">
+          <div className="text-container flex flex-col gap-16 col-span-3 ">
             <div className="about badge px-10 py-4 border-4 ubuntu-medium h-auto rounded-tl-[40px] rounded-br-[40px] border-primary badge-outline bg-base-100 text-6xl">
               About Me
             </div>
@@ -23,7 +23,7 @@ function AboutMe() {
                 </span>
                 <p>
                   {" "}
-                  My name is Sinan and I specialize in web developement that
+                  My name is JohnDera and I specialize in web developement that
                   utilizes <Span>HTML</Span>,<Span> CSS</Span>,<Span> JS</Span>,
                   and <Span>REACT</Span> etc
                 </p>
@@ -35,7 +35,7 @@ function AboutMe() {
                 </p>
                 <p>
                   {" "}
-                  When I'm not coding, I am<Span> writing bolgs</Span>, reading,
+                  When I'm not coding, I am<Span> writing blogs</Span>, reading,
                   or picking up some new hands-on art project like
                   <Span> photography</Span>.
                 </p>{" "}
@@ -48,7 +48,7 @@ function AboutMe() {
               </div>
             </div>
           </div>
-          <div className="image-container col-span-1">
+          <div className="image-container col-span-2">
 <Image  />
           </div>
         </div>

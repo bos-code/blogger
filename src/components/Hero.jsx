@@ -2,7 +2,7 @@
 import dera from "../assets/dera.png";
 const stack = ["HTML", "CSS", "JavaScript", "React"];
 
-export function Hero() {
+ function Hero() {
   return (
     <div className="mx-auto  px-4 sm:px-6  xl:px-10 pb-32 page-padding">
       <h1 className="heading--primary">developer</h1>
@@ -89,7 +89,10 @@ export function Hero() {
                 </a>
               </li>
               <li className="links hidden 2xl:block">
-                <a href="https://johndera-portfolio.vercel.app/"  target="_blank">
+                <a
+                  href="https://johndera-portfolio.vercel.app/"
+                  target="_blank"
+                >
                   <svg
                     width="14"
                     height="14"
@@ -114,15 +117,16 @@ export function Hero() {
                     </defs>
                   </svg>
 
-                  <span>
-                    https://johndera-portfolio.vercel.app/
-                  </span>
+                  <span>https://johndera-portfolio.vercel.app/</span>
                 </a>
               </li>
             </ul>
             <div className="labels fx gap-2 ">
-              {stack.map((item,i) => (
-                <div key={i} className="badge badge-primary rounded-full text-base-100">
+              {stack.map((item, i) => (
+                <div
+                  key={i}
+                  className="badge badge-primary rounded-full text-base-100"
+                >
                   {item}
                 </div>
               ))}
@@ -220,3 +224,5 @@ export function Hero() {
     </div>
   );
 }
+
+export default Hero;

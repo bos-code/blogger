@@ -8,8 +8,11 @@ import {
 import { auth, db } from "../firebaseconfig";
 import { useNavigate, Link } from "react-router-dom";
 import { setDoc, doc, getDoc } from "firebase/firestore";
+import { useContext } from "react";
+import BlogContext from "../components/BlogContext";
 
-export default function Signup({ dispatch }) {
+export default function Signup() {
+  const { dispatch } = useContext(BlogContext)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");

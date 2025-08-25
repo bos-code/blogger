@@ -1,17 +1,19 @@
 // src/pages/Blog.jsx
 import { useEffect } from "react";
 import { useState } from "react";
+import { useBlog } from "../components/BlogContext";
 
-export default function Blog({ bloglist }) {
+export default function Blog() {
+  const { blogList } = useBlog()
   const [posts, setPosts] = useState([]);
 
  useEffect(() => {
-    if (bloglist && bloglist.length > 0) {
-      setPosts(bloglist);
+    if (blogList && blogList.length > 0) {
+      setPosts(blogList);
     }
-  }, [bloglist]);
+  }, [blogList]);
 
-  console.log("Posts in Blog component:", posts);
+  console.log("Posts in Blog component:", blogList);
 
   return (
     <div className="p-6">

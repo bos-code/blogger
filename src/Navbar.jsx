@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom";
 
-export function Navbar({ logStatus }) {
+import { Link, NavLink } from "react-router-dom";
+import { useBlog } from "./components/BlogContext";
+
+
+export function Navbar() {
+ const {logStatus} = useBlog()
   return (
-    <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50 border-b border-base-300 px-4 md:px-6 lg:px-8 xl:px-10 mb-16">
+    <nav className="navbar bg-base-100 shadow-sm sticky top-0 z-50 border-b border-base-300 px-4 md:px-6 lg:px-8 xl:px-10 mb-16">
       {/* Left side (logo + mobile menu) */}
       <div className="navbar-start">
         {/* Mobile dropdown */}
@@ -31,16 +35,16 @@ export function Navbar({ logStatus }) {
             tabIndex={0}
             className="menu menu-lg dropdown-content bg-base-100 rounded-box z-10 mt-3 w-52 p-2 shadow"
           >
-            <li><Link to="/">Homepage</Link></li>
+           
             {!logStatus && (
               <>
-                <li><Link to="/login">Login</Link></li>
-                <li><Link to="/signup">Sign Up</Link></li>
+                <li><NavLink to="/login">Login</NavLink></li>
+                <li><NavLink to="/signup">Sign Up</NavLink></li>
               </>
             )}
-            <li><Link to="/blogpage">Blog</Link></li>
+            <li><NavLink to="/blogpage">Blog</NavLink></li>
             {logStatus && (
-              <li><Link to="/admin">Dashboard</Link></li>
+              <li><NavLink to="/admin">Dashboard</NavLink></li>
             )}
           </ul>
         </div>
@@ -53,16 +57,15 @@ export function Navbar({ logStatus }) {
       </div>
 
       {/* Center links */}
-      <div className="hidden md:flex gap-4 navbar-center">
-        <Link to="/" className=" custom-btn">Home</Link>
-        <Link to="/blogpage" className="custom-btn">Blog</Link>
+      <ul className="hidden md:flex gap-4 navbar-center">
+        <li><NavLink to="/blogpage" className="custom-btn">Blog</NavLink></li>
         {!logStatus && (
-          <Link to="/login" className="custom-btn">Login</Link>
+          <li><NavLink to="/login" className="custom-btn">Login</NavLink></li>
         )}
         {logStatus && (
-          <Link to="/admin" className="custom-btn">Dashboard</Link>
+          <li><NavLink to="/admin" className="custom-btn">Dashboard</NavLink></li>
         )}
-      </div>
+      </ul>
 
       {/* Right side (search + social) */}
       <div className="navbar-end gap-12 pl-8">
@@ -176,6 +179,6 @@ export function Navbar({ logStatus }) {
           </a>
         </div>
       </div>
-    </div>
+    </nav>
   );
 }

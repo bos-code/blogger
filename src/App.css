@@ -12,7 +12,7 @@
   --color-base-100: #292f36;
   --color-base-200: #1a1e23;
   --color-base-300: #43454d;
---color-base-content: #ffffff;
+  --color-base-content: #ffffff;
 
   --color-primary: #12f7d6;
 
@@ -45,23 +45,21 @@
   --border: 1px;
   --depth: 2;
   --noise: 0.1;
-  --background: "../assets/whoop-bg.png";
+  --background: "./whoop-bg.png";
   --font-sans: "Ubuntu", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 }
 
 @layer base {
   body {
-    @apply min-h-screen bg-base-100 text-base-content  overflow-x-hidden ;
+    @apply min-h-screen bg-base-100 text-base-content  overflow-x-hidden;
   }
 }
-@layer  utilities{
-  .page-padding{
+@layer utilities {
+  .page-padding {
     @apply mx-10 md:mx-[64px];
   }
 }
-
-
 
 .ibm-plex {
   font-family: "IBM Plex Mono", monospace;
@@ -87,7 +85,7 @@ body {
   font-family: "Ubuntu", sans-serif;
   font-weight: 400;
   font-style: normal;
-  min-height: 100vh ;
+  min-height: 100vh;
 }
 
 .ubuntu-medium {
@@ -154,7 +152,7 @@ body {
   @apply inline-block;
 }
 .htag {
-  @apply text-sm text-secondary lowercase ;
+  @apply text-sm text-secondary lowercase;
 }
 
 .hero-descript {
@@ -188,7 +186,7 @@ body {
   }
 }
 .stacks {
-  @apply inline-flex flex-col  items-start justify-around bg-base-200 rounded-[80px] xl:px-5 xl:py-8 2xl:px-8 2xl:py-12 ;
+  @apply inline-flex flex-col  items-start justify-around bg-base-200 rounded-[80px] xl:px-5 xl:py-8 2xl:px-8 2xl:py-12;
 }
 .stacks p {
   @apply flex items-center gap-2 xl:gap-3 text-base xl:text-sm 2xl:text-lg;
@@ -202,4 +200,6 @@ body {
   @apply text-base xl:text-sm capitalize;
 }
 
-
+.navbar .active {
+  @apply border-r-2 text-primary border-l-2 border-t-2 text-xl  px-6 py-1 rounded-full;
+}
