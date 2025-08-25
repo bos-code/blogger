@@ -8,5 +8,5 @@ export default function Dashboard() {
 
   return (
     <h1>{role}</h1>
-
+  )
 }
