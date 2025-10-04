@@ -1,7 +1,8 @@
 // src/context/BlogContext.jsx
 import { useContext, createContext, useReducer, useEffect } from "react";
-import { db } from "../firebaseconfig";
-import { collection, getDocs } from "firebase/firestore";
+import { auth, db } from "../firebaseconfig";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 const BlogContext = createContext();
 
@@ -12,7 +13,7 @@ const initialState = {
   blogList: [],
   user: null,
   authError: null,
-  questions: [], // optional if you plan to use questions
+  questions: [],
 };
 
 function reducer(state, action) {
@@ -44,11 +45,13 @@ function reducer(state, action) {
         blogList: action.payload,
       };
     case "USER_SIGNUP_SUCCESS":
+    case "USER_LOGIN_SUCCESS":
       return {
         ...state,
         logStatus: true,
         role: action.payload.role,
         user: action.payload.user,
+        authError: null,
       };
     case "USER_SIGNOUT":
       return {
@@ -58,18 +61,6 @@ function reducer(state, action) {
         user: null,
       };
     case "USER_SIGNUP_ERROR":
-      return {
-        ...state,
-        authError: action.payload,
-      };
-    case "USER_LOGIN_SUCCESS":
-      return {
-        ...state,
-        logStatus: true,
-        role: action.payload.role,
-        user: action.payload.user,
-        authError: null,
-      };
     case "USER_LOGIN_ERROR":
       return {
         ...state,
@@ -84,6 +75,7 @@ function BlogProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { role, logStatus, blogList, authError, user } = state;
 
+  // ✅ Fetch blog posts once
   useEffect(() => {
     async function fetchPosts() {
       try {
@@ -105,8 +97,42 @@ function BlogProvider({ children }) {
 
     fetchPosts();
   }, []);
-    
-    
+
+  // ✅ Keep user logged in after refresh
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userRef = doc(db, "users", firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            dispatch({
+              type: "USER_LOGIN_SUCCESS",
+              payload: {
+                user: {
+                  uid: firebaseUser.uid,
+                  email: firebaseUser.email,
+                  name: userData.name || firebaseUser.displayName,
+                  photoURL: userData.photoURL || firebaseUser.photoURL,
+                },
+                role: userData.role || "user",
+              },
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching user:", err);
+        }
+      } else {
+        dispatch({ type: "USER_SIGNOUT" });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  console.log("🔑 Current user in context:", user);
 
   return (
     <BlogContext.Provider

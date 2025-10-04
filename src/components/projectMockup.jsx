@@ -1,5 +1,12 @@
+import { useRef } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Keyboard, Mousewheel } from "swiper/modules";
+
+import "swiper/css";
+import "swiper/css/navigation";
+
 import ProjectCard from "./ProjectCard";
-import portfolio from "../assets/portfolio.png"; // ✅ Fixed typo
+import portfolio from "../assets/portfolio.png";
 import project2 from "../assets/banquee.png";
 import project3 from "../assets/cashapp.png";
 import project4 from "../assets/fast.png";
@@ -29,7 +36,7 @@ function ProjectMockup() {
       url: "https://fast-ui-murex.vercel.app/",
     },
     {
-      title: "streamVibe",
+      title: "StreamVibe",
       imgSrc: project5,
       url: "https://stream-vibe-movies.vercel.app/",
     },
@@ -40,33 +47,56 @@ function ProjectMockup() {
     },
   ];
 
+  // Refs for navigation buttons
+  const prevRef = useRef(null);
+  const nextRef = useRef(null);
+
   return (
-    <div className="carousel w-full">
-      {projects.map((project, idx) => {
-        const prevIdx = idx === 0 ? projects.length : idx;
-        const nextIdx = idx + 2 > projects.length ? 1 : idx + 2;
+    <div className="relative w-full py-8">
+      <Swiper
+        modules={[Navigation, Keyboard, Mousewheel]}
+        slidesPerView={1}
+        spaceBetween={30}
+        loop={true}
+        grabCursor={true}
+        keyboard={{ enabled: true, onlyInViewport: true }}
+        mousewheel={true}
+        navigation={{
+          prevEl: prevRef.current || ".prev",
+          nextEl: nextRef.current,
+        }}
+        onBeforeInit={(swiper) => {
+          swiper.params.navigation.prevEl = prevRef.current;
+          swiper.params.navigation.nextEl = nextRef.current;
+        }}
+        className="w-full"
+      >
+        {projects.map((project, idx) => (
+          <SwiperSlide key={idx}>
+            <div className="flex justify-center">
+              <ProjectCard {...project} />
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
 
-        return (
-          <div
-            key={project.title}
-            id={`slide${idx + 1}`}
-            className="carousel-item relative w-full flex justify-center"
-          >
-            <ProjectCard {...project} />
-
-            {projects.length > 1 && (
-              <div className="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
-                <a href={`#slide${prevIdx}`} className="btn btn-circle">
-                  ❮
-                </a>
-                <a href={`#slide${nextIdx}`} className="btn btn-circle">
-                  ❯
-                </a>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {/* Custom Nav buttons */}
+      <div className="absolute inset-0 flex items-center justify-between z-20 px-6 pointer-events-none">
+        <button
+          ref={prevRef}
+          className="btn btn-circle pointer-events-auto prev"
+          aria-label="Previous"
+        >
+          ❮
+        </button>
+        <button
+          ref={nextRef}
+          className="btn btn-circle pointer-events-auto"
+          aria-label="Next"
+        >
+          ❯
+        </button>
+      </div>
     </div>
   );
 }

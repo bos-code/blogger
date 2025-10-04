@@ -203,3 +203,18 @@ body {
 .navbar .active {
   @apply border-r-2 text-primary border-l-2 border-t-2 text-xl  px-6 py-1 rounded-full;
 }
+
+
+.glassy{
+  /* From https://css.glass */
+background: rgba(18, 247, 214, 0.04 );
+
+box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+backdrop-filter: blur(2.1px);
+-webkit-backdrop-filter: blur(2.1px);
+box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0px -36px 30px 0px inset, rgba(0, 0, 0, 0.1) 0px -79px 40px 0px inset, rgba(0, 0, 0, 0.06) 0px 2px 1px, rgba(0, 0, 0, 0.09) 0px 4px 2px, rgba(0, 0, 0, 0.09) 0px 8px 4px, rgba(0, 0, 0, 0.09) 0px 16px 8px, rgba(0, 0, 0, 0.09) 0px 32px 16px;
+}
+
+.shadow-ce{
+  box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
+}

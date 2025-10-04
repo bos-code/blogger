@@ -10,17 +10,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.4",
+    "@reduxjs/toolkit": "^2.9.0",
     "@tailwindcss/vite": "^4.1.11",
     "@tiptap/pm": "^3.0.8",
     "@tiptap/react": "^3.0.8",
     "@tiptap/starter-kit": "^3.0.8",
     "daisyui": "^5.0.43",
     "firebase": "^11.9.1",
+    "framer-motion": "^12.23.22",
     "gsap": "^3.13.0",
     "puppeteer": "^24.15.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.6.3",
+    "recharts": "^3.2.1",
+    "swiper": "^12.0.2",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {

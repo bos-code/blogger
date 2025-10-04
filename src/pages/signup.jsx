@@ -56,6 +56,7 @@ export default function Signup() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+     
 
       // Create user document if it doesn't exist
       const userRef = doc(db, "users", user.uid);
@@ -65,6 +66,7 @@ export default function Signup() {
         await setDoc(userRef, {
           email: user.email,
           name: user.displayName,
+          photoURL: user.photoURL,
           role: "user",
         });
       }
@@ -76,6 +78,7 @@ export default function Signup() {
             uid: user.uid,
             email: user.email,
             name: user.displayName,
+            photoURL: user.photoURL,
           },
           role: "user",
         },
