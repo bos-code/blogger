@@ -14,6 +14,10 @@ const initialState = {
   user: null,
   authError: null,
   questions: [],
+
+  // dashboardState:
+  dashboardScreen: "home", // home, posts, users, categories, settings
+
 };
 
 function reducer(state, action) {
@@ -62,9 +66,16 @@ function reducer(state, action) {
       };
     case "USER_SIGNUP_ERROR":
     case "USER_LOGIN_ERROR":
+
       return {
         ...state,
         authError: action.payload,
+      };
+    
+    case "dashboard/setScreen":
+      return {
+        ...state,
+        dashboardScreen: action.payload,
       };
     default:
       throw new Error("Action unknown: " + action.type);
@@ -73,7 +84,8 @@ function reducer(state, action) {
 
 function BlogProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { role, logStatus, blogList, authError, user } = state;
+  const { role, logStatus, blogList, authError, user, dashboardScreen } = state;
+  const postCount = blogList.length;
 
   // ✅ Fetch blog posts once
   useEffect(() => {
@@ -132,11 +144,11 @@ function BlogProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  console.log("🔑 Current user in context:", user);
+
 
   return (
     <BlogContext.Provider
-      value={{ role, logStatus, blogList, authError, user, dispatch }}
+      value={{ role, logStatus, blogList, authError, user, dispatch, dashboardScreen,postCount }}
     >
       {children}
     </BlogContext.Provider>
