@@ -1,4 +1,4 @@
-import { useRef, useState, MouseEvent } from "react";
+import { useRef, useState, MouseEvent, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Modal,
@@ -34,14 +34,15 @@ import { lowlight } from "lowlight/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import css from "highlight.js/lib/languages/css";
 import xml from "highlight.js/lib/languages/xml";
-import json from "high
-light.js / lib / languages / json";
+import json from "highlight.js/lib/languages/json";
 import typescriptLang from "highlight.js/lib/languages/typescript";
 
 /* --- Components --- */
 import TipTapToolbar from "../components/TipTapToolbar";
 import AIAssistant from "../components/AIAssistant";
-import { useCreatePost } from "../hooks/usePosts";
+import { useCreatePost, useUpdatePost } from "../hooks/usePosts";
+import { useLocation } from "react-router-dom";
+import { useAuthStore } from "../stores/authStore";
 
 // Register languages
 lowlight.registerLanguage("js", javascript);
@@ -53,8 +54,13 @@ lowlight.registerLanguage("json", json);
 lowlight.registerLanguage("typescript", typescriptLang);
 lowlight.registerLanguage("ts", typescriptLang);
 
-export default function CreatePost(): SX.Element {
+export default function CreatePost(): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
+  const authUser = useAuthStore((s) => s.user);
+  const role = useAuthStore((s) => s.role);
+  const isAdmin = role === "admin";
+  const editState = (location.state || {}) as any;
 
   // inputs
   const [title, setTitle] = useState<string>("");
@@ -62,6 +68,11 @@ export default function CreatePost(): SX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalMsg, setModalMsg] = useState<string>("");
+  const [tags, setTags] = useState<string[]>(() => editState.tags ?? []);
+  const [category, setCategory] = useState<string>(() => editState.category ?? "");
+  const [status, setStatus] = useState<"draft" | "published">(() =>
+    editState.status === "draft" ? "draft" : "published"
+  );
 
   const previewBodyRef = useRef<HTMLDivElement>(null);
 
@@ -120,22 +131,34 @@ export default function CreatePost(): SX.Element {
   };
 
   const createPost = useCreatePost();
+  const updatePost = useUpdatePost();
 
   /* --- Push Post to Firestore --- */
   const saveToFirebase = async (): Promise<void> => {
     if (!title.trim()) return showModalMsg("Please enter a post title");
-    if (!editor?.getHTML().trim())
+    if (!(editor?.getHTML() ?? "").trim())
       return showModalMsg("Please write something first");
 
     try {
       setLoading(true);
-      await createPost.mutateAsync({
+      const payload = {
         title,
-        content: editor.getHTML(),
-      });
+        content: editor?.getHTML() ?? "",
+        tags,
+        category,
+        status: status === "draft" ? "draft" : "published",
+      };
+
+      if (editState?.id) {
+        await updatePost.mutateAsync({ id: editState.id, data: payload });
+      } else {
+        await createPost.mutateAsync(payload as any);
+      }
+
       showModalMsg("Post saved successfully!");
       setTitle("");
-      editor.commands.setContent("<p></p>");
+      editor?.commands.setContent("<p></p>");
+      localStorage.removeItem("create-post-draft");
     } catch (error) {
       console.error("Error adding document: ", error);
       showModalMsg("Error saving post. Try again.");
@@ -158,8 +181,58 @@ export default function CreatePost(): SX.Element {
     if (window.confirm("Are you sure you want to clear all content?")) {
       setTitle("");
       editor?.commands.clearContent();
+      setTags([]);
+      setCategory("");
+      localStorage.removeItem("create-post-draft");
     }
   };
+
+  // Autosave draft locally every 10s
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        const draft = {
+          title,
+          content: editor?.getHTML() ?? "",
+          tags,
+          category,
+          status,
+          updatedAt: Date.now(),
+          id: editState?.id ?? null,
+        };
+        localStorage.setItem("create-post-draft", JSON.stringify(draft));
+      } catch (err) {
+        console.warn("Autosave failed:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(id);
+  }, [title, editor, tags, category, status, editState]);
+
+  // Load draft on mount when not editing, or populate editor for edit
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("create-post-draft");
+      if (raw && !editState?.id) {
+        const d = JSON.parse(raw);
+        setTitle(d.title || "");
+        setTags(d.tags || []);
+        setCategory(d.category || "");
+        setStatus(d.status || "draft");
+        editor?.commands.setContent(d.content || "<p></p>");
+      }
+
+      if (editState?.rawText || editState?.title) {
+        setTitle(editState.title || "");
+        editor?.commands.setContent(editState.rawText || "<p></p>");
+        setTags(editState.tags || []);
+        setCategory(editState.category || "");
+        setStatus(editState.status === "draft" ? "draft" : "published");
+      }
+    } catch (err) {
+      console.warn("Failed to load draft:", err);
+    }
+  }, [editor, editState]);
 
   return (
     <>
@@ -225,8 +298,8 @@ export default function CreatePost(): SX.Element {
                   variant="flat"
                   color="secondary"
                   onPress={saveToFirebase}
-                  isDisabled={loading || createPost.isPending}
-                  isLoading={loading || createPost.isPending}
+                  isDisabled={loading || (createPost as any).isLoading}
+                  isLoading={loading || (createPost as any).isLoading}
                 >
                   <CheckIcon className="w-4 h-4" />
                   <span className="ml-1 hidden sm:inline">Save</span>

@@ -82,7 +82,7 @@ export const useCreatePost = () => {
         authorId: user?.uid || "guest",
         authorName: user?.name || "Anonymous",
         createdAt: serverTimestamp(),
-        status: isAdmin ? "approved" : "pending",
+        status: (data as any).status ?? (isAdmin ? "approved" : "pending"),
       };
       const ref = await addDoc(collection(db, "posts"), blog);
       const blogData = { id: ref.id, ...blog } as BlogPost;
