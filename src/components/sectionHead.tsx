@@ -1,6 +1,6 @@
 import Scroll from "../assets/Scroll";
 
-function SectionHead({ title, descript }) {
+function SectionHead({ title, descript }: { title: string; descript: string }): JSX.Element {
   return (
     <>
       <div className="section-head text-center flex flex-col items-center gap-16">

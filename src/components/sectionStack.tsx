@@ -2,7 +2,7 @@ import SectionHead from "./sectionHead";
 import Monitor from "../assets/icon-monitor";
 
 
-function Stack() {
+function Stack(): JSX.Element {
   return (
     <section className="section-stack bg-[url('./assets/code.png')] bg-cover bg-center ">
       <div className=" bg-base-100/90 p-32 gap-16  h-ful  text-center flex flex-col items-center gap-16l">

@@ -1,10 +1,11 @@
 import { Span } from "./Span";
 import Scroll from "../assets/Scroll";
 import comp from "../assets/about-comp.png"
-function AboutMe() {
+
+function AboutMe(): JSX.Element {
   return (
     <section
-      className={`section-about    bg-cover  bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`}
+      className={`section-about    bg-cover  bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`} 
     >
       <div className="all bg-base-200/90 xl:p-20 flex flex-col gap-16  items-center justify-center h-full">
         <div className="scroll-container">
@@ -57,7 +58,7 @@ function AboutMe() {
   );
 }
 
-function  Image() {
+function  Image(): JSX.Element {
     return (
        
         <img

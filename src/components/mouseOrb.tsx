@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 
-const MouseOrb = () => {
-  const orbRef = useRef(null);
-  const mouse = useRef({ x: 0, y: 0 });
-  const position = useRef({ x: 0, y: 0 });
+const MouseOrb = (): JSX.Element => {
+  const orbRef = useRef<HTMLDivElement | null>(null);
+  const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const position = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
-    const updateMouse = (e) => {
+    const updateMouse = (e: MouseEvent) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
     };

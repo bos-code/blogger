@@ -1,6 +1,6 @@
 import SectionHead from "./sectionHead";
 
-function SectionContact() {
+function SectionContact(): JSX.Element {
   return (
     <section className=" bg-base-200  px-32 py-24  flex flex-col gap-16 items-center  justify-center">
       <SectionHead

@@ -2,7 +2,7 @@ import Discord from "../assets/discord";
 import Github from "../assets/github";
 import IconInstagram from "../assets/icon-instagram";
 
-function FooterComp() {
+function FooterComp(): JSX.Element {
   return (
     <footer className="footer mt-auto  sm:footer-horizontal bg-base-200 border-t-1  flex justify-between border-base-300 items-center px-32 py-4  text-base  ubuntu-light ">
       <aside className="grid-flow-col items-center  text-base  ubuntu-light ">

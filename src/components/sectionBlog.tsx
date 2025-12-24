@@ -1,6 +1,6 @@
 import SectionHead from "./sectionHead"
 
-function SectionBlog() {
+function SectionBlog(): JSX.Element {
     return (
       <section className=" px-32 py-24">
         <SectionHead

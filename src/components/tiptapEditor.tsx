@@ -5,7 +5,7 @@ import { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 
-export default function TipTapEditor({ authorId }) {
+export default function TipTapEditor({ authorId }: { authorId: string }): JSX.Element {
   const [title, setTitle] = useState("");
   const editor = useEditor({
     extensions: [StarterKit],
@@ -13,7 +13,7 @@ export default function TipTapEditor({ authorId }) {
   });
 
   const handlePublish = async () => {
-    const content = editor.getHTML();
+    const content = editor?.getHTML() ?? ""; 
 
     await addDoc(collection(db, "posts"), {
       title,

@@ -1,7 +1,7 @@
 import ProjectMockup from "./projectMockup";
 import SectionHead from "./sectionHead";
 
-function Work() {
+function Work(): JSX.Element {
   return (
     <section className="work  bg-[url('./assets/codeface.png')] bg-contain
       bg-repeat">

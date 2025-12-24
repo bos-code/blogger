@@ -13,7 +13,7 @@ import project4 from "../assets/fast.png";
 import project5 from "../assets/streamvibe.png";
 import project6 from "../assets/store.png";
 
-function ProjectMockup() {
+function ProjectMockup(): JSX.Element {
   const projects = [
     {
       title: "Portfolio",
@@ -48,8 +48,8 @@ function ProjectMockup() {
   ];
 
   // Refs for navigation buttons
-  const prevRef = useRef(null);
-  const nextRef = useRef(null);
+  const prevRef = useRef<HTMLButtonElement | null>(null);
+  const nextRef = useRef<HTMLButtonElement | null>(null);
 
   return (
     <div className="relative w-full py-8">

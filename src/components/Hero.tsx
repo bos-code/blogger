@@ -2,7 +2,7 @@
 import dera from "../assets/dera.png";
 const stack = ["HTML", "CSS", "JavaScript", "React"];
 
- function Hero() {
+ function Hero(): JSX.Element {
   return (
     <div className="mx-auto  px-4 sm:px-6  xl:px-10 pb-32 page-padding">
       <h1 className="heading--primary">developer</h1>
