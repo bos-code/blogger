@@ -1,46 +1,41 @@
-// pages/Dashboard.jsx
-
-import { useBlog } from "../components/BlogContext";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../stores/authStore";
+import { useUIStore } from "../stores/uiStore";
 import AdminDashboard from "../dashboardUi/AdminDashboard";
 import Categories from "../dashboardUi/catigories";
-import CreateNewPost from "../dashboardUi/CreateNewPost";
 import Post from "../dashboardUi/Post";
 import ProfileSetting from "../dashboardUi/ProfileSetting";
 import Users from "../dashboardUi/users";
 
-export default function Dashboard() {
-  const { user, role, dashboardScreen, dispatch } = useBlog();
+export default function Dashboard(): JSX.Element {
+  const user = useAuthStore((state) => state.user);
+  const role = useAuthStore((state) => state.role);
+  const dashboardScreen = useUIStore((state) => state.dashboardScreen);
+  const setDashboardScreen = useUIStore((state) => state.setDashboardScreen);
+  const navigate = useNavigate();
 
-  function handleManagePosts() {
-    // Logic to navigate to Manage Posts screen
-    dispatch({ type: "dashboard/setScreen", payload: "posts" });
+  function handleCreatePost(): void {
+    navigate("/create-post");
+  }
+  function handleManagePosts(): void {
+    setDashboardScreen("posts");
   }
 
-  function handleManageUsers() {
-    // Logic to navigate to Manage Users screen
-    dispatch({ type: "dashboard/setScreen", payload: "users" });
+  function handleManageUsers(): void {
+    setDashboardScreen("users");
   }
 
-  function handleManageCategories() {
-    // Logic to navigate to Manage Categories screen
-    dispatch({ type: "dashboard/setScreen", payload: "categories" });
+  function handleManageCategories(): void {
+    setDashboardScreen("categories");
   }
 
-  function handleProfileSettings() {
-    // Logic to navigate to Profile Settings screen
-    dispatch({ type: "dashboard/setScreen", payload: "profile" });
+  function handleProfileSettings(): void {
+    setDashboardScreen("profile");
   }
 
-  function handleCreatePost() {
-    // Logic to navigate to Create Post screen
-    dispatch({ type: "dashboard/setScreen", payload: "createPost" });
-  
+  function handleBackToDashboard(): void {
+    setDashboardScreen("home");
   }
-
-  function handleBackToDashboard() {
-    dispatch({ type: "dashboard/setScreen", payload: "home" });
-  }
-  
 
   const { photoURL, name } = user || {};
   if (!user)
@@ -71,7 +66,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="drawer  lg:drawer-open">
+        <div className="drawer  lg:drawer-closed">
           <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
           <label htmlFor="my-drawer-2" className="drawer-overlay">
             open
@@ -83,7 +78,6 @@ export default function Dashboard() {
             {dashboardScreen === "users" && <Users />}
             {dashboardScreen === "categories" && <Categories />}
             {dashboardScreen === "profile" && <ProfileSetting />}
-            {dashboardScreen === "createPost" && <CreateNewPost />}
           </div>
           <div className="drawer-side rounded-2xl">
             <label
@@ -93,7 +87,10 @@ export default function Dashboard() {
             ></label>
             <ul className="menu shadow-ce text-base-content min-h-full w-70 bg-primary flex flex-col gap-12 p-4">
               {/* Sidebar content here */}
-              <div onClick={handleBackToDashboard} className="flex  font-bold text-2xl items-center gap-2 mb-3 text-base-300 cursor-pointer">
+              <div
+                onClick={handleBackToDashboard}
+                className="flex  font-bold text-2xl items-center gap-2 mb-3 text-base-300 cursor-pointer"
+              >
                 <span>{"</>"}</span>
                 <span className="capitalize  underline-offset-2 underline">
                   john dera
@@ -152,3 +149,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+

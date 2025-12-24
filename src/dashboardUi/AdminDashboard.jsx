@@ -1,14 +1,15 @@
-import { useBlog } from "../components/BlogContext"
-
+import { usePosts } from "../hooks/usePosts";
 
 function AdminDashboard() {
-    const {postCount} = useBlog()
-   
-    return (
-        <div>
-            <h1>{postCount} Posts</h1>
-        </div>
-    )
+  const { data: posts = [] } = usePosts();
+  const postCount = posts.length;
+
+  return (
+    <div className="p-4">
+      <h2 className="text-lg font-bold mb-4">Admin Dashboard</h2>
+      <p>Total Posts: {postCount}</p>
+    </div>
+  );
 }
 
-export default AdminDashboard
+export default AdminDashboard;

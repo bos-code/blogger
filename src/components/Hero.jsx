@@ -11,7 +11,7 @@ const stack = ["HTML", "CSS", "JavaScript", "React"];
           <img
             src={dera}
             alt="Dera"
-            className="w-24 self-center  h-24 xl:w-32 xl:h-32 rounded-full shadow-lg border-3 border-primary"
+            className="w-24 grayscale-50 hover:grayscale-0 transition-all duration-500 self-center  h-24 xl:w-32 xl:h-32 rounded-full shadow-lg border-3 border-primary"
           />
           <div className="text-content flex justify-center  items-center flex-col">
             <h2 className="text-3xl xl:text-2xl 2xl:text-3xl ibm-plex font-bold capitalize ">

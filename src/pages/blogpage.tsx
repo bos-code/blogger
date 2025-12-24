@@ -1,19 +1,14 @@
-// src/pages/Blog.jsx
-import { useEffect } from "react";
-import { useState } from "react";
-import { useBlog } from "../components/BlogContext";
+import { usePosts } from "../hooks/usePosts";
+import type { BlogPost } from "../types";
 
-export default function Blog() {
-  const { blogList } = useBlog()
-  const [posts, setPosts] = useState([]);
+export default function Blog(): JSX.Element {
+  const { data: posts = [], isLoading, error } = usePosts();
 
- useEffect(() => {
-    if (blogList && blogList.length > 0) {
-      setPosts(blogList);
-    }
-  }, [blogList]);
-
-  console.log("Posts in Blog component:", blogList);
+  if (isLoading) return <div className="p-6">Loading posts...</div>;
+  if (error)
+    return (
+      <div className="p-6">Error loading posts: {(error as Error).message}</div>
+    );
 
   return (
     <div className="p-6">
@@ -22,10 +17,9 @@ export default function Blog() {
       {posts.length === 0 ? (
         <p>No posts yet.</p>
       ) : (
-        posts.map((post) => (
+        (posts as BlogPost[]).map((post) => (
           <div key={post.id}>
             <div className="card bg-base-100 shadow mb-4 p-4">
-
               <h2 className="text-xl text-[var(--color-primary)] font-semibold">
                 {post.title}
               </h2>
@@ -40,3 +34,5 @@ export default function Blog() {
     </div>
   );
 }
+
+

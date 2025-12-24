@@ -8,7 +8,7 @@ export default defineConfig({
     // Fix: Split vendor chunks (e.g., react, firebase, etc.)
     rollupOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id: string) {
           if (id.includes("node_modules")) {
             if (id.includes("react")) return "vendor-react";
             if (id.includes("firebase")) return "vendor-firebase";
@@ -21,3 +21,4 @@ export default defineConfig({
     chunkSizeWarningLimit: 4000, // optional — default is 500
   },
 });
+

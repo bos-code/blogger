@@ -1,0 +1,468 @@
+import { useRef, useState, MouseEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Button,
+} from "@heroui/react";
+import {
+  PencilIcon,
+  ExclamationTriangleIcon,
+  ArrowRightIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  XMarkIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
+import { motion, AnimatePresence } from "framer-motion";
+
+/* TipTap & syntax highlighting */
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import Youtube from "@tiptap/extension-youtube";
+import CharacterCount from "@tiptap/extension-character-count";
+import { lowlight } from "lowlight/lib/core";
+/* register languages */
+import javascript from "highlight.js/lib/languages/javascript";
+import css from "highlight.js/lib/languages/css";
+import xml from "highlight.js/lib/languages/xml";
+import json from "highlight.js/lib/languages/json";
+import typescriptLang from "highlight.js/lib/languages/typescript";
+
+/* --- Components --- */
+import TipTapToolbar from "../components/TipTapToolbar";
+import AIAssistant from "../components/AIAssistant";
+import { useCreatePost } from "../hooks/usePosts";
+
+// Register languages
+lowlight.registerLanguage("js", javascript);
+lowlight.registerLanguage("javascript", javascript);
+lowlight.registerLanguage("css", css);
+lowlight.registerLanguage("html", xml);
+lowlight.registerLanguage("xml", xml);
+lowlight.registerLanguage("json", json);
+lowlight.registerLanguage("typescript", typescriptLang);
+lowlight.registerLanguage("ts", typescriptLang);
+
+export default function CreatePost(): JSX.Element {
+  const navigate = useNavigate();
+
+  // inputs
+  const [title, setTitle] = useState<string>("");
+  const [showPreview, setShowPreview] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [modalMsg, setModalMsg] = useState<string>("");
+
+  const previewBodyRef = useRef<HTMLDivElement>(null);
+
+  /* --- TipTap Editable Editor --- */
+  const editor = useEditor({
+    editable: true,
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+        codeBlock: false,
+      }),
+      Underline,
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: "javascript",
+      }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: "rounded-lg max-w-full",
+        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline",
+        },
+      }),
+      Placeholder.configure({
+        placeholder: "Start writing your post here...",
+      }),
+      Youtube.configure({
+        controls: true,
+        nocookie: true,
+        HTMLAttributes: {
+          class: "rounded-lg",
+        },
+      }),
+      CharacterCount,
+    ],
+    content: "<p></p>",
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-6",
+      },
+    },
+  });
+
+  const showModalMsg = (msg: string): void => {
+    setModalMsg(msg);
+    setModalOpen(true);
+  };
+
+  const createPost = useCreatePost();
+
+  /* --- Push Post to Firestore --- */
+  const saveToFirebase = async (): Promise<void> => {
+    if (!title.trim()) return showModalMsg("Please enter a post title");
+    if (!editor?.getHTML().trim())
+      return showModalMsg("Please write something first");
+
+    try {
+      setLoading(true);
+      await createPost.mutateAsync({
+        title,
+        content: editor.getHTML(),
+      });
+      showModalMsg("Post saved successfully!");
+      setTitle("");
+      editor.commands.setContent("<p></p>");
+    } catch (error) {
+      console.error("Error adding document: ", error);
+      showModalMsg("Error saving post. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNext = (e?: MouseEvent<HTMLButtonElement>): void => {
+    e?.preventDefault();
+    if (!title.trim()) return showModalMsg("Please enter a post title");
+    if (!editor?.getHTML().trim())
+      return showModalMsg("Please write something first");
+    navigate("/edit-post", {
+      state: { title, rawText: editor.getHTML() },
+    });
+  };
+
+  const handleClear = (): void => {
+    if (window.confirm("Are you sure you want to clear all content?")) {
+      setTitle("");
+      editor?.commands.clearContent();
+    }
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-50 bg-base-100/80 backdrop-blur-lg border-b border-base-300 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-3">
+                <PencilIcon className="w-6 h-6 text-primary" />
+                <h1 className="text-xl font-bold text-base-content">
+                  Create New Post
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* AI Assistant */}
+                <AIAssistant
+                  editor={editor}
+                  title={title}
+                  onTitleChange={setTitle}
+                  onContentInsert={(content: string) => {
+                    if (editor) {
+                      editor.commands.insertContent(content);
+                    }
+                  }}
+                />
+
+                {/* Preview Toggle */}
+                <Button
+                  size="sm"
+                  variant="flat"
+                  onPress={() => setShowPreview(!showPreview)}
+                  className="hidden md:flex"
+                >
+                  {showPreview ? (
+                    <>
+                      <EyeSlashIcon className="w-4 h-4" />
+                      <span className="ml-1">Hide Preview</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeIcon className="w-4 h-4" />
+                      <span className="ml-1">Show Preview</span>
+                    </>
+                  )}
+                </Button>
+
+                {/* Action Buttons */}
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="default"
+                  onPress={handleClear}
+                  isDisabled={loading}
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                  <span className="ml-1 hidden sm:inline">Clear</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="secondary"
+                  onPress={saveToFirebase}
+                  isDisabled={loading || createPost.isPending}
+                  isLoading={loading || createPost.isPending}
+                >
+                  <CheckIcon className="w-4 h-4" />
+                  <span className="ml-1 hidden sm:inline">Save</span>
+                </Button>
+
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={handleNext}
+                  isDisabled={loading}
+                >
+                  <span className="hidden sm:inline">Next</span>
+                  <ArrowRightIcon className="w-4 h-4 sm:ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Editor Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className={showPreview ? "lg:col-span-7" : "lg:col-span-12"}
+            >
+              <div className="bg-base-100 rounded-2xl shadow-xl border border-base-300 overflow-hidden">
+                {/* Title Input */}
+                <div className="p-6 border-b border-base-300 bg-base-200/50">
+                  <input
+                    type="text"
+                    placeholder="Enter post title..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder:text-base-content/40 focus:placeholder:text-base-content/20 transition-colors"
+                  />
+                </div>
+
+                {/* Editor Toolbar & Content */}
+                <div className="bg-base-100">
+                  <TipTapToolbar editor={editor} />
+                  <div className="border-t border-base-300">
+                    <EditorContent editor={editor} />
+                  </div>
+                </div>
+
+                {/* Footer Stats */}
+                <div className="p-4 border-t border-base-300 bg-base-200/30 flex items-center justify-between text-sm">
+                  <div className="text-base-content/70">
+                    {editor?.storage.characterCount ? (
+                      <span>
+                        {editor.storage.characterCount.characters()} characters
+                        {" • "}
+                        {editor.storage.characterCount.words()} words
+                      </span>
+                    ) : (
+                      <span>0 characters</span>
+                    )}
+                  </div>
+                  <div className="text-base-content/50">
+                    {editor?.storage.characterCount?.characters() &&
+                      editor.storage.characterCount.characters() > 0 && (
+                        <span>
+                          ~
+                          {Math.ceil(
+                            editor.storage.characterCount.characters() / 1000
+                          )}{" "}
+                          min read
+                        </span>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Preview Column */}
+            <AnimatePresence>
+              {showPreview && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="lg:col-span-5"
+                >
+                  <div className="sticky top-20 bg-base-100 rounded-2xl shadow-xl border border-base-300 overflow-hidden h-[calc(100vh-8rem)] flex flex-col">
+                    {/* Preview Header */}
+                    <div className="p-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-base-content flex items-center gap-2">
+                        <EyeIcon className="w-5 h-5 text-primary" />
+                        Live Preview
+                      </h2>
+                      <Button
+                        size="sm"
+                        variant="light"
+                        isIconOnly
+                        onPress={() => setShowPreview(false)}
+                        className="md:hidden"
+                      >
+                        <XMarkIcon className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Preview Content */}
+                    <div
+                      ref={previewBodyRef}
+                      className="flex-1 overflow-y-auto p-6 custom-scrollbar"
+                    >
+                      {title && (
+                        <h1 className="text-3xl font-bold mb-4 text-base-content">
+                          {title}
+                        </h1>
+                      )}
+                      <div
+                        className="prose prose-sm sm:prose lg:prose-lg max-w-none prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-primary prose-pre:bg-base-300 prose-blockquote:border-l-primary"
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            editor?.getHTML() ||
+                            "<p class='text-base-content/50'>Start writing to see preview...</p>",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      <Modal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        isDismissable
+        placement="center"
+        size="sm"
+      >
+        <ModalContent>
+          <ModalHeader className="flex items-center gap-2">
+            <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
+            <span>Notice</span>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-base-content">{modalMsg}</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button color="primary" onPress={() => setModalOpen(false)}>
+              OK
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Styles */}
+      <style>{`
+        .custom-scrollbar { 
+          scrollbar-color: hsl(var(--p) / 0.3) transparent; 
+          scrollbar-width: thin; 
+        }
+        .custom-scrollbar::-webkit-scrollbar { 
+          width: 8px; 
+          height: 8px; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: hsl(var(--p) / 0.3);
+          border-radius: 999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--p) / 0.5);
+        }
+        .ProseMirror { 
+          outline: none; 
+        }
+        .ProseMirror p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: hsl(var(--bc) / 0.4);
+          pointer-events: none;
+          height: 0;
+        }
+        .ProseMirror img {
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 1rem auto;
+          border-radius: 0.5rem;
+        }
+        .ProseMirror pre {
+          background: hsl(var(--n));
+          color: hsl(var(--nc));
+          padding: 1rem;
+          border-radius: 0.5rem;
+          overflow-x: auto;
+          margin: 1rem 0;
+        }
+        .ProseMirror code {
+          background: hsl(var(--n) / 0.3);
+          padding: 0.2rem 0.4rem;
+          border-radius: 0.25rem;
+          font-size: 0.9em;
+        }
+        .ProseMirror pre code {
+          background: transparent;
+          padding: 0;
+        }
+        .ProseMirror blockquote {
+          border-left: 4px solid hsl(var(--p));
+          padding-left: 1rem;
+          margin: 1rem 0;
+          font-style: italic;
+        }
+        .ProseMirror ul, .ProseMirror ol {
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+        .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+          font-weight: bold;
+          margin-top: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+        .ProseMirror h1 { font-size: 2em; }
+        .ProseMirror h2 { font-size: 1.5em; }
+        .ProseMirror h3 { font-size: 1.25em; }
+        .ProseMirror a {
+          color: hsl(var(--p));
+          text-decoration: underline;
+        }
+        .ProseMirror a:hover {
+          color: hsl(var(--pf));
+        }
+      `}</style>
+    </>
+  );
+}
+
+
