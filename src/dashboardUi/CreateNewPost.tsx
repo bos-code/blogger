@@ -34,7 +34,8 @@ import { lowlight } from "lowlight/lib/core";
 import javascript from "highlight.js/lib/languages/javascript";
 import css from "highlight.js/lib/languages/css";
 import xml from "highlight.js/lib/languages/xml";
-import json from "highlight.js/lib/languages/json";
+import json from "high
+light.js / lib / languages / json";
 import typescriptLang from "highlight.js/lib/languages/typescript";
 
 /* --- Components --- */
@@ -52,7 +53,7 @@ lowlight.registerLanguage("json", json);
 lowlight.registerLanguage("typescript", typescriptLang);
 lowlight.registerLanguage("ts", typescriptLang);
 
-export default function CreatePost(): JSX.Element {
+export default function CreatePost(): SX.Element {
   const navigate = useNavigate();
 
   // inputs
@@ -464,5 +465,3 @@ export default function CreatePost(): JSX.Element {
     </>
   );
 }
-
-
