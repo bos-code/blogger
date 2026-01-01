@@ -195,7 +195,10 @@ export default function CreatePost(): React.ReactElement {
           setTags([]);
           setCategory("");
           localStorage.removeItem("create-post-draft");
-          showSuccess("Content Cleared", "All content has been cleared successfully!");
+          showSuccess(
+            "Content Cleared",
+            "All content has been cleared successfully!"
+          );
         },
       }
     );
@@ -552,5 +555,3 @@ export default function CreatePost(): React.ReactElement {
     </>
   );
 }
-
-

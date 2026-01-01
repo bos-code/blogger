@@ -242,7 +242,7 @@ export const useApprovePost = () => {
 
 /**
  * Like/Unlike Post Mutation Hook
- * 
+ *
  * Implements a complete like system with:
  * - Optimistic UI updates for instant feedback
  * - Automatic rollback on failure
@@ -250,12 +250,12 @@ export const useApprovePost = () => {
  * - Atomic updates to Firestore
  * - Proper error handling
  * - Authentication checks
- * 
+ *
  * Database Schema:
  * posts/{postId}
  *   - likedBy: string[] (array of user IDs who liked the post)
  *   - likes: number (count for backward compatibility, synced with likedBy.length)
- * 
+ *
  * Security:
  * - Only authenticated users can like (checked client-side and should be enforced in Firestore rules)
  * - Each user can only like once (enforced by array operations)
@@ -279,10 +279,10 @@ export const useLikePost = () => {
       }
 
       const userId = user.uid;
-      
+
       // Prevent duplicate likes: Check if user already liked
       const isLiked = currentLikedBy.includes(userId);
-      
+
       // Toggle like state: Add user ID if not liked, remove if already liked
       const newLikedBy = isLiked
         ? currentLikedBy.filter((id) => id !== userId) // Unlike: remove user ID
@@ -297,7 +297,7 @@ export const useLikePost = () => {
 
       return { postId, likedBy: newLikedBy };
     },
-    
+
     // Optimistic Update: Update UI immediately before server confirms
     onMutate: async ({ postId, currentLikedBy = [] }) => {
       // Cancel any outgoing refetches to avoid overwriting optimistic update
@@ -336,12 +336,12 @@ export const useLikePost = () => {
       // Return context with snapshot for potential rollback
       return { previousPosts };
     },
-    
+
     // On Success: Invalidate queries to sync with server
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
-    
+
     // On Error: Rollback optimistic update and show error
     onError: (error: Error, variables, context) => {
       // Rollback: Restore previous state
@@ -353,17 +353,17 @@ export const useLikePost = () => {
       showNotification({
         type: "error",
         title: "Failed to update like",
-        message: error.message || "There was an error updating the like. Please try again.",
+        message:
+          error.message ||
+          "There was an error updating the like. Please try again.",
       });
-      
+
       console.error("Like mutation error:", error);
     },
-    
+
     // Always refetch after error or success to ensure consistency
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
   });
 };
-
-
