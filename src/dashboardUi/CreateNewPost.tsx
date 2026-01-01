@@ -43,6 +43,7 @@ import AIAssistant from "../components/AIAssistant";
 import { useCreatePost, useUpdatePost } from "../hooks/usePosts";
 import { useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
+import { showConfirm, showSuccess } from "../utils/sweetalert";
 
 // Register languages
 lowlight.registerLanguage("js", javascript);
@@ -54,7 +55,7 @@ lowlight.registerLanguage("json", json);
 lowlight.registerLanguage("typescript", typescriptLang);
 lowlight.registerLanguage("ts", typescriptLang);
 
-export default function CreatePost(): JSX.Element {
+export default function CreatePost(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const authUser = useAuthStore((s) => s.user);
@@ -69,7 +70,9 @@ export default function CreatePost(): JSX.Element {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalMsg, setModalMsg] = useState<string>("");
   const [tags, setTags] = useState<string[]>(() => editState.tags ?? []);
-  const [category, setCategory] = useState<string>(() => editState.category ?? "");
+  const [category, setCategory] = useState<string>(
+    () => editState.category ?? ""
+  );
   const [status, setStatus] = useState<"draft" | "published">(() =>
     editState.status === "draft" ? "draft" : "published"
   );
@@ -178,13 +181,24 @@ export default function CreatePost(): JSX.Element {
   };
 
   const handleClear = (): void => {
-    if (window.confirm("Are you sure you want to clear all content?")) {
-      setTitle("");
-      editor?.commands.clearContent();
-      setTags([]);
-      setCategory("");
-      localStorage.removeItem("create-post-draft");
-    }
+    showConfirm(
+      "Clear All Content",
+      "Are you sure you want to clear all content? This action cannot be undone.",
+      {
+        confirmText: "Clear",
+        cancelText: "Cancel",
+        confirmColor: "error",
+        cancelColor: "ghost",
+        onConfirm: () => {
+          setTitle("");
+          editor?.commands.clearContent();
+          setTags([]);
+          setCategory("");
+          localStorage.removeItem("create-post-draft");
+          showSuccess("Content Cleared", "All content has been cleared successfully!");
+        },
+      }
+    );
   };
 
   // Autosave draft locally every 10s
@@ -538,3 +552,5 @@ export default function CreatePost(): JSX.Element {
     </>
   );
 }
+
+

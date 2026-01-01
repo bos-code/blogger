@@ -6,6 +6,8 @@ import ApprovalModal from "./components/ApprovalModal";
 import NotificationModal from "./components/NotificationModal";
 import { lazy, Suspense, useEffect } from "react";
 import "./App.css";
+import "sweetalert2/dist/sweetalert2.min.css";
+import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
 import EditPost from "./dashboardUi/EditPost";
 import CreatePost from "./dashboardUi/CreateNewPost";
@@ -15,9 +17,10 @@ const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/login"));
 const Signup = lazy(() => import("./pages/signup"));
 const Blog = lazy(() => import("./pages/blogpage"));
+const BlogPostDetail = lazy(() => import("./pages/BlogPostDetail"));
 const Admin = lazy(() => import("./pages/admin"));
 
-function App(): JSX.Element {
+function App(): React.ReactElement {
   const initAuth = useAuthStore((state) => state.initAuth);
 
   useEffect(() => {
@@ -39,6 +42,7 @@ function App(): JSX.Element {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/blogpage" element={<Blog />} />
+          <Route path="/blog/:id" element={<BlogPostDetail />} />
           <Route path="/create-post" element={<CreatePost />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
@@ -52,6 +56,11 @@ function App(): JSX.Element {
 }
 
 export default App;
+
+
+
+
+
 
 
 

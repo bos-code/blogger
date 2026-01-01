@@ -13,15 +13,21 @@ export interface BlogPost {
   id: string;
   title: string;
   content: string;
+  excerpt?: string;
+  coverImage?: string;
   authorId: string;
-  authorName: string;
+  authorName: string | null; // Can be null if not set during post creation
+  authorAvatar?: string;
   createdAt?: any; // Firestore Timestamp
   updatedAt?: any; // Firestore Timestamp
   status?: "pending" | "approved" | "rejected";
   category?: string;
   tags?: string[];
   views?: number;
-  likes?: number;
+  likes?: number; // Deprecated: use likedBy.length instead, kept for backward compatibility
+  likedBy?: string[]; // Array of user IDs who liked this post
+  readingTime?: number; // in minutes
+  technicalStack?: string[];
 }
 
 // Notification types

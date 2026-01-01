@@ -1,24 +1,24 @@
 import SectionHead from "./sectionHead";
 
-function SectionContact(): JSX.Element {
+function SectionContact(): React.ReactElement {
   return (
-    <section className=" bg-base-200  px-32 py-24  flex flex-col gap-16 items-center  justify-center">
+    <section className="bg-base-200 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24 flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center">
       <SectionHead
         title={"Contact"}
-        descript={"I’m currently available for freelance work"}
+        descript={"I'm currently available for freelance work"}
       />
 
       <form
         action="#"
-        className="form w-full  flex flex-col  gap-16 items-center justify-center"
+        className="form w-full flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center max-w-4xl"
       >
-        <h3 className="form-header ibm-plex-md  text-primary border-2  border-primary rounded-tl-4xl rounded-br-4xl px-10 py-4 self-center">
+        <h3 className="form-header ibm-plex-md text-primary border-2 border-primary rounded-tl-2xl sm:rounded-tl-3xl lg:rounded-tl-4xl rounded-br-2xl sm:rounded-br-3xl lg:rounded-br-4xl px-6 sm:px-8 lg:px-10 py-3 sm:py-4 text-sm sm:text-base md:text-lg lg:text-xl self-center">
           Send me a message
         </h3>
 
-        <div className="personals flex justify-center gap-32 items-center   w-full">
-          <fieldset className="fieldset flex flex-col gap-5 flex-1">
-            <legend className="fieldset-legend ubuntu-light text-base text-primary py-0">
+        <div className="personals flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-16 xl:gap-32 items-center w-full">
+          <fieldset className="fieldset flex flex-col gap-3 sm:gap-5 flex-1 w-full">
+            <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
               Your name *
             </legend>
             <input
@@ -26,36 +26,36 @@ function SectionContact(): JSX.Element {
               required
               placeholder="Enter your name"
               pattern="[A-Za-z][A-Za-z0-9\-]*"
-              minLength="3"
-              maxLength="30"
+              minLength={3}
+              maxLength={30}
               title="Only letters, numbers or dash"
-              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-base placeholder:text-white focus:outline-0"
+              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
             />
           </fieldset>
 
-          <fieldset className="fieldset flex flex-col gap-5 flex-1">
-            <legend className="fieldset-legend ubuntu-light text-base text-primary py-0">
+          <fieldset className="fieldset flex flex-col gap-3 sm:gap-5 flex-1 w-full">
+            <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
               Your email *
             </legend>
             <input
               type="email"
               required
               placeholder="Enter your email"
-              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-base placeholder:text-white focus:outline-0"
+              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
             />
           </fieldset>
         </div>
 
         <fieldset className="fieldset w-full">
-          <legend className="fieldset-legend  ubuntu-light text-base text-primary py-0">
+          <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
             Your message *
           </legend>
           <textarea
-            className=" p-2 -pb-2 inline-block h-auto border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-base placeholder:text-white focus:outline-0"
+            className="p-2 -pb-2 inline-block h-auto min-h-[120px] sm:min-h-[150px] border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
             placeholder="Enter your needs"
           ></textarea>
         </fieldset>
-        <button className="btn bg-primary text-base-100 text-xl font-normal rounded-full py-4 px-8 flex items-center justify-center gap-4" type="submit">
+        <button className="btn bg-primary text-base-100 text-base sm:text-lg lg:text-xl font-normal rounded-full py-3 sm:py-4 px-6 sm:px-8 flex items-center justify-center gap-2 sm:gap-4 w-full sm:w-auto" type="submit">
           Send Message
           <svg
             width="24"

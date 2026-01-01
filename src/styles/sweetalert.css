@@ -1,0 +1,77 @@
+/* SweetAlert Background Blur Styles */
+
+/* Blur effect when modal is active - using CSS (Tailwind blur-sm equivalent) */
+.swal-blur-active {
+  filter: blur(4px);
+  transition: filter 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+/* Ensure modal container is not blurred */
+.swal-container {
+  filter: none !important;
+  pointer-events: auto !important;
+}
+
+/* SweetAlert Popup Styling - using CSS */
+.swal-popup {
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Override SweetAlert backdrop */
+.swal2-backdrop-show {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Ensure modal content is above blurred background */
+.swal2-container {
+  z-index: 9999 !important;
+}
+
+/* Custom animations - cannot use @apply in keyframes */
+@keyframes swalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.swal-popup {
+  animation: swalFadeIn 0.3s ease-out;
+}
+
+/* Dark mode support - using CSS variables */
+@media (prefers-color-scheme: dark) {
+  .swal-popup {
+    background-color: hsl(var(--b1, 41 47 54)) !important;
+    color: hsl(var(--bc, 255 255 255)) !important;
+  }
+  
+  .swal2-title,
+  .swal2-content {
+    color: hsl(var(--bc, 255 255 255)) !important;
+  }
+  
+  .swal2-confirm,
+  .swal2-cancel {
+    color: white !important;
+  }
+}
+
+/* Responsive adjustments - using CSS */
+@media (max-width: 640px) {
+  .swal-popup {
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+}
+

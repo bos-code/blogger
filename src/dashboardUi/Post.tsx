@@ -1,3 +1,3 @@
-export default function Post(): JSX.Element {
+export default function Post(): React.ReactElement {
   return <div />;
 }

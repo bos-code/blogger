@@ -1,4 +1,4 @@
-export default function Categories(): JSX.Element {
+export default function Categories(): React.ReactElement {
   return (
     <div>
       <h1>Categories</h1>

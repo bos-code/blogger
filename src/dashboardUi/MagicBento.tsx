@@ -1,3 +1,3 @@
-export default function MagicBento(): JSX.Element {
+export default function MagicBento(): React.ReactElement {
   return <div />;
 }

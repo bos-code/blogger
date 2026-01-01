@@ -1,8 +1,15 @@
-export default function ProfileSetting(): JSX.Element {
+import { FormEvent } from "react";
+
+export default function ProfileSetting(): React.ReactElement {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
+    e.preventDefault();
+    // Handle form submission
+  };
+
   return (
     <div>
       <h1>Profile Settings</h1>
-      <form>
+      <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="name">Name:</label>
           <input type="text" id="name" name="name" />

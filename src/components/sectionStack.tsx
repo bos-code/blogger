@@ -2,26 +2,25 @@ import SectionHead from "./sectionHead";
 import Monitor from "../assets/icon-monitor";
 
 
-function Stack(): JSX.Element {
+function Stack(): React.ReactElement {
   return (
-    <section className="section-stack bg-[url('./assets/code.png')] bg-cover bg-center ">
-      <div className=" bg-base-100/90 p-32 gap-16  h-ful  text-center flex flex-col items-center gap-16l">
+    <section className="section-stack bg-[url('./assets/code.png')] bg-cover bg-center">
+      <div className="bg-base-100/90 p-4 sm:p-8 md:p-16 lg:p-24 xl:p-32 gap-8 sm:gap-12 lg:gap-16 h-full text-center flex flex-col items-center">
         <SectionHead
           title="Skills"
           descript="I am striving to never stop learning and improving"
         />
-        <div className="fieldBox  ibm-plex-mono flex flex-col justify-center items-center px-6 py-4 rounded-lg bg-secondary border-l-8 capitalize border-neutral">
+        <div className="fieldBox ibm-plex-mono flex flex-col justify-center items-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg bg-secondary border-l-4 sm:border-l-8 capitalize border-neutral w-full sm:w-auto">
           <Monitor />
-          <h5 className=" text-2xl text-base-100 ">web developement</h5>
-          <p className=" text-base text-base-300">HTML·CSS·JS·REACT</p>
+          <h5 className="text-lg sm:text-xl md:text-2xl text-base-100">web developement</h5>
+          <p className="text-sm sm:text-base text-base-300">HTML·CSS·JS·REACT</p>
         </div>
-        <ul className="flex   justify-center items-center gap-32 mt-20">
-          <li className=" flex gap-6 flex-col items-center justify-center  text-accent uppercase text-3xl ">
-            <div className=" flex items-center justify-center h-36 w-36  p-10  rounded-full  bg-accent ">
+        <ul className="flex flex-wrap justify-center items-center gap-8 sm:gap-12 md:gap-16 lg:gap-24 xl:gap-32 mt-8 sm:mt-12 lg:mt-20">
+          <li className="flex gap-3 sm:gap-4 md:gap-6 flex-col items-center justify-center text-accent uppercase text-xl sm:text-2xl md:text-3xl">
+            <div className="flex items-center justify-center h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36 p-6 sm:p-8 md:p-10 rounded-full bg-accent">
               {" "}
               <svg
-                width="64"
-                height="64"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -34,12 +33,10 @@ function Stack(): JSX.Element {
             </div>
             <label>HTML</label>
           </li>
-          <li className=" flex gap-6 flex-col items-center justify-center  text-neutral uppercase text-3xl ">
-            <div className=" flex items-center justify-center h-36 w-36  p-10  rounded-full  bg-neutral ">
-              {" "}
+          <li className="flex gap-3 sm:gap-4 md:gap-6 flex-col items-center justify-center text-neutral uppercase text-xl sm:text-2xl md:text-3xl">
+            <div className="flex items-center justify-center h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36 p-6 sm:p-8 md:p-10 rounded-full bg-neutral">
               <svg
-                width="64"
-                height="64"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -52,12 +49,10 @@ function Stack(): JSX.Element {
             </div>
             <label>CSS</label>
           </li>
-          <li className=" flex gap-6 flex-col items-center justify-center  text-warning uppercase text-3xl ">
-            <div className=" flex items-center justify-center h-36 w-36  p-10  rounded-full  bg-warning">
-              {" "}
+          <li className="flex gap-3 sm:gap-4 md:gap-6 flex-col items-center justify-center text-warning uppercase text-xl sm:text-2xl md:text-3xl">
+            <div className="flex items-center justify-center h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36 p-6 sm:p-8 md:p-10 rounded-full bg-warning">
               <svg
-                width="64"
-                height="64"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -70,12 +65,11 @@ function Stack(): JSX.Element {
             </div>
             <label>JS</label>
           </li>
-          <li className=" flex gap-6 flex-col items-center justify-center  text-info uppercase text-3xl ">
-            <div className=" flex items-center justify-center h-36 w-36  p-10  rounded-full  bg-info ">
+          <li className="flex gap-3 sm:gap-4 md:gap-6 flex-col items-center justify-center text-info uppercase text-xl sm:text-2xl md:text-3xl">
+            <div className="flex items-center justify-center h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-36 lg:w-36 p-6 sm:p-8 md:p-10 rounded-full bg-info">
               {" "}
               <svg
-                width="64"
-                height="64"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16"
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"

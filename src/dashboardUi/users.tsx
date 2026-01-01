@@ -1,4 +1,4 @@
-export default function Users(): JSX.Element {
+export default function Users(): React.ReactElement {
   return (
     <div>
       <h1>Users</h1>

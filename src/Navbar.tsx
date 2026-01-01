@@ -1,83 +1,130 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Github from "./assets/github";
+import LinkedIn from "./assets/linkedin";
+import Twitter from "./assets/twitter";
 
-export function Navbar(): JSX.Element {
+export function Navbar(): React.ReactElement {
   const logStatus = useAuthStore((state) => state.logStatus);
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const location = useLocation();
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent): void => {
+      const target = event.target as HTMLElement;
+      if (isMenuOpen && !target.closest('.mobile-menu') && !target.closest('.menu-toggle')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMenuOpen]);
+
+  // Close menu on route change
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
+  const toggleMenu = (): void => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
   return (
-    <nav className="navbar bg-base-100 shadow-sm sticky top-0 z-50 border-b border-base-300 px-4 md:px-6 lg:px-8 xl:px-10 mb-16">
+    <nav className="navbar bg-base-100/80 backdrop-blur-lg shadow-sm sticky top-0 z-50 border-b border-base-300 px-4 sm:px-6 md:px-8 lg:px-10 mb-8 sm:mb-12 lg:mb-16">
       {/* Left side (logo + mobile menu) */}
-      <div className="navbar-start">
-        {/* Mobile dropdown */}
-        <div className="dropdown">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn btn-ghost btn-circle md:hidden"
+      <div className="navbar-start flex items-center gap-2 sm:gap-4">
+        {/* Mobile menu toggle button */}
+        <button
+          onClick={toggleMenu}
+          className="menu-toggle btn btn-ghost btn-circle lg:hidden p-2"
+          aria-label="Toggle menu"
+          aria-expanded={isMenuOpen}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            {isMenuOpen ? (
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h7"
+                d="M6 18L18 6M6 6l12 12"
               />
-            </svg>
-          </div>
-          <ul
-            tabIndex={0}
-            className="menu menu-lg dropdown-content bg-base-100 rounded-box z-10 mt-3 w-52 p-2 shadow"
-          >
-            {!logStatus && (
-              <>
-                <li>
-                  <NavLink to="/login">Login</NavLink>
-                </li>
-                <li>
-                  <NavLink to="/signup">Sign Up</NavLink>
-                </li>
-              </>
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             )}
-            <li>
-              <NavLink to="/blogpage">Blog</NavLink>
-            </li>
-            {logStatus && (
-              <li>
-                <NavLink to="/admin">Dashboard</NavLink>
-              </li>
-            )}
-          </ul>
-        </div>
+          </svg>
+        </button>
 
         {/* Logo */}
-        <Link to="/" className="btn btn-ghost text-xl flex items-center gap-2">
-          <span className="text-[var(--color-primary)]">{"</>"}</span>
-          <span className="ibm-plex-mono capitalize">john dera</span>
+        <Link 
+          to="/" 
+          className="btn btn-ghost text-lg sm:text-xl flex items-center gap-2 hover:bg-transparent"
+          onClick={() => setIsMenuOpen(false)}
+        >
+          <span className="text-[var(--color-primary)] text-xl sm:text-2xl font-bold">{"</>"}</span>
+          <span className="ibm-plex-mono capitalize font-semibold">john dera</span>
         </Link>
       </div>
 
-      {/* Center links */}
-      <ul className="hidden md:flex gap-4 navbar-center">
+      {/* Center links - Desktop */}
+      <ul className="hidden lg:flex gap-4 lg:gap-6 navbar-center">
         <li>
-          <NavLink to="/blogpage" className="custom-btn">
+          <NavLink 
+            to="/" 
+            className="custom-btn text-sm lg:text-base px-3 lg:px-4 py-2 hover:text-primary transition-colors"
+            end
+          >
+            Home
+          </NavLink>
+        </li>
+        <li>
+          <NavLink 
+            to="/blogpage" 
+            className="custom-btn text-sm lg:text-base px-3 lg:px-4 py-2 hover:text-primary transition-colors"
+          >
             Blog
           </NavLink>
         </li>
         {!logStatus && (
           <li>
-            <NavLink to="/login" className="custom-btn">
+            <NavLink 
+              to="/login" 
+              className="custom-btn text-sm lg:text-base px-3 lg:px-4 py-2 hover:text-primary transition-colors"
+            >
               Login
             </NavLink>
           </li>
         )}
         {logStatus && (
           <li>
-            <NavLink to="/admin" className="custom-btn">
+            <NavLink 
+              to="/admin" 
+              className="custom-btn text-sm lg:text-base px-3 lg:px-4 py-2 hover:text-primary transition-colors"
+            >
               Dashboard
             </NavLink>
           </li>
@@ -85,120 +132,275 @@ export function Navbar(): JSX.Element {
       </ul>
 
       {/* Right side (search + social) */}
-      <div className="navbar-end gap-12 pl-8">
-        <label className="input bg-white rounded-full size-full">
-          <input type="search" required placeholder="Search" />
+      <div className="navbar-end gap-4 sm:gap-6 lg:gap-8 pl-4 sm:pl-8">
+        {/* Search - Hidden on mobile, visible on tablet+ */}
+        <label className="input bg-base-200/50 hover:bg-base-200 rounded-full w-32 sm:w-40 md:w-48 lg:w-56 hidden sm:flex items-center gap-2 border border-base-300 focus-within:border-primary transition-colors">
+          <input 
+            type="search" 
+            placeholder="Search" 
+            className="bg-transparent border-none focus:outline-none text-sm"
+          />
           <svg
-            className="h-[1em] opacity-50"
+            className="h-4 w-4 opacity-70"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
           >
-            <g
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              strokeWidth="2.5"
-              fill="none"
-              stroke={"var(--color-base-100)"}
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.3-4.3"></path>
-            </g>
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
           </svg>
         </label>
 
-        {/* Social links */}
-        <div className="flex gap-2 items-center">
-          {/* Desktop version: icon + name */}
-          <a
-            href="https://github.com/bos-code"
+        {/* Social links - Desktop */}
+        <div className="hidden lg:flex gap-2 xl:gap-3 items-center">
+          <motion.a
+            href="https://github.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-ghost gap-2 hidden md:flex"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group flex items-center gap-2 px-2 xl:px-3 py-1.5 xl:py-2 rounded-full bg-base-200/50 hover:bg-base-200 border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+            aria-label="GitHub"
           >
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill={"var(--color-primary)"}
-            >
-              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577v-2.257C6.73 20.408 5.897 18.19 5.897 18.19c-.546-1.387-1.333-1.757-1.333-1.757-1.09-.746.083-.73.083-.73 1.204.085 1.837 1.236 1.837 1.236 1.07 1.834 2.809 1.304 3.495.996.107-.776.42-1.304.762-1.604-4.663-.531-9.555-2.331-9.555-10.368 0-2.291.82-4.164 2.164-5.636-.217-.532-.94-2.675.206-5.577 0 0 1.77-.567 5.8 2.162 1.684-.468 3.492-.702 5.29-.71 1.797.008 3.605.242 5.29.71 4.03-2.729 5.798-2.162 5.798-2.162 1.147 2.902.424 5.045.208 5.577 1.346 1.472 2.164 3.345 2.164 5.636 0 8.058-4.897 9.833-9.567 10.356.43.37.823 1.102.823 2.222v3.293c0 .322.217.694.825.576C20.565 21.796 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-            <span>GitHub</span>
-          </a>
-
-          <a
-            href="https://x.com/Dera46082"
+            <div className="w-5 h-5 xl:w-6 xl:h-6 flex items-center justify-center text-base-content/70 group-hover:text-primary transition-colors">
+              <Github />
+            </div>
+            <span className="text-xs xl:text-sm font-medium text-base-content/70 group-hover:text-primary transition-colors hidden xl:inline">
+              GitHub
+            </span>
+          </motion.a>
+          <motion.a
+            href="https://linkedin.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-ghost gap-2 hidden md:flex"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group flex items-center gap-2 px-2 xl:px-3 py-1.5 xl:py-2 rounded-full bg-base-200/50 hover:bg-base-200 border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+            aria-label="LinkedIn"
           >
-            <svg
-              className="h-5 w-5"
-              fill={"var(--color-primary)"}
-              viewBox="0 0 24 24"
-            >
-              <path d="M23.954 4.569c-.885.389-1.83.654-2.825.775 1.014-.611 1.794-1.574 2.163-2.723-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-2.72 0-4.924 2.204-4.924 4.924 0 .39.045.765.127 1.124-4.09-.205-7.72-2.165-10.148-5.144-.424.729-.666 1.577-.666 2.475 0 1.71.87 3.213 2.188 4.096-.807-.026-1.566-.247-2.229-.616v.062c0 2.385 1.693 4.374 3.946 4.828-.413.111-.849.171-1.296.171-.317 0-.626-.03-.928-.086.627 1.956 2.444 3.379 4.6 3.42-1.68 1.316-3.808 2.102-6.102 2.102-.395 0-.779-.023-1.158-.067 2.179 1.397 4.768 2.213 7.557 2.213 9.054 0 14.001-7.496 14.001-13.986 0-.21 0-.423-.016-.633.962-.695 1.8-1.562 2.46-2.549z" />
-            </svg>
-            <span>Twitter</span>
-          </a>
-
-          <a
-            href="https://linkedin.com/in/yourhandle"
+            <div className="w-5 h-5 xl:w-6 xl:h-6 flex items-center justify-center text-base-content/70 group-hover:text-primary transition-colors">
+              <LinkedIn />
+            </div>
+            <span className="text-xs xl:text-sm font-medium text-base-content/70 group-hover:text-primary transition-colors hidden xl:inline">
+              LinkedIn
+            </span>
+          </motion.a>
+          <motion.a
+            href="https://twitter.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-ghost gap-2 hidden md:flex"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="group flex items-center gap-2 px-2 xl:px-3 py-1.5 xl:py-2 rounded-full bg-base-200/50 hover:bg-base-200 border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+            aria-label="Twitter"
           >
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill={"var(--color-primary)"}
-            >
-              <path d="M4.98 3.5C3.88 3.5 3 4.38 3 5.5S3.88 7.5 4.98 7.5 7 6.62 7 5.5 6.1 3.5 4.98 3.5zM3.5 8.75h2.98V21H3.5V8.75zM10.75 8.75h2.85v1.67h.04c.4-.76 1.37-1.56 2.83-1.56 3.03 0 3.59 1.99 3.59 4.57V21H17v-6.5c0-1.55-.03-3.55-2.17-3.55-2.18 0-2.51 1.7-2.51 3.44V21H10.75V8.75z" />
-            </svg>
-            <span>LinkedIn</span>
-          </a>
-
-          {/* Mobile version: icons only */}
-          <a
-            href="https://github.com/bos-code"
-            className="btn btn-ghost btn-circle md:hidden"
-          >
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill={"var(--color-primary)"}
-            >
-              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577v-2.257C6.73 20.408 5.897 18.19 5.897 18.19c-.546-1.387-1.333-1.757-1.333-1.757-1.09-.746.083-.73.083-.73 1.204.085 1.837 1.236 1.837 1.236 1.07 1.834 2.809 1.304 3.495.996.107-.776.42-1.304.762-1.604-4.663-.531-9.555-2.331-9.555-10.368 0-2.291.82-4.164 2.164-5.636-.217-.532-.94-2.675.206-5.577 0 0 1.77-.567 5.8 2.162 1.684-.468 3.492-.702 5.29-.71 1.797.008 3.605.242 5.29.71 4.03-2.729 5.798-2.162 5.798-2.162 1.147 2.902.424 5.045.208 5.577 1.346 1.472 2.164 3.345 2.164 5.636 0 8.058-4.897 9.833-9.567 10.356.43.37.823 1.102.823 2.222v3.293c0 .322.217.694.825.576C20.565 21.796 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
-            </svg>
-          </a>
-          <a
-            href="https://x.com/Dera46082"
-            className="btn btn-ghost btn-circle md:hidden"
-          >
-            <svg
-              className="h-5 w-5"
-              fill={"var(--color-primary)"}
-              viewBox="0 0 24 24"
-            >
-              <path d="M23.954 4.569c-.885.389-1.83.654-2.825.775 1.014-.611 1.794-1.574 2.163-2.723-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-2.72 0-4.924 2.204-4.924 4.924 0 .39.045.765.127 1.124-4.09-.205-7.72-2.165-10.148-5.144-.424.729-.666 1.577-.666 2.475 0 1.71.87 3.213 2.188 4.096-.807-.026-1.566-.247-2.229-.616v.062c0 2.385 1.693 4.374 3.946 4.828-.413.111-.849.171-1.296.171-.317 0-.626-.03-.928-.086.627 1.956 2.444 3.379 4.6 3.42-1.68 1.316-3.808 2.102-6.102 2.102-.395 0-.779-.023-1.158-.067 2.179 1.397 4.768 2.213 7.557 2.213 9.054 0 14.001-7.496 14.001-13.986 0-.21 0-.423-.016-.633.962-.695 1.8-1.562 2.46-2.549z" />
-            </svg>
-          </a>
-          <a
-            href="https://www.linkedin.com/in/chidera-okonkwo-38694433a/1"
-            className="btn btn-ghost btn-circle md:hidden"
-          >
-            <svg
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill={"var(--color-primary)"}
-            >
-              <path d="M4.98 3.5C3.88 3.5 3 4.38 3 5.5S3.88 7.5 4.98 7.5 7 6.62 7 5.5 6.1 3.5 4.98 3.5zM3.5 8.75h2.98V21H3.5V8.75zM10.75 8.75h2.85v1.67h.04c.4-.76 1.37-1.56 2.83-1.56 3.03 0 3.59 1.99 3.59 4.57V21H17v-6.5c0-1.55-.03-3.55-2.17-3.55-2.18 0-2.51 1.7-2.51 3.44V21H10.75V8.75z" />
-            </svg>
-          </a>
+            <div className="w-5 h-5 xl:w-6 xl:h-6 flex items-center justify-center text-base-content/70 group-hover:text-primary transition-colors">
+              <Twitter />
+            </div>
+            <span className="text-xs xl:text-sm font-medium text-base-content/70 group-hover:text-primary transition-colors hidden xl:inline">
+              Twitter
+            </span>
+          </motion.a>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            
+            {/* Mobile Menu */}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
+              className="mobile-menu fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-base-100 shadow-2xl z-50 lg:hidden overflow-y-auto"
+            >
+              <div className="flex flex-col h-full">
+                {/* Menu Header */}
+                <div className="flex items-center justify-between p-4 border-b border-base-300">
+                  <Link 
+                    to="/" 
+                    className="flex items-center gap-2 text-xl font-semibold"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <span className="text-primary">{"</>"}</span>
+                    <span className="ibm-plex-mono capitalize">john dera</span>
+                  </Link>
+                  <button
+                    onClick={() => setIsMenuOpen(false)}
+                    className="btn btn-ghost btn-circle btn-sm"
+                    aria-label="Close menu"
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Menu Items */}
+                <ul className="flex flex-col gap-2 p-4 flex-1">
+                  <li>
+                    <NavLink
+                      to="/"
+                      className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                      end
+                    >
+                      Home
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      to="/blogpage"
+                      className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Blog
+                    </NavLink>
+                  </li>
+                  {!logStatus && (
+                    <>
+                      <li>
+                        <NavLink
+                          to="/login"
+                          className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Login
+                        </NavLink>
+                      </li>
+                      <li>
+                        <NavLink
+                          to="/signup"
+                          className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Sign Up
+                        </NavLink>
+                      </li>
+                    </>
+                  )}
+                  {logStatus && (
+                    <li>
+                      <NavLink
+                        to="/admin"
+                        className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Dashboard
+                      </NavLink>
+                    </li>
+                  )}
+                </ul>
+
+                {/* Mobile Search */}
+                <div className="p-4 border-t border-base-300">
+                  <label className="input bg-base-200 rounded-full w-full flex items-center gap-2 border border-base-300">
+                    <input 
+                      type="search" 
+                      placeholder="Search" 
+                      className="bg-transparent border-none focus:outline-none text-sm flex-1"
+                    />
+                    <svg
+                      className="h-4 w-4 opacity-70"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                  </label>
+                </div>
+
+                {/* Social Links in Mobile Menu */}
+                <div className="p-4 border-t border-base-300">
+                  <div className="flex flex-col gap-3 items-center">
+                    <div className="flex gap-3 sm:gap-4 justify-center items-center">
+                      <motion.a
+                        href="https://github.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.08, y: -1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-base-200/50 hover:bg-base-200 text-base-content/70 hover:text-primary border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+                        aria-label="GitHub"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Github />
+                      </motion.a>
+                      <motion.a
+                        href="https://linkedin.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.08, y: -1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-base-200/50 hover:bg-base-200 text-base-content/70 hover:text-primary border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+                        aria-label="LinkedIn"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <LinkedIn />
+                      </motion.a>
+                      <motion.a
+                        href="https://twitter.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.08, y: -1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-base-200/50 hover:bg-base-200 text-base-content/70 hover:text-primary border border-base-300/50 hover:border-primary/30 transition-all duration-300"
+                        aria-label="Twitter"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        <Twitter />
+                      </motion.a>
+                    </div>
+                    <div className="flex gap-2 text-xs text-base-content/60">
+                      <span>GitHub</span>
+                      <span>•</span>
+                      <span>LinkedIn</span>
+                      <span>•</span>
+                      <span>Twitter</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
+
+
+
+
+
 
 
 

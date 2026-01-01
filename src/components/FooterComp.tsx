@@ -1,8 +1,11 @@
+import React from "react";
 import Discord from "../assets/discord";
 import Github from "../assets/github";
 import IconInstagram from "../assets/icon-instagram";
+import LinkedIn from "../assets/linkedin";
+import Twitter from "../assets/twitter";
 
-function FooterComp(): JSX.Element {
+function FooterComp(): React.ReactElement {
   return (
     <footer className="footer mt-auto  sm:footer-horizontal bg-base-200 border-t-1  flex justify-between border-base-300 items-center px-32 py-4  text-base  ubuntu-light ">
       <aside className="grid-flow-col items-center  text-base  ubuntu-light ">
@@ -23,29 +26,56 @@ function FooterComp(): JSX.Element {
         </ul>
       </div>
       <div className="media">
-        <ul className=" flex items-center justify-center gap-8">
+        <ul className=" flex items-center justify-center gap-6 sm:gap-8">
           <li className="">
             <a
-              href=" #"
-              className=" p-2 inline-block bg-secondary rounded-full"
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
+              aria-label="GitHub"
+            >
+              <Github />
+            </a>
+          </li>
+          <li className="">
+            <a
+              href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
+              aria-label="LinkedIn"
+            >
+              <LinkedIn />
+            </a>
+          </li>
+          <li className="">
+            <a
+              href="https://twitter.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
+              aria-label="Twitter"
+            >
+              <Twitter />
+            </a>
+          </li>
+          <li className="">
+            <a
+              href="#"
+              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
+              aria-label="Instagram"
             >
               <IconInstagram />
             </a>
           </li>
           <li className="">
             <a
-              href=" #"
-              className=" p-2  inline-block bg-secondary rounded-full"
+              href="#"
+              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
+              aria-label="Discord"
             >
               <Discord />
-            </a>
-          </li>
-          <li className="">
-            <a
-              href=" #"
-              className=" p-2 inline-block bg-secondary rounded-full"
-            >
-              <Github />
             </a>
           </li>
         </ul>

@@ -7,7 +7,7 @@ import Post from "../dashboardUi/Post";
 import ProfileSetting from "../dashboardUi/ProfileSetting";
 import Users from "../dashboardUi/users";
 
-export default function Dashboard(): JSX.Element {
+export default function Dashboard(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
   const dashboardScreen = useUIStore((state) => state.dashboardScreen);
@@ -149,6 +149,3 @@ export default function Dashboard(): JSX.Element {
     </div>
   );
 }
-
-
-

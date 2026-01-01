@@ -72,7 +72,9 @@ export const useCreatePost = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
   const isAdmin = role === "admin";
 
   return useMutation<BlogPost, Error, CreatePostData>({
@@ -83,6 +85,8 @@ export const useCreatePost = () => {
         authorName: user?.name || "Anonymous",
         createdAt: serverTimestamp(),
         status: (data as any).status ?? (isAdmin ? "approved" : "pending"),
+        likedBy: [], // Initialize with empty array
+        likes: 0, // Initialize with 0
       };
       const ref = await addDoc(collection(db, "posts"), blog);
       const blogData = { id: ref.id, ...blog } as BlogPost;
@@ -115,7 +119,8 @@ export const useCreatePost = () => {
       showNotification({
         type: "error",
         title: "Failed to Create Post",
-        message: "There was an error creating your blog post. Please try again.",
+        message:
+          "There was an error creating your blog post. Please try again.",
       });
       console.error(error);
     },
@@ -125,7 +130,9 @@ export const useCreatePost = () => {
 // Update post mutation
 export const useUpdatePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
 
   return useMutation<UpdatePostData, Error, UpdatePostData>({
     mutationFn: async ({ id, data }) => {
@@ -147,7 +154,8 @@ export const useUpdatePost = () => {
       showNotification({
         type: "error",
         title: "Failed to Update Post",
-        message: "There was an error updating your blog post. Please try again.",
+        message:
+          "There was an error updating your blog post. Please try again.",
       });
       console.error(error);
     },
@@ -157,7 +165,9 @@ export const useUpdatePost = () => {
 // Delete post mutation
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
@@ -186,7 +196,9 @@ export const useDeletePost = () => {
 // Approve post mutation
 export const useApprovePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
@@ -220,12 +232,138 @@ export const useApprovePost = () => {
       showNotification({
         type: "error",
         title: "Failed to Approve Post",
-        message: "There was an error approving the blog post. Please try again.",
+        message:
+          "There was an error approving the blog post. Please try again.",
       });
       console.error(error);
     },
   });
 };
 
+/**
+ * Like/Unlike Post Mutation Hook
+ * 
+ * Implements a complete like system with:
+ * - Optimistic UI updates for instant feedback
+ * - Automatic rollback on failure
+ * - Prevention of duplicate likes
+ * - Atomic updates to Firestore
+ * - Proper error handling
+ * - Authentication checks
+ * 
+ * Database Schema:
+ * posts/{postId}
+ *   - likedBy: string[] (array of user IDs who liked the post)
+ *   - likes: number (count for backward compatibility, synced with likedBy.length)
+ * 
+ * Security:
+ * - Only authenticated users can like (checked client-side and should be enforced in Firestore rules)
+ * - Each user can only like once (enforced by array operations)
+ */
+export const useLikePost = () => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
+
+  return useMutation<
+    { postId: string; likedBy: string[] },
+    Error,
+    { postId: string; currentLikedBy?: string[] }
+  >({
+    mutationFn: async ({ postId, currentLikedBy = [] }) => {
+      // Security: Ensure user is authenticated
+      if (!user?.uid) {
+        throw new Error("You must be logged in to like posts");
+      }
+
+      const userId = user.uid;
+      
+      // Prevent duplicate likes: Check if user already liked
+      const isLiked = currentLikedBy.includes(userId);
+      
+      // Toggle like state: Add user ID if not liked, remove if already liked
+      const newLikedBy = isLiked
+        ? currentLikedBy.filter((id) => id !== userId) // Unlike: remove user ID
+        : [...currentLikedBy, userId]; // Like: add user ID
+
+      // Atomic update: Update both likedBy array and likes count in single transaction
+      await updateDoc(doc(db, "posts", postId), {
+        likedBy: newLikedBy,
+        likes: newLikedBy.length, // Keep count in sync for backward compatibility
+        updatedAt: serverTimestamp(),
+      });
+
+      return { postId, likedBy: newLikedBy };
+    },
+    
+    // Optimistic Update: Update UI immediately before server confirms
+    onMutate: async ({ postId, currentLikedBy = [] }) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+
+      // Snapshot the previous value for rollback
+      const previousPosts = queryClient.getQueryData<BlogPost[]>(["posts"]);
+
+      // Get current user for optimistic update
+      const currentUser = user;
+      if (!currentUser?.uid) {
+        return { previousPosts };
+      }
+
+      const userId = currentUser.uid;
+      const isLiked = currentLikedBy.includes(userId);
+      const newLikedBy = isLiked
+        ? currentLikedBy.filter((id) => id !== userId)
+        : [...currentLikedBy, userId];
+
+      // Optimistically update the cache
+      queryClient.setQueryData<BlogPost[]>(["posts"], (oldPosts) => {
+        if (!oldPosts) return oldPosts;
+
+        return oldPosts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                likedBy: newLikedBy,
+                likes: newLikedBy.length,
+              }
+            : post
+        );
+      });
+
+      // Return context with snapshot for potential rollback
+      return { previousPosts };
+    },
+    
+    // On Success: Invalidate queries to sync with server
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+    
+    // On Error: Rollback optimistic update and show error
+    onError: (error: Error, variables, context) => {
+      // Rollback: Restore previous state
+      if (context?.previousPosts) {
+        queryClient.setQueryData<BlogPost[]>(["posts"], context.previousPosts);
+      }
+
+      // Show user-friendly error notification
+      showNotification({
+        type: "error",
+        title: "Failed to update like",
+        message: error.message || "There was an error updating the like. Please try again.",
+      });
+      
+      console.error("Like mutation error:", error);
+    },
+    
+    // Always refetch after error or success to ensure consistency
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+  });
+};
 
 

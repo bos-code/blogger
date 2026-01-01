@@ -1,4 +1,4 @@
-export default function EditPost(): JSX.Element {
+export default function EditPost(): React.ReactElement {
   return (
     <div>
       <p>Edit post placeholder</p>
