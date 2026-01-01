@@ -19,8 +19,11 @@ export default defineConfig({
     },
     // Optional: raise limit if absolutely necessary (but don't rely on this)
     chunkSizeWarningLimit: 4000, // optional — default is 500
+    // Note: The @property warning from DaisyUI is harmless - it's valid CSS that browsers support
+    // Vite's CSS optimizer doesn't recognize it, but it will work correctly in the browser
   },
 });
+
 
 
 
