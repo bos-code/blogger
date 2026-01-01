@@ -39,7 +39,10 @@ export default function Blog(): JSX.Element {
                   <button
                     className="btn btn-ghost btn-sm"
                     onClick={() =>
-                      updatePost.mutate({ id: post.id, data: { likes: (post.likes || 0) + 1 } })
+                      updatePost.mutate({
+                        id: post.id,
+                        data: { likes: (post.likes || 0) + 1 },
+                      })
                     }
                   >
                     👍 {post.likes || 0}
@@ -49,9 +52,7 @@ export default function Blog(): JSX.Element {
                     <>
                       <button
                         className="btn btn-outline btn-sm"
-                        onClick={() =>
-                          deletePost.mutate(post.id)
-                        }
+                        onClick={() => deletePost.mutate(post.id)}
                       >
                         Delete
                       </button>
@@ -60,7 +61,10 @@ export default function Blog(): JSX.Element {
                 </div>
               </div>
 
-              <div className="mt-2 prose max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />
+              <div
+                className="mt-2 prose max-w-none"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
 
               <Comments postId={post.id} />
             </div>
@@ -71,6 +75,3 @@ export default function Blog(): JSX.Element {
     </div>
   );
 }
-
-
-
