@@ -4,29 +4,38 @@ import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
 import Twitter from "../assets/twitter";
 
-const stack = ["HTML", "CSS", "JavaScript", "React"];
+const stack = [
+  "HTML",
+  "CSS",
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Tailwind CSS",
+  "Git",
+];
 
 function Hero(): React.ReactElement {
   return (
-    <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 pb-12 sm:pb-16 md:pb-20 lg:pb-24 xl:pb-32 page-padding max-w-7xl">
+    <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 pb-12 sm:pb-16 md:pb-20 lg:pb-24 xl:pb-32 page-padding max-w-7xl flex flex-col items-center justify-center min-h-[80vh]">
       {/* Main heading */}
       <motion.h1
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="heading--primary text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] font-bold leading-tight sm:leading-none"
+        className="heading--primary text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] font-bold leading-tight sm:leading-none text-center"
       >
         developer
       </motion.h1>
 
       {/* Hero Content Container */}
-      <div className="hero__content flex flex-col lg:flex-row items-stretch lg:items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16">
+      <div className="hero__content flex flex-col lg:flex-row items-center lg:items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full">
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="about-me bg-base-100 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-5 sm:p-6 md:p-7 lg:p-6 xl:p-8 flex gap-4 sm:gap-5 md:gap-6 xl:gap-6 flex-col w-full sm:max-w-sm lg:max-w-none lg:w-auto flex-shrink-0"
+          className="about-me bg-base-100 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 sm:p-5 md:p-6 lg:p-6 xl:p-7 2xl:p-8 flex gap-3 sm:gap-4 md:gap-5 lg:gap-5 xl:gap-6 flex-col w-full sm:max-w-sm md:max-w-md lg:max-w-none lg:w-auto flex-shrink-0"
         >
           {/* Profile Image */}
           <div className="flex justify-center">
@@ -41,10 +50,10 @@ function Hero(): React.ReactElement {
 
           {/* Name and Title */}
           <div className="text-content flex justify-center items-center flex-col gap-1">
-            <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-2xl xl:text-3xl 2xl:text-4xl ibm-plex font-bold capitalize text-center">
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl 2xl:text-4xl ibm-plex font-bold capitalize text-center break-words">
               dera
             </h2>
-            <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base ibm-plex-mono capitalize text-base-content/70">
+            <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base 2xl:text-lg ibm-plex-mono capitalize text-base-content/70 break-words">
               front-end developer
             </p>
           </div>
@@ -170,14 +179,14 @@ function Hero(): React.ReactElement {
             </ul>
 
             {/* Social Media Icons */}
-            <div className="flex items-center justify-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <div className="flex items-center justify-start gap-2 sm:gap-3 mb-3 sm:mb-4">
               <motion.a
                 href="https://github.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.15, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
+                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
                 aria-label="GitHub"
               >
                 <Github />
@@ -189,7 +198,7 @@ function Hero(): React.ReactElement {
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.15, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
+                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
                 aria-label="LinkedIn"
               >
                 <LinkedIn />
@@ -201,7 +210,7 @@ function Hero(): React.ReactElement {
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.15, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
+                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
                 aria-label="Twitter"
               >
                 <Twitter />
@@ -209,19 +218,37 @@ function Hero(): React.ReactElement {
             </div>
 
             {/* Tech Stack Badges */}
-            <div className="labels fx gap-2 sm:gap-2.5 md:gap-3 flex-wrap justify-center">
-              {stack.map((item, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
-                  whileHover={{ scale: 1.1 }}
-                  className="badge badge-primary rounded-full text-base-100 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium"
-                >
-                  {item}
-                </motion.div>
-              ))}
+            <div className="labels fx flex-col gap-2 sm:gap-2.5 md:gap-3 justify-center">
+              {/* First Row */}
+              <div className="flex gap-2 sm:gap-2.5 md:gap-3 flex-wrap justify-center">
+                {stack.slice(0, 4).map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
+                    whileHover={{ scale: 1.1 }}
+                    className="badge badge-primary rounded-full text-base-100 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium"
+                  >
+                    {item}
+                  </motion.div>
+                ))}
+              </div>
+              {/* Second Row */}
+              <div className="flex gap-2 sm:gap-2.5 md:gap-3 flex-wrap justify-center">
+                {stack.slice(4).map((item, i) => (
+                  <motion.div
+                    key={i + 4}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.4 + (i + 4) * 0.1 }}
+                    whileHover={{ scale: 1.1 }}
+                    className="badge badge-primary rounded-full text-base-100 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium"
+                  >
+                    {item}
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -229,7 +256,7 @@ function Hero(): React.ReactElement {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="btn xl:self-start rounded-full 2xl:btn-wide bg-[var(--color-base-content)] hover:bg-[var(--color-base-content)]/90 text-base-100 text-sm sm:text-base md:text-lg font-medium w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 flex items-center justify-center gap-2 sm:gap-3 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="btn xl:self-start rounded-full 2xl:btn-wide bg-[var(--color-base-content)] hover:bg-[var(--color-base-content)]/90 text-base-100 text-xs sm:text-sm md:text-base lg:text-lg font-medium w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 md:py-3 flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <span>Download CV</span>
             <svg
@@ -259,8 +286,8 @@ function Hero(): React.ReactElement {
           className="textbox flex flex-col lg:flex-row gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-14 w-full lg:w-auto lg:flex-1"
         >
           {/* Text Content */}
-          <div className="text w-full lg:w-auto lg:flex-1">
-            <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-start items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
+          <div className="text w-full lg:w-auto lg:flex-1 text-center lg:text-left">
+            <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-center lg:justify-start items-center lg:items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
               <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/50">
                 {"<h1>"}
               </span>
@@ -269,14 +296,16 @@ function Hero(): React.ReactElement {
                 i'm <span className="text-primary">Chidera</span>,
               </span>
               <span className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="font-bold">Frontend developer</span>
+                <span className="font-bold whitespace-nowrap">
+                  Frontend developer
+                </span>
                 <span className="htag -ml-2 sm:-ml-3 md:-ml-4 lg:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/50 inline-block">
                   {"</h1>"}
                 </span>
               </span>
             </h1>
 
-            <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed">
+            <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-center lg:text-left">
               <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/50">
                 {"<p>"}
               </span>
@@ -294,7 +323,7 @@ function Hero(): React.ReactElement {
               href="#contact"
               whileHover={{ scale: 1.05, x: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="link link-hover flex text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl capitalize justify-start items-center gap-3 sm:gap-4 md:gap-5 link-primary mt-4 sm:mt-5 md:mt-6 font-semibold group"
+              className="link link-hover flex text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl capitalize justify-center lg:justify-start items-center gap-3 sm:gap-4 md:gap-5 link-primary mt-4 sm:mt-5 md:mt-6 font-semibold group"
             >
               <span>let's talk</span>
               <span className="rel-card w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 2xl:w-14 2xl:h-14">
