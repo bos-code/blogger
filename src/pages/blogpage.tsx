@@ -7,6 +7,8 @@ import ReadingProgressBar from "../components/ReadingProgressBar";
 
 export default function Blog(): React.ReactElement {
   const { data: posts = [], isLoading, error } = usePosts();
+  
+  // Posts are already filtered by usePosts hook (only approved for non-admins)
 
   // Show skeleton loaders while loading
   if (isLoading) {
@@ -159,31 +161,26 @@ export default function Blog(): React.ReactElement {
             </motion.div>
           ) : (
             <div className="space-y-0">
-              {(posts as BlogPost[])
-                .filter((post) => post.status === "approved" || !post.status)
-                .map((post, index) => {
-                  const filteredPosts = (posts as BlogPost[]).filter(
-                    (p) => p.status === "approved" || !p.status
-                  );
-                  return (
-                    <motion.div
-                      key={post.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                    >
-                      <BlogPostCard post={post} index={index} />
-                      {index < filteredPosts.length - 1 && (
-                        <motion.div
-                          initial={{ opacity: 0, scaleX: 0 }}
-                          animate={{ opacity: 1, scaleX: 1 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 + 0.3 }}
-                          className="divider my-5 sm:my-6 md:my-8 lg:my-10"
-                        ></motion.div>
-                      )}
-                    </motion.div>
-                  );
-                })}
+              {(posts as BlogPost[]).map((post, index) => {
+                return (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <BlogPostCard post={post} index={index} />
+                    {index < posts.length - 1 && (
+                      <motion.div
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 + 0.3 }}
+                        className="divider my-5 sm:my-6 md:my-8 lg:my-10"
+                      ></motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>

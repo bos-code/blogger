@@ -1,18 +1,23 @@
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useUIStore } from "../stores/uiStore";
+import { useSignOut } from "../hooks/useAuth";
+import { useRole } from "../hooks/useRole";
+import { CompactSpinner } from "../components/PremiumSpinner";
 import AdminDashboard from "../dashboardUi/AdminDashboard";
 import Categories from "../dashboardUi/catigories";
 import Post from "../dashboardUi/Post";
 import ProfileSetting from "../dashboardUi/ProfileSetting";
 import Users from "../dashboardUi/users";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function Dashboard(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
-  const role = useAuthStore((state) => state.role);
+  const { role, isAdmin, canManageUsers, canManageCategories } = useRole();
   const dashboardScreen = useUIStore((state) => state.dashboardScreen);
   const setDashboardScreen = useUIStore((state) => state.setDashboardScreen);
   const navigate = useNavigate();
+  const signOut = useSignOut();
 
   function handleCreatePost(): void {
     navigate("/create-post");
@@ -36,6 +41,15 @@ export default function Dashboard(): React.ReactElement {
   function handleBackToDashboard(): void {
     setDashboardScreen("home");
   }
+
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await signOut.mutateAsync();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   const { photoURL, name } = user || {};
   if (!user)
@@ -75,8 +89,8 @@ export default function Dashboard(): React.ReactElement {
             {/* Page content here */}
             {dashboardScreen === "home" && <AdminDashboard />}
             {dashboardScreen === "posts" && <Post />}
-            {dashboardScreen === "users" && <Users />}
-            {dashboardScreen === "categories" && <Categories />}
+            {dashboardScreen === "users" && canManageUsers && <Users />}
+            {dashboardScreen === "categories" && canManageCategories && <Categories />}
             {dashboardScreen === "profile" && <ProfileSetting />}
           </div>
           <div className="drawer-side rounded-2xl">
@@ -97,7 +111,7 @@ export default function Dashboard(): React.ReactElement {
                 </span>
               </div>
               <ul className="flex dash flex-col gap-6 text-accent-content">
-                {role === "admin" && (
+                {isAdmin && (
                   <>
                     <li>
                       <button
@@ -107,22 +121,26 @@ export default function Dashboard(): React.ReactElement {
                         <span> Manage Posts</span>
                       </button>
                     </li>
-                    <li>
-                      <button
-                        className="btn btn-dash border-2"
-                        onClick={handleManageUsers}
-                      >
-                        <span> Manage Users</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button
-                        className="btn btn-dash border-2"
-                        onClick={handleManageCategories}
-                      >
-                        <span> Manage Categories</span>
-                      </button>
-                    </li>
+                    {canManageUsers && (
+                      <li>
+                        <button
+                          className="btn btn-dash border-2"
+                          onClick={handleManageUsers}
+                        >
+                          <span> Manage Users</span>
+                        </button>
+                      </li>
+                    )}
+                    {canManageCategories && (
+                      <li>
+                        <button
+                          className="btn btn-dash border-2"
+                          onClick={handleManageCategories}
+                        >
+                          <span> Manage Categories</span>
+                        </button>
+                      </li>
+                    )}
                   </>
                 )}
                 <li>
@@ -139,6 +157,23 @@ export default function Dashboard(): React.ReactElement {
                     onClick={handleCreatePost}
                   >
                     <span>Create New Post</span>
+                  </button>
+                </li>
+                <li className="mt-auto pt-8">
+                  <button
+                    className="btn btn-error btn-outline w-full gap-2"
+                    onClick={handleLogout}
+                    disabled={signOut.isPending}
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                    {signOut.isPending ? (
+                      <>
+                        <CompactSpinner size="sm" variant="primary" />
+                        <span>Logging out...</span>
+                      </>
+                    ) : (
+                      <span>Logout</span>
+                    )}
                   </button>
                 </li>
               </ul>

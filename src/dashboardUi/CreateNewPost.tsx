@@ -133,6 +133,11 @@ export default function CreatePost(): React.ReactElement {
     setModalOpen(true);
   };
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    e.stopPropagation();
+    setTitle(e.target.value);
+  };
+
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
 
@@ -353,8 +358,18 @@ export default function CreatePost(): React.ReactElement {
                     type="text"
                     placeholder="Enter post title..."
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={handleTitleChange}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyPress={(e) => {
+                      e.stopPropagation();
+                    }}
                     className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder:text-base-content/40 focus:placeholder:text-base-content/20 transition-colors"
+                    autoComplete="off"
+                    autoFocus={false}
+                    disabled={false}
+                    readOnly={false}
                   />
                 </div>
 

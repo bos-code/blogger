@@ -4,6 +4,7 @@ import MouseOrb from "./components/mouseOrb";
 import FooterComp from "./components/FooterComp";
 import ApprovalModal from "./components/ApprovalModal";
 import NotificationModal from "./components/NotificationModal";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { lazy, Suspense, useEffect } from "react";
 import "./App.css";
 import "sweetalert2/dist/sweetalert2.min.css";
@@ -43,8 +44,22 @@ function App(): React.ReactElement {
           <Route path="/signup" element={<Signup />} />
           <Route path="/blogpage" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPostDetail />} />
-          <Route path="/create-post" element={<CreatePost />} />
-          <Route path="/admin" element={<Admin />} />
+          <Route
+            path="/create-post"
+            element={
+              <ProtectedRoute requiredRole={["admin", "writer"]}>
+                <CreatePost />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole={["admin", "writer"]} fallbackPath="/admin">
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Suspense>
 

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useLogin, useGoogleSignIn } from "../hooks/useAuth";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
+import { CompactSpinner } from "../components/PremiumSpinner";
 
 export default function Login(): JSX.Element {
   const authError = useAuthStore((state) => state.authError);
@@ -81,7 +82,14 @@ export default function Login(): JSX.Element {
           className="btn btn-primary w-full"
           disabled={loginMutation.isPending}
         >
-          {loginMutation.isPending ? "Logging in..." : "Login"}
+          {loginMutation.isPending ? (
+            <>
+              <CompactSpinner size="sm" variant="primary" />
+              <span>Logging in...</span>
+            </>
+          ) : (
+            "Login"
+          )}
         </button>
 
         {/* Google Sign In */}
@@ -92,9 +100,14 @@ export default function Login(): JSX.Element {
           className="btn btn-outline w-full"
           disabled={googleSignInMutation.isPending}
         >
-          {googleSignInMutation.isPending
-            ? "Signing in..."
-            : "Sign in with Google"}
+          {googleSignInMutation.isPending ? (
+            <>
+              <CompactSpinner size="sm" variant="primary" />
+              <span>Signing in...</span>
+            </>
+          ) : (
+            "Sign in with Google"
+          )}
         </button>
 
         {authError && (
@@ -114,6 +127,8 @@ export default function Login(): JSX.Element {
     </div>
   );
 }
+
+
 
 
 

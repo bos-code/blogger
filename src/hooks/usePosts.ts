@@ -27,10 +27,40 @@ interface UpdatePostData {
   data: Partial<BlogPost>;
 }
 
-// Fetch all posts
+// Fetch all posts (filtered by role - only admins see unapproved posts)
 export const usePosts = () => {
+  const role = useAuthStore((state) => state.role);
+  const isAdmin = role === "admin";
+
   return useQuery<BlogPost[]>({
-    queryKey: ["posts"],
+    queryKey: ["posts", isAdmin ? "all" : "approved"],
+    queryFn: async () => {
+      const snapshot: QuerySnapshot<DocumentData> = await getDocs(
+        collection(db, "posts")
+      );
+      const allPosts = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as BlogPost[];
+
+      // Filter: Only admins see unapproved/rejected posts
+      // Regular users ONLY see approved posts (strict filtering)
+      if (isAdmin) {
+        return allPosts;
+      }
+      // Non-admins: Only show posts with status === "approved"
+      return allPosts.filter((post) => post.status === "approved");
+    },
+    // Optimize caching: posts don't change frequently
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
+  });
+};
+
+// Fetch all posts (admin only - includes unapproved)
+export const useAllPosts = () => {
+  return useQuery<BlogPost[]>({
+    queryKey: ["posts", "all"],
     queryFn: async () => {
       const snapshot: QuerySnapshot<DocumentData> = await getDocs(
         collection(db, "posts")
@@ -40,6 +70,9 @@ export const usePosts = () => {
         ...d.data(),
       })) as BlogPost[];
     },
+    // Admin dashboard needs fresher data
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
 };
 
@@ -142,7 +175,15 @@ export const useUpdatePost = () => {
       });
       return { id, ...data };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Optimistically update the cache for the specific post
+      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
+        if (!oldPosts) return oldPosts;
+        return oldPosts.map((post) =>
+          post.id === data.id ? { ...post, ...data.data } : post
+        );
+      });
+      // Also invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       showNotification({
         type: "success",
@@ -174,7 +215,17 @@ export const useDeletePost = () => {
       await deleteDoc(doc(db, "posts", id));
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      // Optimistically remove from cache
+      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
+        if (!oldPosts) return oldPosts;
+        return oldPosts.filter((post) => post.id !== id);
+      });
+      queryClient.setQueryData<BlogPost[]>(["posts", "approved"], (oldPosts) => {
+        if (!oldPosts) return oldPosts;
+        return oldPosts.filter((post) => post.id !== id);
+      });
+      // Invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       showNotification({
         type: "success",
@@ -219,7 +270,15 @@ export const useApprovePost = () => {
 
       return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
+      // Optimistically update post status in cache
+      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
+        if (!oldPosts) return oldPosts;
+        return oldPosts.map((post) =>
+          post.id === id ? { ...post, status: "approved" as const } : post
+        );
+      });
+      // Invalidate to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       showNotification({

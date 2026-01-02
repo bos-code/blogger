@@ -52,6 +52,9 @@ export const useUsers = () => {
         ...d.data(),
       })) as UserData[];
     },
+    // User data changes less frequently
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60, // Keep in cache for 1 hour
   });
 };
 
@@ -68,7 +71,7 @@ export const useUsersRealtime = () => {
             id: d.id,
             ...d.data(),
           })) as UserData[];
-          queryClient.setQueryData(["users"], users);
+          queryClient.setQueryData(["users"],users);
           resolve(users);
         });
         return () => unsub();
@@ -86,7 +89,9 @@ export const useUser = (uid: string | undefined) => {
       if (!uid) return null;
       const userRef = doc(db, "users", uid);
       const userDoc = await getDoc(userRef);
+      console.log(userDoc)
       if (userDoc.exists()) {
+        
         return { id: userDoc.id, ...userDoc.data() } as UserData;
       }
       return null;
@@ -143,6 +148,8 @@ export const useCreateUser = () => {
     },
   });
 };
+
+
 
 
 
