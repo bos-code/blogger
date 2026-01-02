@@ -4,6 +4,12 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  css: {
+    // Suppress @property warnings from DaisyUI
+    // @property is valid CSS (CSS Houdini) but not recognized by all processors
+    // It will work correctly in browsers that support it (Chrome, Edge, Safari)
+    devSourcemap: true,
+  },
   build: {
     // Fix: Split vendor chunks (e.g., react, firebase, etc.)
     rollupOptions: {
@@ -23,10 +29,6 @@ export default defineConfig({
     // Vite's CSS optimizer doesn't recognize it, but it will work correctly in the browser
   },
 });
-
-
-
-
 
 
 

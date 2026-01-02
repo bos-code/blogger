@@ -17,8 +17,10 @@ export const useRole = () => {
 
   // Permission checks
   const canCreatePost = isAdmin || isWriter;
-  const canEditPost = (authorId: string) => isAdmin || (isWriter && user?.uid === authorId);
-  const canDeletePost = (authorId: string) => isAdmin || (isWriter && user?.uid === authorId);
+  const canEditPost = (authorId: string) =>
+    isAdmin || (isWriter && user?.uid === authorId);
+  const canDeletePost = (authorId: string) =>
+    isAdmin || (isWriter && user?.uid === authorId);
   const canApprovePost = isAdmin;
   const canManageUsers = isAdmin;
   const canManageCategories = isAdmin;
@@ -52,13 +54,16 @@ export const useRole = () => {
 /**
  * Check if a role has a specific permission
  */
-export const hasRole = (userRole: UserRole | null, requiredRole: UserRole | UserRole[]): boolean => {
+export const hasRole = (
+  userRole: UserRole | null,
+  requiredRole: UserRole | UserRole[]
+): boolean => {
   if (!userRole) return false;
-  
+
   if (Array.isArray(requiredRole)) {
     return requiredRole.includes(userRole);
   }
-  
+
   // Role hierarchy: admin > writer > user > reader
   const roleHierarchy: Record<UserRole, number> = {
     admin: 4,
@@ -66,10 +71,6 @@ export const hasRole = (userRole: UserRole | null, requiredRole: UserRole | User
     user: 2,
     reader: 1,
   };
-  
+
   return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
 };
-
-
-
-
