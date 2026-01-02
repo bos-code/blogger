@@ -13,7 +13,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { useAuthStore } from "../stores/authStore";
 import { useCreateUser } from "./useUsers";
 import { useNotificationStore } from "../stores/notificationStore";
-import type { User, UserRole } from "../types";
+import type { UserRole } from "../types";
 
 interface LoginCredentials {
   email: string;
@@ -35,7 +35,9 @@ interface AuthResult {
 export const useLogin = () => {
   const setUser = useAuthStore((state) => state.setUser);
   const setAuthError = useAuthStore((state) => state.setAuthError);
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
 
   return useMutation<AuthResult, Error, LoginCredentials>({
     mutationFn: async ({ email, password }) => {
@@ -73,7 +75,9 @@ export const useLogin = () => {
 export const useSignup = () => {
   const setUser = useAuthStore((state) => state.setUser);
   const setAuthError = useAuthStore((state) => state.setAuthError);
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
   const createUser = useCreateUser();
 
   return useMutation<AuthResult, Error, SignupCredentials>({
@@ -122,52 +126,71 @@ export const useSignup = () => {
 export const useGoogleSignIn = () => {
   const setUser = useAuthStore((state) => state.setUser);
   const setAuthError = useAuthStore((state) => state.setAuthError);
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
   const createUser = useCreateUser();
 
   return useMutation<AuthResult, Error, void>({
     mutationFn: async () => {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      try {
+        const provider = new GoogleAuthProvider();
+        // Add additional scopes if needed
+        provider.addScope("profile");
+        provider.addScope("email");
 
-      const userRef = doc(db, "users", user.uid);
-      const userDoc = await getDoc(userRef);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
 
-      let role: UserRole = "user";
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        role = (userData.role as UserRole) || "user";
-      } else {
-        await createUser.mutateAsync({
-          uid: user.uid,
-          data: {
-            email: user.email || "",
-            name: user.displayName || "",
-            photoURL: user.photoURL || "",
-            role: "user",
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+
+        let role: UserRole = "user";
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          role = (userData.role as UserRole) || "user";
+        } else {
+          // Create new user document
+          await createUser.mutateAsync({
+            uid: user.uid,
+            data: {
+              email: user.email || "",
+              name: user.displayName || "",
+              photoURL: user.photoURL || "",
+              role: "user",
+            },
+          });
+        }
+
+        // Update auth store with user and role
+        setUser(
+          {
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            photoURL: user.photoURL,
           },
-        });
+          role
+        );
+
+        return { user, role };
+      } catch (error: any) {
+        // Handle popup closed by user
+        if (error.code === "auth/popup-closed-by-user") {
+          throw new Error("Sign-in popup was closed. Please try again.");
+        }
+        // Handle other errors
+        throw error;
       }
-
-      setUser(
-        {
-          uid: user.uid,
-          email: user.email,
-          name: user.displayName,
-          photoURL: user.photoURL,
-        },
-        role
-      );
-
-      return { user, role };
     },
     onError: (error: Error) => {
+      console.error("Google sign-in error:", error);
       setAuthError(error.message);
       showNotification({
         type: "error",
         title: "Authentication Failed",
-        message: error.message,
+        message:
+          error.message || "Failed to sign in with Google. Please try again.",
       });
     },
   });
@@ -176,7 +199,9 @@ export const useGoogleSignIn = () => {
 // Sign out mutation
 export const useSignOut = () => {
   const signOut = useAuthStore((state) => state.signOut);
-  const showNotification = useNotificationStore((state) => state.showNotification);
+  const showNotification = useNotificationStore(
+    (state) => state.showNotification
+  );
 
   return useMutation<void, Error, void>({
     mutationFn: async () => {
@@ -200,18 +225,3 @@ export const useSignOut = () => {
     },
   });
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

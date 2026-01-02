@@ -4,20 +4,14 @@ import type { BlogPost } from "../types";
 import { useAuthStore } from "../stores/authStore";
 import Comments from "../components/Comments";
 import { motion } from "framer-motion";
-import {
-  TrashIcon,
-  CalendarIcon,
-  EyeIcon,
-  ClockIcon,
-  ArrowLeftIcon,
-} from "@heroicons/react/24/outline";
+import { TrashIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useEffect } from "react";
 import ReadingProgressBar from "../components/ReadingProgressBar";
 import FloatingActionButtons from "../components/FloatingActionButtons";
 import TableOfContents from "../components/TableOfContents";
 import BlogPostSkeleton from "../components/BlogPostSkeleton";
 import { useUpdatePost } from "../hooks/usePosts";
-import { showDeleteConfirm, showSuccess, showError } from "../utils/sweetalert";
+import { showDeleteConfirm, showSuccess } from "../utils/sweetalert";
 
 export default function BlogPostDetail(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -25,20 +19,21 @@ export default function BlogPostDetail(): React.ReactElement {
   const currentUser = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
   const isAdmin = role === "admin";
-  
+
   // Use filtered posts for non-admins (only approved), all posts for admins
   const filteredPostsQuery = usePosts();
   const allPostsQuery = useAllPosts();
   const postsQuery = isAdmin ? allPostsQuery : filteredPostsQuery;
   const { data: posts = [], isLoading } = postsQuery;
-  
+
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
 
   const post = posts.find((p) => p.id === id) as BlogPost | undefined;
 
   // Strict check: Only admins can see unapproved posts, non-admins only see approved posts
-  const isPostAccessible = post && (isAdmin ? true : post.status === "approved");
+  const isPostAccessible =
+    post && (isAdmin ? true : post.status === "approved");
 
   useEffect(() => {
     // Track views
@@ -55,23 +50,12 @@ export default function BlogPostDetail(): React.ReactElement {
     // Use SweetAlert instead of window.confirm
     showDeleteConfirm(post.title, () => {
       deletePost.mutate(post.id);
-      showSuccess("Post Deleted", "The blog post has been deleted successfully!");
+      showSuccess(
+        "Post Deleted",
+        "The blog post has been deleted successfully!"
+      );
       navigate("/blogpage");
     });
-  };
-
-  const formatDate = (timestamp: any): string => {
-    if (!timestamp) return "Unknown date";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }).format(date);
-    } catch {
-      return "Unknown date";
-    }
   };
 
   const calculateReadingTime = (content: string): number => {
@@ -140,24 +124,6 @@ export default function BlogPostDetail(): React.ReactElement {
       return "Unknown date";
     }
   };
-
-  // Get related posts (excluding current post, same category preferred, limit to 5)
-  // Only show approved posts in related posts for all users
-  const relatedPosts = posts
-    .filter((p) => p.id !== post.id && p.status === "approved")
-    .sort((a, b) => {
-      // Prioritize same category
-      if (a.category === post.category && b.category !== post.category) return -1;
-      if (a.category !== post.category && b.category === post.category) return 1;
-      // Then by date (newest first)
-      if (a.createdAt && b.createdAt) {
-        const dateA = a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-        const dateB = b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-        return dateB.getTime() - dateA.getTime();
-      }
-      return 0;
-    })
-    .slice(0, 5);
 
   return (
     <>
@@ -237,44 +203,44 @@ export default function BlogPostDetail(): React.ReactElement {
                   </div>
                 )}
 
-                  {/* Technical Stack */}
-                  {post.technicalStack && post.technicalStack.length > 0 && (
-                    <div className="mb-6 sm:mb-8">
-                      <h3 className="text-sm sm:text-base font-semibold text-base-content/70 mb-3">
-                        Technical Stack
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {post.technicalStack.map((tech, i) => (
-                          <span
-                            key={i}
-                            className="badge badge-secondary badge-md sm:badge-lg"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
+                {/* Technical Stack */}
+                {post.technicalStack && post.technicalStack.length > 0 && (
+                  <div className="mb-6 sm:mb-8">
+                    <h3 className="text-sm sm:text-base font-semibold text-base-content/70 mb-3">
+                      Technical Stack
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {post.technicalStack.map((tech, i) => (
+                        <span
+                          key={i}
+                          className="badge badge-secondary badge-md sm:badge-lg"
+                        >
+                          {tech}
+                        </span>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Tags */}
-                  {post.tags && post.tags.length > 0 && (
-                    <div className="mb-6 sm:mb-8">
-                      <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="badge badge-outline badge-md sm:badge-lg"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
+                {/* Tags */}
+                {post.tags && post.tags.length > 0 && (
+                  <div className="mb-6 sm:mb-8">
+                    <div className="flex flex-wrap gap-2">
+                      {post.tags.map((tag, i) => (
+                        <span
+                          key={i}
+                          className="badge badge-outline badge-md sm:badge-lg"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Post Content - Blog-first typography */}
-                  <div
-                    className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl max-w-none 
+                {/* Post Content - Blog-first typography */}
+                <div
+                  className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl max-w-none 
                       prose-headings:text-base-content prose-headings:font-bold
                       prose-p:text-base-content prose-p:leading-relaxed prose-p:text-base sm:prose-p:text-lg
                       prose-strong:text-base-content prose-strong:font-bold
@@ -288,22 +254,21 @@ export default function BlogPostDetail(): React.ReactElement {
                       prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl
                       prose-h1:mt-8 prose-h2:mt-6 prose-h3:mt-4
                       prose-h1:mb-4 prose-h2:mb-3 prose-h3:mb-2"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
-                  />
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                />
 
-                  {/* Comments Section */}
-                  <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-base-300">
-                    <Comments postId={post.id} />
-                  </div>
+                {/* Comments Section */}
+                <div className="mt-8 sm:mt-12 pt-8 sm:pt-12 border-t border-base-300">
+                  <Comments postId={post.id} />
                 </div>
               </div>
-            </motion.article>
+            </div>
+          </motion.article>
 
-            {/* Sidebar - Table of Contents */}
-            <aside className="lg:col-span-4">
-              <TableOfContents content={post.content} />
-            </aside>
-          </div>
+          {/* Sidebar - Table of Contents */}
+          <aside className="mt-8 lg:mt-0">
+            <TableOfContents content={post.content} />
+          </aside>
         </div>
       </div>
 
@@ -312,4 +277,3 @@ export default function BlogPostDetail(): React.ReactElement {
     </>
   );
 }
-

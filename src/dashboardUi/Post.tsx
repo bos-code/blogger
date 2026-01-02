@@ -25,7 +25,7 @@ export default function Post(): React.ReactElement {
   const updatePost = useUpdatePost();
   const navigate = useNavigate();
   const currentUser = useAuthStore((state) => state.user);
-  const { isAdmin, canApprovePost, canEditPost, canDeletePost } = useRole();
+  const { isAdmin } = useRole();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<

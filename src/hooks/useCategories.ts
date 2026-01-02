@@ -100,7 +100,7 @@ export const useUpdateCategory = () => {
         ...data,
         updatedAt: serverTimestamp(),
       });
-      return { id, ...data };
+      return { id, data };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });

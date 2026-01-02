@@ -58,9 +58,7 @@ lowlight.registerLanguage("ts", typescriptLang);
 export default function CreatePost(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
-  const authUser = useAuthStore((s) => s.user);
-  const role = useAuthStore((s) => s.role);
-  const isAdmin = role === "admin";
+  // Removed unused variables
   const editState = (location.state || {}) as any;
 
   // inputs
@@ -154,7 +152,7 @@ export default function CreatePost(): React.ReactElement {
         content: editor?.getHTML() ?? "",
         tags,
         category,
-        status: status === "draft" ? "draft" : "published",
+        status: status === "draft" ? "pending" : "pending", // All new posts start as pending
       };
 
       if (editState?.id) {
@@ -175,7 +173,7 @@ export default function CreatePost(): React.ReactElement {
     }
   };
 
-  const handleNext = (e?: MouseEvent<HTMLButtonElement>): void => {
+  const handleNext = (): void => {
     e?.preventDefault();
     if (!title.trim()) return showModalMsg("Please enter a post title");
     if (!editor?.getHTML().trim())

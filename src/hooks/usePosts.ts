@@ -30,7 +30,9 @@ interface UpdatePostData {
 // Fetch all posts (filtered by role - only admins see unapproved posts)
 export const usePosts = () => {
   const role = useAuthStore((state) => state.role);
+  const displayStatus = useAuthStore((state) => state.displayStatus);
   const isAdmin = role === "admin";
+  const isAuthReady = displayStatus === "ready";
 
   return useQuery<BlogPost[]>({
     queryKey: ["posts", isAdmin ? "all" : "approved"],
@@ -51,6 +53,8 @@ export const usePosts = () => {
       // Non-admins: Only show posts with status === "approved"
       return allPosts.filter((post) => post.status === "approved");
     },
+    // Only enable when auth is ready
+    enabled: isAuthReady,
     // Optimize caching: posts don't change frequently
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
@@ -59,6 +63,9 @@ export const usePosts = () => {
 
 // Fetch all posts (admin only - includes unapproved)
 export const useAllPosts = () => {
+  const displayStatus = useAuthStore((state) => state.displayStatus);
+  const isAuthReady = displayStatus === "ready";
+
   return useQuery<BlogPost[]>({
     queryKey: ["posts", "all"],
     queryFn: async () => {
@@ -70,6 +77,8 @@ export const useAllPosts = () => {
         ...d.data(),
       })) as BlogPost[];
     },
+    // Only enable when auth is ready
+    enabled: isAuthReady,
     // Admin dashboard needs fresher data
     staleTime: 1000 * 60 * 2, // 2 minutes
     gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
@@ -173,14 +182,14 @@ export const useUpdatePost = () => {
         ...data,
         updatedAt: serverTimestamp(),
       });
-      return { id, ...data };
+      return { id, data };
     },
-    onSuccess: (data) => {
+    onSuccess: (result) => {
       // Optimistically update the cache for the specific post
       queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
         if (!oldPosts) return oldPosts;
         return oldPosts.map((post) =>
-          post.id === data.id ? { ...post, ...data.data } : post
+          post.id === result.id ? { ...post, ...result.data } : post
         );
       });
       // Also invalidate to ensure consistency
@@ -393,18 +402,18 @@ export const useLikePost = () => {
       });
 
       // Return context with snapshot for potential rollback
-      return { previousPosts };
+      return { previousPosts } as { previousPosts: BlogPost[] | undefined };
     },
 
     // On Success: Invalidate queries to sync with server
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
 
     // On Error: Rollback optimistic update and show error
     onError: (error: Error, variables, context) => {
       // Rollback: Restore previous state
-      if (context?.previousPosts) {
+      if (context && context.previousPosts) {
         queryClient.setQueryData<BlogPost[]>(["posts"], context.previousPosts);
       }
 

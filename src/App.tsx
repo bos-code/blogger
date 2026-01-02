@@ -10,7 +10,7 @@ import "./App.css";
 import "sweetalert2/dist/sweetalert2.min.css";
 import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
-import EditPost from "./dashboardUi/EditPost";
+// EditPost removed - using CreateNewPost for editing
 import CreatePost from "./dashboardUi/CreateNewPost";
 
 // Lazy-loaded pages
@@ -55,7 +55,10 @@ function App(): React.ReactElement {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute requiredRole={["admin", "writer"]} fallbackPath="/admin">
+              <ProtectedRoute
+                requiredRole={["admin", "writer"]}
+                fallbackPath="/admin"
+              >
                 <Admin />
               </ProtectedRoute>
             }
@@ -71,11 +74,3 @@ function App(): React.ReactElement {
 }
 
 export default App;
-
-
-
-
-
-
-
-
