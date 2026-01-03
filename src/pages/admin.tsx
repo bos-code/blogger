@@ -48,12 +48,12 @@ export default function Dashboard(): React.ReactElement {
   )}`;
 
   return (
-    <div className=" flex -m-12 px-20  mb-10 items-center justify-center gap-2 bg- min-h-svh ">
+    <div className=" flex -m-12 px-20  mb-10 items-center justify-center gap-2 bg-base-200 min-h-svh ">
       <div
         className=" w-dvw  h-dvh border-l-2
     border-r-4 border-primary glassy overflow-hidden p-10 pb-80 rounded-4xl shadow-2xl relative"
       >
-        <div className="profile absolute top-5 right-5 flex tems-center justify-center">
+        <div className="profile absolute top-5 right-5 flex items-center justify-center">
           <img
             src={photoURL || fallbackImg}
             alt="Profile"
@@ -85,7 +85,7 @@ export default function Dashboard(): React.ReactElement {
               aria-label="close sidebar"
               className="drawer-overlay"
             ></label>
-            <ul className="menu shadow-ce text-base-content min-h-full w-70 bg-primary flex flex-col gap-12 p-4">
+            <ul className="menu shadow-lg text-base-content min-h-full w-70 bg-primary flex flex-col gap-12 p-4">
               {/* Sidebar content here */}
               <div
                 onClick={handleBackToDashboard}

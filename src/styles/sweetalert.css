@@ -1,6 +1,6 @@
-/* SweetAlert Background Blur Styles */
+/* SweetAlert Background Blur Styles - Theme-Aware */
 
-/* Blur effect when modal is active - using CSS (Tailwind blur-sm equivalent) */
+/* Blur effect when modal is active */
 .swal-blur-active {
   filter: blur(4px);
   transition: filter 0.3s ease, transform 0.3s ease;
@@ -13,19 +13,22 @@
   pointer-events: auto !important;
 }
 
-/* SweetAlert Popup Styling - using CSS */
+/* SweetAlert Popup Styling - Theme Variables */
 .swal-popup {
   border-radius: 1rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  background-color: hsl(var(--b1)) !important;
+  color: hsl(var(--bc)) !important;
+  border: 1px solid hsl(var(--b3) / 0.5);
 }
 
-/* Override SweetAlert backdrop */
+/* Override SweetAlert backdrop - Theme-aware */
 .swal2-backdrop-show {
-  background-color: rgba(0, 0, 0, 0.4) !important;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background-color: hsl(var(--b2) / 0.6) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* Ensure modal content is above blurred background */
@@ -33,15 +36,15 @@
   z-index: 9999 !important;
 }
 
-/* Custom animations - cannot use @apply in keyframes */
+/* Custom animations */
 @keyframes swalFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.9) translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -49,29 +52,193 @@
   animation: swalFadeIn 0.3s ease-out;
 }
 
-/* Dark mode support - using CSS variables */
-@media (prefers-color-scheme: dark) {
-  .swal-popup {
-    background-color: hsl(var(--b1, 41 47 54)) !important;
-    color: hsl(var(--bc, 255 255 255)) !important;
-  }
-  
-  .swal2-title,
-  .swal2-content {
-    color: hsl(var(--bc, 255 255 255)) !important;
-  }
-  
-  .swal2-confirm,
-  .swal2-cancel {
-    color: white !important;
-  }
+/* Title and Content - Theme Variables */
+.swal2-title {
+  color: hsl(var(--bc)) !important;
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.5;
 }
 
-/* Responsive adjustments - using CSS */
+.swal2-content {
+  color: hsl(var(--bc) / 0.8) !important;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Icon Colors - Theme-aware */
+.swal2-icon.swal2-success {
+  border-color: hsl(var(--su)) !important;
+  color: hsl(var(--su)) !important;
+}
+
+.swal2-icon.swal2-success .swal2-success-ring {
+  border-color: hsl(var(--su) / 0.3) !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: hsl(var(--er)) !important;
+  color: hsl(var(--er)) !important;
+}
+
+.swal2-icon.swal2-warning {
+  border-color: hsl(var(--wa)) !important;
+  color: hsl(var(--wa)) !important;
+}
+
+.swal2-icon.swal2-info {
+  border-color: hsl(var(--in)) !important;
+  color: hsl(var(--in)) !important;
+}
+
+.swal2-icon.swal2-question {
+  border-color: hsl(var(--p)) !important;
+  color: hsl(var(--p)) !important;
+}
+
+/* Buttons - Theme Variables */
+.swal2-confirm {
+  background-color: hsl(var(--p)) !important;
+  color: hsl(var(--pc)) !important;
+  border: none !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-confirm:hover {
+  background-color: hsl(var(--pf)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsl(var(--p) / 0.4) !important;
+}
+
+.swal2-confirm:active {
+  transform: translateY(0);
+}
+
+.swal2-cancel {
+  background-color: hsl(var(--b2)) !important;
+  color: hsl(var(--bc)) !important;
+  border: 1px solid hsl(var(--b3)) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-cancel:hover {
+  background-color: hsl(var(--b3)) !important;
+  border-color: hsl(var(--b4)) !important;
+  transform: translateY(-1px);
+}
+
+.swal2-cancel:active {
+  transform: translateY(0);
+}
+
+/* Success button variant */
+.swal2-confirm.btn-success {
+  background-color: hsl(var(--su)) !important;
+  color: hsl(var(--suc)) !important;
+}
+
+.swal2-confirm.btn-success:hover {
+  background-color: hsl(var(--suf)) !important;
+}
+
+/* Error button variant */
+.swal2-confirm.btn-error {
+  background-color: hsl(var(--er)) !important;
+  color: hsl(var(--erc)) !important;
+}
+
+.swal2-confirm.btn-error:hover {
+  background-color: hsl(var(--erf)) !important;
+}
+
+/* Warning button variant */
+.swal2-confirm.btn-warning {
+  background-color: hsl(var(--wa)) !important;
+  color: hsl(var(--wac)) !important;
+}
+
+.swal2-confirm.btn-warning:hover {
+  background-color: hsl(var(--waf)) !important;
+}
+
+/* Info button variant */
+.swal2-confirm.btn-info {
+  background-color: hsl(var(--in)) !important;
+  color: hsl(var(--inc)) !important;
+}
+
+.swal2-confirm.btn-info:hover {
+  background-color: hsl(var(--inf)) !important;
+}
+
+/* Input fields - Theme-aware */
+.swal2-input,
+.swal2-textarea {
+  background-color: hsl(var(--b2)) !important;
+  color: hsl(var(--bc)) !important;
+  border: 1px solid hsl(var(--b3)) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 1rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-input:focus,
+.swal2-textarea:focus {
+  outline: none !important;
+  border-color: hsl(var(--p)) !important;
+  box-shadow: 0 0 0 3px hsl(var(--p) / 0.1) !important;
+}
+
+/* Loading spinner - Theme-aware */
+.swal2-loader {
+  border-color: hsl(var(--p) / 0.2) !important;
+  border-right-color: hsl(var(--p)) !important;
+}
+
+/* Close button - Theme-aware */
+.swal2-close {
+  color: hsl(var(--bc) / 0.6) !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-close:hover {
+  color: hsl(var(--bc)) !important;
+  transform: rotate(90deg);
+}
+
+/* Footer - Theme-aware */
+.swal2-footer {
+  border-top: 1px solid hsl(var(--b3)) !important;
+  color: hsl(var(--bc) / 0.7) !important;
+}
+
+/* Responsive adjustments */
 @media (max-width: 640px) {
   .swal-popup {
     width: 90% !important;
     margin: 0 auto !important;
+    padding: 1.5rem !important;
+  }
+  
+  .swal2-title {
+    font-size: 1.25rem !important;
+  }
+  
+  .swal2-content {
+    font-size: 0.9rem !important;
+  }
+  
+  .swal2-confirm,
+  .swal2-cancel {
+    width: 100% !important;
+    margin: 0.25rem 0 !important;
   }
 }
 

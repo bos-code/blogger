@@ -17,7 +17,7 @@ import FloatingActionButtons from "../components/FloatingActionButtons";
 import TableOfContents from "../components/TableOfContents";
 import PremiumSpinner from "../components/PremiumSpinner";
 import { useUpdatePost } from "../hooks/usePosts";
-import { showDeleteConfirm, showSuccess, showError } from "../utils/sweetalert";
+import { showDeleteConfirm, showSuccess } from "../utils/sweetalert";
 
 export default function BlogPostDetail(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +38,7 @@ export default function BlogPostDetail(): React.ReactElement {
         data: { views: (post.views || 0) + 1 },
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, post?.id]);
 
   const handleDelete = (): void => {
@@ -50,10 +51,24 @@ export default function BlogPostDetail(): React.ReactElement {
     });
   };
 
-  const formatDate = (timestamp: any): string => {
+  const formatDate = (timestamp: unknown): string => {
     if (!timestamp) return "Unknown date";
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      let date: Date;
+      if (
+        typeof timestamp === "object" &&
+        timestamp !== null &&
+        "toDate" in timestamp &&
+        typeof (timestamp as { toDate: () => Date }).toDate === "function"
+      ) {
+        date = (timestamp as { toDate: () => Date }).toDate();
+      } else if (timestamp instanceof Date) {
+        date = timestamp;
+      } else if (typeof timestamp === "string" || typeof timestamp === "number") {
+        date = new Date(timestamp);
+      } else {
+        return "Unknown date";
+      }
       return new Intl.DateTimeFormat("en-US", {
         year: "numeric",
         month: "long",
@@ -83,17 +98,6 @@ export default function BlogPostDetail(): React.ReactElement {
             fullScreen={false}
             showParticles={true}
           />
-        </div>
-      </>
-    );
-  }
-    return (
-      <>
-        <ReadingProgressBar />
-        <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-            <BlogPostSkeleton />
-          </div>
         </div>
       </>
     );

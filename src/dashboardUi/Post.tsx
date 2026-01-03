@@ -24,7 +24,6 @@ export default function Post(): React.ReactElement {
   const updatePost = useUpdatePost();
   const currentUser = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
-  const openApprovalModal = useUIStore((state) => state.openApprovalModal);
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");

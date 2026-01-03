@@ -1,7 +1,7 @@
 import { useState, FormEvent, useEffect } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { updateProfile } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseconfig";
 import { motion } from "framer-motion";
 import PremiumSpinner from "../components/PremiumSpinner";
@@ -18,17 +18,46 @@ import { useThemeStore, themes, type ThemeName } from "../stores/themeStore";
 
 export default function ProfileSetting(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
+  const currentTheme = useThemeStore((state) => state.currentTheme);
+  const setTheme = useThemeStore((state) => state.setTheme);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
     photoURL: user?.photoURL || "",
+    nickname: "",
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Load nickname from Firestore
+  useEffect(() => {
+    const loadUserData = async (): Promise<void> => {
+      if (!user?.uid || !db) return;
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setFormData((prev) => ({
+            ...prev,
+            nickname: userData.nickname || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+    loadUserData();
+  }, [user?.uid]);
+
+  // Apply theme on mount and when theme changes
+  useEffect(() => {
+    const { applyTheme } = require("../stores/themeStore");
+    applyTheme(currentTheme);
+  }, [currentTheme]);
 
   if (!user) {
     return (
@@ -58,6 +87,11 @@ export default function ProfileSetting(): React.ReactElement {
           photoURL: formData.photoURL,
         });
         updates.photoURL = formData.photoURL;
+      }
+
+      // Update nickname if changed
+      if (formData.nickname !== (user as any).nickname) {
+        updates.nickname = formData.nickname;
       }
 
       // Update Firestore user document
@@ -177,6 +211,25 @@ export default function ProfileSetting(): React.ReactElement {
 
             <div className="form-control">
               <label className="label">
+                <span className="label-text font-medium">Nickname</span>
+                <span className="label-text-alt text-base-content/60">
+                  Optional - shown instead of full name
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered"
+                value={formData.nickname}
+                onChange={(e) =>
+                  setFormData({ ...formData, nickname: e.target.value })
+                }
+                placeholder="Enter your nickname"
+                maxLength={20}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
                 <span className="label-text font-medium flex items-center gap-2">
                   <EnvelopeIcon className="w-4 h-4" />
                   Email
@@ -243,6 +296,68 @@ export default function ProfileSetting(): React.ReactElement {
               </button>
             </div>
           </form>
+        </div>
+      </motion.div>
+
+      {/* Theme Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="card bg-base-100 shadow-xl"
+      >
+        <div className="card-body">
+          <h2 className="text-2xl font-semibold text-base-content mb-4 flex items-center gap-2">
+            <PaintBrushIcon className="w-6 h-6" />
+            Theme Settings
+          </h2>
+          <div className="space-y-4">
+            <p className="text-base-content/70">
+              Choose a color theme for your dashboard experience
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {Object.values(themes).map((theme) => (
+                <button
+                  key={theme.name}
+                  onClick={() => setTheme(theme.name)}
+                  className={`relative p-4 rounded-xl border-2 transition-all ${
+                    currentTheme === theme.name
+                      ? "border-primary shadow-lg scale-105"
+                      : "border-base-300 hover:border-primary/50"
+                  }`}
+                >
+                  {currentTheme === theme.name && (
+                    <div className="absolute -top-2 -right-2 bg-primary text-primary-content rounded-full p-1">
+                      <SparklesIcon className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <div
+                      className="w-full h-16 rounded-lg"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    />
+                    <div className="flex gap-1">
+                      <div
+                        className="flex-1 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.base100 }}
+                      />
+                      <div
+                        className="flex-1 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.base200 }}
+                      />
+                      <div
+                        className="flex-1 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.accent }}
+                      />
+                    </div>
+                    <p className="text-sm font-medium text-base-content text-center">
+                      {theme.displayName}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </motion.div>
 

@@ -15,7 +15,21 @@ import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
 import { queryKeys } from "../utils/queryClient";
-import type { BlogPost } from "../types";
+import type { BlogPost, User } from "../types";
+
+// Helper function to get user display name (nickname or first name or full name)
+const getUserDisplayName = (user: User | null): string => {
+  if (!user) return "Anonymous";
+  
+  // Check if user has nickname in Firestore (we'll need to fetch it)
+  // For now, use first name if available, otherwise full name
+  if (user.name) {
+    const firstName = user.name.split(" ")[0];
+    return firstName || user.name;
+  }
+  
+  return "Anonymous";
+};
 
 interface CreatePostData {
   title: string;
@@ -33,6 +47,9 @@ export const usePosts = () => {
   return useQuery<BlogPost[]>({
     queryKey: queryKeys.posts.all,
     queryFn: async () => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       try {
         const snapshot: QuerySnapshot<DocumentData> = await getDocs(
           collection(db, "posts")
@@ -69,6 +86,9 @@ export const usePostsRealtime = () => {
   return useQuery<BlogPost[]>({
     queryKey: queryKeys.posts.realtime,
     queryFn: () => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       return new Promise<BlogPost[]>((resolve) => {
         const unsub = onSnapshot(collection(db, "posts"), (snap) => {
           const blogs = snap.docs.map((d) => ({
@@ -98,10 +118,13 @@ export const useCreatePost = () => {
 
   return useMutation<BlogPost, Error, CreatePostData>({
     mutationFn: async (data) => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       const blog = {
         ...data,
         authorId: user?.uid || "guest",
-        authorName: user?.name || "Anonymous",
+        authorName: getUserDisplayName(user),
         createdAt: serverTimestamp(),
         status: (data as any).status ?? (isAdmin ? "approved" : "pending"),
         likedBy: [], // Initialize with empty array
@@ -155,6 +178,9 @@ export const useUpdatePost = () => {
 
   return useMutation<UpdatePostData, Error, UpdatePostData>({
     mutationFn: async ({ id, data }) => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       await updateDoc(doc(db, "posts", id), {
         ...data,
         updatedAt: serverTimestamp(),
@@ -190,6 +216,9 @@ export const useDeletePost = () => {
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       await deleteDoc(doc(db, "posts", id));
       return id;
     },
@@ -221,6 +250,9 @@ export const useApprovePost = () => {
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       await updateDoc(doc(db, "posts", id), { status: "approved" });
 
       // Create notification
@@ -307,6 +339,9 @@ export const useLikePost = () => {
         ? currentLikedBy.filter((id) => id !== userId) // Unlike: remove user ID
         : [...currentLikedBy, userId]; // Like: add user ID
 
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       // Atomic update: Update both likedBy array and likes count in single transaction
       await updateDoc(doc(db, "posts", postId), {
         likedBy: newLikedBy,

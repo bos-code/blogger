@@ -27,6 +27,9 @@ export const useUsers = () => {
   return useQuery<UserWithId[]>({
     queryKey: queryKeys.users.all,
     queryFn: async () => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       try {
         const snapshot: QuerySnapshot<DocumentData> = await getDocs(
           collection(db, "users")
@@ -59,6 +62,9 @@ export const useUpdateUser = () => {
 
   return useMutation<UserWithId, Error, UpdateUserData>({
     mutationFn: async ({ uid, data }) => {
+      if (!db) {
+        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
+      }
       await updateDoc(doc(db, "users", uid), data);
       return { id: uid, ...data } as UserWithId;
     },

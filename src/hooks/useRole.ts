@@ -12,13 +12,13 @@ export function useRole() {
   const isAuthenticated = logStatus && user !== null;
   const isEmailVerified = emailVerified;
 
+  // Check if user is admin (define first to avoid initialization error)
+  const isAdmin = isAuthenticated && isEmailVerified && role === "admin";
+
   // Check if user can view dashboard (admin always has access, others need email verification)
   const canViewDashboard =
     isAuthenticated &&
     (isAdmin || (isEmailVerified && (role === "writer" || role === "user")));
-
-  // Check if user is admin
-  const isAdmin = isAuthenticated && isEmailVerified && role === "admin";
 
   // Check if user is writer (includes admin)
   const isWriter =

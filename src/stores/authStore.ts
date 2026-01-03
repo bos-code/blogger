@@ -10,7 +10,11 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   OAuthProvider,
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
   type User as FirebaseUser,
+  type ActionCodeSettings,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebaseconfig";
@@ -369,6 +373,138 @@ export const signInWithGoogle = async (): Promise<void> => {
       return;
     }
 
+    setAuthError(errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Send email link (Magic Link) for passwordless sign-in
+ * @param email - User's email address
+ * @returns Promise that resolves when email is sent
+ */
+export const sendEmailLink = async (email: string): Promise<void> => {
+  if (!auth) {
+    const error = new Error(
+      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
+    );
+    useAuthStore.getState().setAuthError(error.message);
+    throw error;
+  }
+
+  const { setAuthError } = useAuthStore.getState();
+
+  try {
+    // Store email in localStorage for same-device completion
+    localStorage.setItem("emailForSignIn", email);
+
+    // Configure action code settings
+    const actionCodeSettings: ActionCodeSettings = {
+      url: `${window.location.origin}/complete-signin`,
+      handleCodeInApp: true,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await sendSignInLinkToEmail(auth as any, email, actionCodeSettings);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    setAuthError(errorMessage);
+    throw error;
+  }
+};
+
+/**
+ * Check if the current URL contains an email link for sign-in
+ * @returns true if URL contains email link
+ */
+export const checkEmailLink = (): boolean => {
+  if (!auth) return false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return isSignInWithEmailLink(auth as any, window.location.href);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Complete sign-in with email link
+ * @param email - User's email address (required for cross-device scenarios)
+ * @returns Promise that resolves when sign-in is complete
+ */
+export const completeEmailLinkSignIn = async (
+  email?: string
+): Promise<void> => {
+  if (!auth) {
+    const error = new Error(
+      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
+    );
+    useAuthStore.getState().setAuthError(error.message);
+    throw error;
+  }
+
+  if (!db) {
+    const error = new Error("Firestore is not configured.");
+    useAuthStore.getState().setAuthError(error.message);
+    throw error;
+  }
+
+  const { setAuthError } = useAuthStore.getState();
+
+  try {
+    // Get email from localStorage (same device) or parameter (cross device)
+    let emailToUse = email || localStorage.getItem("emailForSignIn");
+
+    if (!emailToUse) {
+      throw new Error(
+        "Email is required. Please enter the email address where you received the sign-in link."
+      );
+    }
+
+    // Complete sign-in with email link
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userCredential = await signInWithEmailLink(
+      auth as any,
+      emailToUse,
+      window.location.href
+    );
+
+    // Clear stored email
+    localStorage.removeItem("emailForSignIn");
+
+    // Refresh auth token to ensure security rules evaluate correctly
+    if (userCredential.user) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (userCredential.user as any).getIdToken(true);
+    }
+
+    // Check if user document exists, create if not
+    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
+    if (!userDoc.exists()) {
+      // Create user document for new users
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        name: userCredential.user.displayName || null,
+        photoURL: userCredential.user.photoURL || null,
+        role: "user",
+        emailVerified: userCredential.user.emailVerified, // Email link automatically verifies email
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      // Update email verification status (email link automatically verifies)
+      await updateDoc(doc(db, "users", userCredential.user.uid), {
+        emailVerified: userCredential.user.emailVerified,
+      });
+    }
+
+    // Update email verification in store
+    useAuthStore.getState().setEmailVerified(
+      userCredential.user.emailVerified
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);
     throw error;
   }
