@@ -42,9 +42,11 @@ export default function ProtectedRoute({
     }
   }
 
-  // Special check for dashboard access - Admin always has full access
-  if (fallbackPath === "/admin") {
-    // Admin has full access regardless of email verification
+  // Special check for dashboard access
+  // Admin always has full access regardless of email verification
+  // Other users need email verification to access dashboard
+  if (fallbackPath === "/admin" || fallbackPath?.includes("/admin")) {
+    // Admin bypasses email verification requirement
     if (isAdmin) {
       return children;
     }

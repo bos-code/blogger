@@ -5,6 +5,7 @@ import {
   resetPassword,
   signInWithGoogle,
   signInWithApple,
+  sendEmailLink,
 } from "../stores/authStore";
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
@@ -15,6 +16,7 @@ import {
   EnvelopeIcon,
   LockClosedIcon,
   ArrowPathIcon,
+  LinkIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Login(): React.ReactElement {
@@ -31,6 +33,9 @@ export default function Login(): React.ReactElement {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
+  const [showEmailLink, setShowEmailLink] = useState(false);
+  const [isSendingEmailLink, setIsSendingEmailLink] = useState(false);
+  const [emailLinkSent, setEmailLinkSent] = useState(false);
 
   // Clear auth error when component mounts
   useEffect(() => {
@@ -173,6 +178,44 @@ export default function Login(): React.ReactElement {
       }
     } finally {
       setIsAppleLoading(false);
+    }
+  };
+
+  const handleEmailLinkSignIn = async (
+    e: FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      showError("Validation Error", "Please enter your email address.");
+      return;
+    }
+
+    setIsSendingEmailLink(true);
+    try {
+      await sendEmailLink(email.trim());
+      setEmailLinkSent(true);
+      showSuccess(
+        "Sign-In Link Sent!",
+        `We've sent a sign-in link to ${email.trim()}. Please check your email and click the link to sign in.`
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        (error as Error)?.message ||
+        "Failed to send sign-in link. Please try again.";
+      let userFriendlyMessage = errorMessage;
+
+      if (errorMessage.includes("auth/invalid-email")) {
+        userFriendlyMessage = "Invalid email address format.";
+      } else if (errorMessage.includes("auth/too-many-requests")) {
+        userFriendlyMessage = "Too many requests. Please try again later.";
+      } else if (errorMessage.includes("auth/network-request-failed")) {
+        userFriendlyMessage = "Network error. Please check your connection.";
+      }
+
+      showError("Failed to Send Link", userFriendlyMessage);
+    } finally {
+      setIsSendingEmailLink(false);
     }
   };
 
@@ -378,8 +421,103 @@ export default function Login(): React.ReactElement {
             </form>
           )}
 
+          {/* Email Link Sign In - Only show on login form */}
+          {!showForgotPassword && !emailLinkSent && (
+            <>
+              <div className="divider my-6">OR</div>
+
+              {/* Email Link Sign In Button */}
+              <button
+                type="button"
+                className="btn btn-outline w-full gap-2"
+                onClick={() => setShowEmailLink(true)}
+                disabled={isGoogleLoading || isAppleLoading || isLoading}
+              >
+                <LinkIcon className="w-5 h-5" />
+                Sign in with Email Link
+              </button>
+            </>
+          )}
+
+          {/* Email Link Form */}
+          {showEmailLink && !emailLinkSent && (
+            <form onSubmit={handleEmailLinkSignIn} className="space-y-4 mt-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium flex items-center gap-2">
+                    <EnvelopeIcon className="w-4 h-4" />
+                    Email Address
+                  </span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="input input-bordered w-full"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSendingEmailLink}
+                  required
+                  autoComplete="email"
+                />
+                <label className="label">
+                  <span className="label-text-alt text-base-content/60">
+                    We'll send you a secure sign-in link (no password needed)
+                  </span>
+                </label>
+              </div>
+
+              <div className="form-control mt-6">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-full"
+                  disabled={isSendingEmailLink}
+                >
+                  {isSendingEmailLink ? (
+                    <>
+                      <span className="loading loading-spinner"></span>
+                      Sending link...
+                    </>
+                  ) : (
+                    <>
+                      <LinkIcon className="w-5 h-5" />
+                      Send Sign-In Link
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="form-control">
+                <button
+                  type="button"
+                  className="btn btn-ghost w-full"
+                  onClick={() => {
+                    setShowEmailLink(false);
+                    setEmail("");
+                  }}
+                  disabled={isSendingEmailLink}
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Email Link Sent Confirmation */}
+          {emailLinkSent && (
+            <div className="alert alert-success mt-4">
+              <EnvelopeIcon className="w-6 h-6" />
+              <div>
+                <h3 className="font-bold">Check Your Email!</h3>
+                <div className="text-sm">
+                  We've sent a sign-in link to {email}. Click the link in your
+                  email to complete sign-in.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Social Sign In - Only show on login form */}
-          {!showForgotPassword && (
+          {!showForgotPassword && !showEmailLink && !emailLinkSent && (
             <>
               <div className="divider my-6">OR</div>
 

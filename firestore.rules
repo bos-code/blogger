@@ -6,9 +6,9 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // ============================================
     
-    // Check if user is authenticated
+    // Check if user is authenticated AND email is verified
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
     
     // Get user's role from Firestore (single source of truth)

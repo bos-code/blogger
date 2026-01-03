@@ -12,6 +12,7 @@ import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
 import EditPost from "./dashboardUi/EditPost";
 import CreatePost from "./dashboardUi/CreateNewPost";
+import PremiumSpinner from "./components/PremiumSpinner";
 
 // Lazy-loaded pages
 const Home = lazy(() => import("./pages/Home"));
@@ -39,7 +40,13 @@ function App(): React.ReactElement {
       <Navbar />
 
       {/* Suspense shows fallback while component loads */}
-      <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-screen">
+            <PremiumSpinner size="lg" variant="primary" text="Loading..." />
+          </div>
+        }
+      >
         <Routes>
           <Route index element={<Home />} />
           <Route path="/login" element={<Login />} />

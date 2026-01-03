@@ -6,7 +6,6 @@ import {
   useUpdatePost,
 } from "../hooks/usePosts";
 import { useAuthStore } from "../stores/authStore";
-import { useUIStore } from "../stores/uiStore";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";

@@ -282,7 +282,7 @@ export default function BlogPostDetail(): React.ReactElement {
 
                   {/* Post Content - Blog-first typography */}
                   <div
-                    className="prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl max-w-none 
+                    className={`prose prose-sm sm:prose-base lg:prose-lg xl:prose-xl max-w-none 
                       prose-headings:text-base-content prose-headings:font-bold
                       prose-p:text-base-content prose-p:leading-relaxed prose-p:text-base sm:prose-p:text-lg
                       prose-strong:text-base-content prose-strong:font-bold
@@ -295,7 +295,7 @@ export default function BlogPostDetail(): React.ReactElement {
                       prose-li:marker:text-primary
                       prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl
                       prose-h1:mt-8 prose-h2:mt-6 prose-h3:mt-4
-                      prose-h1:mb-4 prose-h2:mb-3 prose-h3:mb-2"
+                      prose-h1:mb-4 prose-h2:mb-3 prose-h3:mb-2`}
                     dangerouslySetInnerHTML={{ __html: post.content }}
                   />
 

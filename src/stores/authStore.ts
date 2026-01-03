@@ -459,7 +459,7 @@ export const completeEmailLinkSignIn = async (
 
   try {
     // Get email from localStorage (same device) or parameter (cross device)
-    let emailToUse = email || localStorage.getItem("emailForSignIn");
+    const emailToUse = email || localStorage.getItem("emailForSignIn");
 
     if (!emailToUse) {
       throw new Error(
