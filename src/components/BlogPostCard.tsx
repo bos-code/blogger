@@ -72,6 +72,21 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
     }
   };
 
+  // Get author initials for avatar fallback
+  const getAuthorInitials = (name: string | null): string => {
+    if (!name || name.trim().length === 0) return "?";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+  };
+
+  // Get author avatar URL or use fallback
+  const authorAvatar = post.authorAvatar || null;
+  const authorName = post.authorName || "Anonymous";
+  const authorInitials = getAuthorInitials(post.authorName);
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -80,6 +95,33 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
       whileHover={{ y: -2 }}
       className="group flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6 lg:gap-8 transition-all duration-300"
     >
+      {/* Author Profile Image/Initials - Side Image */}
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300 border-2 border-primary/20 group-hover:border-primary/40"
+      >
+        {authorAvatar ? (
+          <img
+            src={authorAvatar}
+            alt={authorName}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to initials if image fails to load
+              const target = e.target as HTMLImageElement;
+              target.style.display = "none";
+              const parent = target.parentElement;
+              if (parent) {
+                parent.innerHTML = `<div class="w-full h-full bg-primary text-primary-content flex items-center justify-center font-bold text-lg sm:text-xl md:text-2xl">${authorInitials}</div>`;
+              }
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-primary text-primary-content flex items-center justify-center font-bold text-lg sm:text-xl md:text-2xl">
+            {authorInitials}
+          </div>
+        )}
+      </motion.div>
+
       {/* Cover Image */}
       {post.coverImage && (
         <motion.figure

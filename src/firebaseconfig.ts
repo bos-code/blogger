@@ -9,8 +9,11 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "your-api-key",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "your-auth-domain",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "your-project-id",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-storage-bucket",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "your-messaging-sender-id",
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "your-storage-bucket",
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    "your-messaging-sender-id",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id",
 };
 
@@ -23,7 +26,7 @@ try {
   // Initialize Firebase only if not already initialized
   if (getApps().length === 0) {
     // Validate config before initializing
-    const hasValidConfig = 
+    const hasValidConfig =
       firebaseConfig.apiKey !== "your-api-key" &&
       firebaseConfig.authDomain !== "your-auth-domain" &&
       firebaseConfig.projectId !== "your-project-id";
@@ -31,8 +34,8 @@ try {
     if (!hasValidConfig) {
       console.warn(
         "⚠️ Firebase config not set. Please create a .env file with your Firebase credentials.\n" +
-        "The app will work but Firebase features (auth, database) will not function.\n" +
-        "See FIREBASE_SETUP.md for instructions."
+          "The app will work but Firebase features (auth, database) will not function.\n" +
+          "See FIREBASE_SETUP.md for instructions."
       );
     }
 
@@ -49,14 +52,14 @@ try {
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error("❌ Firebase initialization error:", errorMessage);
-  
+
   // Don't throw - allow app to work in limited mode
   // The auth functions will handle the errors gracefully
   console.warn(
     "⚠️ Firebase services may not work. Please configure Firebase in .env file.\n" +
-    "See FIREBASE_SETUP.md for instructions."
+      "See FIREBASE_SETUP.md for instructions."
   );
-  
+
   // Set to undefined so components can check and handle gracefully
   app = undefined;
   db = undefined;

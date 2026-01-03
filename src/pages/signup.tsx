@@ -148,7 +148,6 @@ export default function Signup(): React.ReactElement {
     }
   };
 
-
   // Redirect if already logged in
   if (logStatus) {
     navigate("/admin");

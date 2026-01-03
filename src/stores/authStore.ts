@@ -16,7 +16,13 @@ import {
   type User as FirebaseUser,
   type ActionCodeSettings,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { auth, db } from "../firebaseconfig";
 import type { AuthState, User, UserRole } from "../types";
 
@@ -500,9 +506,7 @@ export const completeEmailLinkSignIn = async (
     }
 
     // Update email verification in store
-    useAuthStore.getState().setEmailVerified(
-      userCredential.user.emailVerified
-    );
+    useAuthStore.getState().setEmailVerified(userCredential.user.emailVerified);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);

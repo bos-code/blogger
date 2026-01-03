@@ -18,6 +18,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/login"));
 const Signup = lazy(() => import("./pages/signup"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const CompleteSignIn = lazy(() => import("./pages/CompleteSignIn"));
 const Blog = lazy(() => import("./pages/blogpage"));
 const BlogPostDetail = lazy(() => import("./pages/BlogPostDetail"));
 const Admin = lazy(() => import("./pages/admin"));
@@ -44,6 +45,7 @@ function App(): React.ReactElement {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/complete-signin" element={<CompleteSignIn />} />
           <Route path="/blogpage" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPostDetail />} />
           <Route

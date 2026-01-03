@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { usePosts, useApprovePost, useDeletePost, useUpdatePost } from "../hooks/usePosts";
+import {
+  usePosts,
+  useApprovePost,
+  useDeletePost,
+  useUpdatePost,
+} from "../hooks/usePosts";
 import { useAuthStore } from "../stores/authStore";
 import { useUIStore } from "../stores/uiStore";
 import { useNavigate } from "react-router-dom";
@@ -27,16 +32,19 @@ export default function Post(): React.ReactElement {
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "approved" | "rejected"
+  >("all");
 
   // Filter posts
   const filteredPosts = posts.filter((post: BlogPost) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (post.authorName || "").toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || post.status === statusFilter;
-    
+
+    const matchesStatus =
+      statusFilter === "all" || post.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -46,23 +54,22 @@ export default function Post(): React.ReactElement {
       return;
     }
 
-    showConfirm(
-      "Approve Post",
-      `Approve "${post.title}"?`,
-      {
-        confirmText: "Approve",
-        cancelText: "Cancel",
-        confirmColor: "success",
-        onConfirm: async () => {
-          try {
-            await approvePost.mutateAsync(post.id);
-            showSuccess("Post Approved", "The post has been approved successfully!");
-          } catch (error) {
-            showError("Failed", "Could not approve the post. Please try again.");
-          }
-        },
-      }
-    );
+    showConfirm("Approve Post", `Approve "${post.title}"?`, {
+      confirmText: "Approve",
+      cancelText: "Cancel",
+      confirmColor: "success",
+      onConfirm: async () => {
+        try {
+          await approvePost.mutateAsync(post.id);
+          showSuccess(
+            "Post Approved",
+            "The post has been approved successfully!"
+          );
+        } catch (error) {
+          showError("Failed", "Could not approve the post. Please try again.");
+        }
+      },
+    });
   };
 
   const handleReject = async (post: BlogPost): Promise<void> => {
@@ -97,7 +104,10 @@ export default function Post(): React.ReactElement {
     const canDelete = role === "admin" || currentUser?.uid === post.authorId;
 
     if (!canDelete) {
-      showError("Permission Denied", "You don't have permission to delete this post.");
+      showError(
+        "Permission Denied",
+        "You don't have permission to delete this post."
+      );
       return;
     }
 
@@ -111,7 +121,10 @@ export default function Post(): React.ReactElement {
         onConfirm: async () => {
           try {
             await deletePost.mutateAsync(post.id);
-            showSuccess("Post Deleted", "The post has been deleted successfully.");
+            showSuccess(
+              "Post Deleted",
+              "The post has been deleted successfully."
+            );
           } catch (error) {
             showError("Failed", "Could not delete the post. Please try again.");
           }
@@ -203,7 +216,11 @@ export default function Post(): React.ReactElement {
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(
-                    e.target.value as "all" | "pending" | "approved" | "rejected"
+                    e.target.value as
+                      | "all"
+                      | "pending"
+                      | "approved"
+                      | "rejected"
                   )
                 }
               >
@@ -249,8 +266,10 @@ export default function Post(): React.ReactElement {
                 </thead>
                 <tbody>
                   {filteredPosts.map((post: BlogPost) => {
-                    const canEdit = role === "admin" || currentUser?.uid === post.authorId;
-                    const canDelete = role === "admin" || currentUser?.uid === post.authorId;
+                    const canEdit =
+                      role === "admin" || currentUser?.uid === post.authorId;
+                    const canDelete =
+                      role === "admin" || currentUser?.uid === post.authorId;
 
                     return (
                       <tr key={post.id} className="hover">
@@ -266,10 +285,10 @@ export default function Post(): React.ReactElement {
                               post.status === "approved"
                                 ? "badge-success"
                                 : post.status === "pending"
-                                ? "badge-warning"
-                                : post.status === "rejected"
-                                ? "badge-error"
-                                : "badge-secondary"
+                                  ? "badge-warning"
+                                  : post.status === "rejected"
+                                    ? "badge-error"
+                                    : "badge-secondary"
                             }`}
                           >
                             {post.status || "draft"}
@@ -277,7 +296,9 @@ export default function Post(): React.ReactElement {
                         </td>
                         <td>
                           {post.category ? (
-                            <span className="badge badge-outline">{post.category}</span>
+                            <span className="badge badge-outline">
+                              {post.category}
+                            </span>
                           ) : (
                             <span className="text-base-content/50">—</span>
                           )}

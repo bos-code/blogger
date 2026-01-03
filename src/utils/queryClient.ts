@@ -43,7 +43,8 @@ export const queryKeys = {
   },
   notifications: {
     all: (userId?: string) => ["notifications", userId] as const,
-    realtime: (userId?: string) => ["notifications", "realtime", userId] as const,
+    realtime: (userId?: string) =>
+      ["notifications", "realtime", userId] as const,
   },
 } as const;
 
@@ -58,5 +59,3 @@ export const isQueryClientConfigured = (): boolean => {
     return false;
   }
 };
-
-

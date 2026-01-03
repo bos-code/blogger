@@ -46,7 +46,10 @@ export default function BlogPostDetail(): React.ReactElement {
     // Use SweetAlert instead of window.confirm
     showDeleteConfirm(post.title, () => {
       deletePost.mutate(post.id);
-      showSuccess("Post Deleted", "The blog post has been deleted successfully!");
+      showSuccess(
+        "Post Deleted",
+        "The blog post has been deleted successfully!"
+      );
       navigate("/blogpage");
     });
   };
@@ -64,7 +67,10 @@ export default function BlogPostDetail(): React.ReactElement {
         date = (timestamp as { toDate: () => Date }).toDate();
       } else if (timestamp instanceof Date) {
         date = timestamp;
-      } else if (typeof timestamp === "string" || typeof timestamp === "number") {
+      } else if (
+        typeof timestamp === "string" ||
+        typeof timestamp === "number"
+      ) {
         date = new Date(timestamp);
       } else {
         return "Unknown date";
@@ -191,8 +197,8 @@ export default function BlogPostDetail(): React.ReactElement {
                             />
                           ) : (
                             <span className="text-lg sm:text-xl font-bold">
-                              {(post.authorName && post.authorName.length > 0) 
-                                ? post.authorName.charAt(0).toUpperCase() 
+                              {post.authorName && post.authorName.length > 0
+                                ? post.authorName.charAt(0).toUpperCase()
                                 : "?"}
                             </span>
                           )}
@@ -224,7 +230,8 @@ export default function BlogPostDetail(): React.ReactElement {
                     </div>
 
                     {/* Action Buttons */}
-                    {(currentUser?.uid === post.authorId || role === "admin") && (
+                    {(currentUser?.uid === post.authorId ||
+                      role === "admin") && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -313,4 +320,3 @@ export default function BlogPostDetail(): React.ReactElement {
     </>
   );
 }
-

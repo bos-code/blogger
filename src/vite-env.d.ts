@@ -14,4 +14,3 @@ interface ImportMeta {
   readonly DEV: boolean;
   readonly MODE: string;
 }
-

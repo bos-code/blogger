@@ -125,6 +125,7 @@ export const useCreatePost = () => {
         ...data,
         authorId: user?.uid || "guest",
         authorName: getUserDisplayName(user),
+        authorAvatar: user?.photoURL || null, // Include author avatar
         createdAt: serverTimestamp(),
         status: (data as any).status ?? (isAdmin ? "approved" : "pending"),
         likedBy: [], // Initialize with empty array

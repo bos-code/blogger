@@ -4,7 +4,11 @@ import { useAuthStore } from "../stores/authStore";
 import { sendVerificationEmail, reloadAuthUser } from "../stores/authStore";
 import { showError, showSuccess } from "../utils/sweetalert";
 import { motion } from "framer-motion";
-import { EnvelopeIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import {
+  EnvelopeIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function VerifyEmail(): React.ReactElement {
   const navigate = useNavigate();
@@ -51,7 +55,10 @@ export default function VerifyEmail(): React.ReactElement {
     try {
       await reloadAuthUser();
       if (emailVerified) {
-        showSuccess("Email Verified!", "Your email has been verified successfully.");
+        showSuccess(
+          "Email Verified!",
+          "Your email has been verified successfully."
+        );
         setTimeout(() => {
           navigate("/admin");
         }, 1500);
@@ -124,8 +131,8 @@ export default function VerifyEmail(): React.ReactElement {
                 <div className="text-sm">
                   <p className="font-semibold">Check your inbox</p>
                   <p>
-                    Click the verification link in the email to verify your account.
-                    The link will expire in 1 hour.
+                    Click the verification link in the email to verify your
+                    account. The link will expire in 1 hour.
                   </p>
                 </div>
               </div>
@@ -197,4 +204,3 @@ export default function VerifyEmail(): React.ReactElement {
     </div>
   );
 }
-

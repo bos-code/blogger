@@ -21,7 +21,8 @@ export default function ProtectedRoute({
   requireEmailVerified = true,
   fallbackPath = "/login",
 }: ProtectedRouteProps): React.ReactElement {
-  const { isAuthenticated, isEmailVerified, role, canViewDashboard, isAdmin } = useRole();
+  const { isAuthenticated, isEmailVerified, role, canViewDashboard, isAdmin } =
+    useRole();
 
   // Check authentication
   if (requireAuth && !isAuthenticated) {
