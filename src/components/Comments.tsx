@@ -11,7 +11,6 @@ import {
 import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
-import { CompactSpinner } from "./PremiumSpinner";
 
 interface Comment {
   id: string;
@@ -151,7 +150,7 @@ export default function Comments({ postId }: { postId: string }): React.ReactEle
           >
             {isSubmitting ? (
               <>
-                <CompactSpinner size="sm" variant="primary" />
+                <span className="loading loading-spinner loading-sm"></span>
                 <span className="hidden sm:inline">Posting...</span>
               </>
             ) : (

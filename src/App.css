@@ -1,9 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
+/* Import Tailwind CSS v4 */
 @import "tailwindcss";
-@plugin "daisyui";
-/* @import "./hero.ts" */
 
+/* Configure Tailwind v4 theme with responsive breakpoints */
+@theme {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* DaisyUI Plugin */
+@plugin "daisyui";
+
+/* @import "./hero.ts" */
 
 @plugin "daisyui/theme" {
   name: "defaulttheme";
@@ -59,7 +71,14 @@
 }
 @layer utilities {
   .page-padding {
-    @apply mx-10 md:mx-[64px];
+    @apply mx-10;
+  }
+
+  @media (min-width: 768px) {
+    .page-padding {
+      margin-left: 64px;
+      margin-right: 64px;
+    }
   }
 }
 
@@ -206,21 +225,27 @@ body {
   @apply border-r-2 text-primary border-l-2 border-t-2 text-xl  px-6 py-1 rounded-full;
 }
 
-
-.glassy{
+.glassy {
   /* From https://css.glass */
-background: rgba(18, 247, 214, 0.04 );
+  background: rgba(18, 247, 214, 0.04);
 
-box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-backdrop-filter: blur(2.1px);
--webkit-backdrop-filter: blur(2.1px);
-box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0px -36px 30px 0px inset, rgba(0, 0, 0, 0.1) 0px -79px 40px 0px inset, rgba(0, 0, 0, 0.06) 0px 2px 1px, rgba(0, 0, 0, 0.09) 0px 4px 2px, rgba(0, 0, 0, 0.09) 0px 8px 4px, rgba(0, 0, 0, 0.09) 0px 16px 8px, rgba(0, 0, 0, 0.09) 0px 32px 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2.1px);
+  -webkit-backdrop-filter: blur(2.1px);
+  box-shadow:
+    rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset,
+    rgba(0, 0, 0, 0.15) 0px -36px 30px 0px inset,
+    rgba(0, 0, 0, 0.1) 0px -79px 40px 0px inset,
+    rgba(0, 0, 0, 0.06) 0px 2px 1px,
+    rgba(0, 0, 0, 0.09) 0px 4px 2px,
+    rgba(0, 0, 0, 0.09) 0px 8px 4px,
+    rgba(0, 0, 0, 0.09) 0px 16px 8px,
+    rgba(0, 0, 0, 0.09) 0px 32px 16px;
 }
 
-.shadow-ce{
+.shadow-ce {
   box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
 }
-
 
 .dash .btn {
   position: relative;
@@ -238,7 +263,11 @@ box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0p
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--accent, #23d1b7), var(--primary, #1b8d80));
+  background: linear-gradient(
+    135deg,
+    var(--accent, #23d1b7),
+    var(--primary, #1b8d80)
+  );
   transform: translateX(-100%) skewX(-20deg);
   transition: transform 0.6s ease;
   z-index: 0;
@@ -250,7 +279,8 @@ box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0p
 }
 
 /* make sure text stays above */
-.btn span, .btn i {
+.btn span,
+.btn i {
   position: relative;
   z-index: 1;
 }
@@ -259,7 +289,11 @@ box-shadow: rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset, rgba(0, 0, 0, 0.15) 0p
   width: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--fallback-p, oklch(var(--p))), var(--fallback-s, oklch(var(--s))));
+  background: linear-gradient(
+    180deg,
+    var(--fallback-p, oklch(var(--p))),
+    var(--fallback-s, oklch(var(--s)))
+  );
   border-radius: 8px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {

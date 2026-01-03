@@ -58,7 +58,9 @@ lowlight.registerLanguage("ts", typescriptLang);
 export default function CreatePost(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
-  // Removed unused variables
+  const authUser = useAuthStore((s) => s.user);
+  const role = useAuthStore((s) => s.role);
+  const isAdmin = role === "admin";
   const editState = (location.state || {}) as any;
 
   // inputs
@@ -74,6 +76,8 @@ export default function CreatePost(): React.ReactElement {
   const [status, setStatus] = useState<"draft" | "published">(() =>
     editState.status === "draft" ? "draft" : "published"
   );
+  const [showPublishModal, setShowPublishModal] = useState<boolean>(false);
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
 
   const previewBodyRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +136,7 @@ export default function CreatePost(): React.ReactElement {
   };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    e.preventDefault();
     e.stopPropagation();
     setTitle(e.target.value);
   };
@@ -139,11 +144,16 @@ export default function CreatePost(): React.ReactElement {
   const createPost = useCreatePost();
   const updatePost = useUpdatePost();
 
-  /* --- Push Post to Firestore --- */
-  const saveToFirebase = async (): Promise<void> => {
-    if (!title.trim()) return showModalMsg("Please enter a post title");
-    if (!(editor?.getHTML() ?? "").trim())
-      return showModalMsg("Please write something first");
+  /* --- Save as Draft --- */
+  const saveAsDraft = async (): Promise<void> => {
+    if (!title.trim()) {
+      showModalMsg("Please enter a post title");
+      return;
+    }
+    if (!(editor?.getHTML() ?? "").trim()) {
+      showModalMsg("Please write something first");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -152,28 +162,95 @@ export default function CreatePost(): React.ReactElement {
         content: editor?.getHTML() ?? "",
         tags,
         category,
-        status: status === "draft" ? "pending" : "pending", // All new posts start as pending
+        status: "draft",
       };
 
       if (editState?.id) {
         await updatePost.mutateAsync({ id: editState.id, data: payload });
+        showSuccess("Draft Saved", "Your post has been saved as a draft!");
       } else {
         await createPost.mutateAsync(payload as any);
+        showSuccess("Draft Saved", "Your post has been saved as a draft!");
       }
 
-      showModalMsg("Post saved successfully!");
-      setTitle("");
-      editor?.commands.setContent("<p></p>");
-      localStorage.removeItem("create-post-draft");
+      setShowSaveModal(false);
+      // Don't clear form, just save
     } catch (error) {
-      console.error("Error adding document: ", error);
-      showModalMsg("Error saving post. Try again.");
+      console.error("Error saving draft: ", error);
+      showModalMsg("Error saving draft. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNext = (): void => {
+  /* --- Publish Post --- */
+  const publishPost = async (): Promise<void> => {
+    if (!title.trim()) {
+      showModalMsg("Please enter a post title");
+      setShowPublishModal(false);
+      return;
+    }
+    if (!(editor?.getHTML() ?? "").trim()) {
+      showModalMsg("Please write something first");
+      setShowPublishModal(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload = {
+        title,
+        content: editor?.getHTML() ?? "",
+        tags,
+        category,
+        status: isAdmin ? "approved" : "pending",
+      };
+
+      if (editState?.id) {
+        await updatePost.mutateAsync({ id: editState.id, data: payload });
+        showSuccess(
+          "Post Published!",
+          isAdmin
+            ? "Your post has been published and is live!"
+            : "Your post has been submitted for approval!"
+        );
+      } else {
+        await createPost.mutateAsync(payload as any);
+        showSuccess(
+          "Post Published!",
+          isAdmin
+            ? "Your post has been published and is live!"
+            : "Your post has been submitted for approval!"
+        );
+      }
+
+      setShowPublishModal(false);
+      // Clear form after successful publish
+      setTitle("");
+      editor?.commands.setContent("<p></p>");
+      setTags([]);
+      setCategory("");
+      localStorage.removeItem("create-post-draft");
+      
+      // Navigate to admin dashboard after a short delay
+      setTimeout(() => {
+        navigate("/admin");
+      }, 1500);
+    } catch (error) {
+      console.error("Error publishing post: ", error);
+      showModalMsg("Error publishing post. Try again.");
+      setShowPublishModal(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* --- Old save function (kept for backward compatibility) --- */
+  const saveToFirebase = async (): Promise<void> => {
+    setShowSaveModal(true);
+  };
+
+  const handleNext = (e?: MouseEvent<HTMLButtonElement>): void => {
     e?.preventDefault();
     if (!title.trim()) return showModalMsg("Please enter a post title");
     if (!editor?.getHTML().trim())
@@ -317,21 +394,21 @@ export default function CreatePost(): React.ReactElement {
                   size="sm"
                   variant="flat"
                   color="secondary"
-                  onPress={saveToFirebase}
+                  onPress={() => setShowSaveModal(true)}
                   isDisabled={loading || (createPost as any).isLoading}
                   isLoading={loading || (createPost as any).isLoading}
                 >
                   <CheckIcon className="w-4 h-4" />
-                  <span className="ml-1 hidden sm:inline">Save</span>
+                  <span className="ml-1 hidden sm:inline">Save Draft</span>
                 </Button>
 
                 <Button
                   size="sm"
                   color="primary"
-                  onPress={handleNext}
-                  isDisabled={loading}
+                  onPress={() => setShowPublishModal(true)}
+                  isDisabled={loading || (createPost as any).isLoading}
                 >
-                  <span className="hidden sm:inline">Next</span>
+                  <span className="hidden sm:inline">Publish</span>
                   <ArrowRightIcon className="w-4 h-4 sm:ml-2" />
                 </Button>
               </div>
@@ -364,10 +441,6 @@ export default function CreatePost(): React.ReactElement {
                       e.stopPropagation();
                     }}
                     className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder:text-base-content/40 focus:placeholder:text-base-content/20 transition-colors"
-                    autoComplete="off"
-                    autoFocus={false}
-                    disabled={false}
-                    readOnly={false}
                   />
                 </div>
 
@@ -463,7 +536,7 @@ export default function CreatePost(): React.ReactElement {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Notice Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -482,6 +555,108 @@ export default function CreatePost(): React.ReactElement {
           <ModalFooter>
             <Button color="primary" onPress={() => setModalOpen(false)}>
               OK
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Save Draft Confirmation Modal */}
+      <Modal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        isDismissable
+        placement="center"
+        size="md"
+      >
+        <ModalContent>
+          <ModalHeader className="flex items-center gap-2">
+            <CheckIcon className="w-5 h-5 text-secondary" />
+            <span>Save as Draft</span>
+          </ModalHeader>
+          <ModalBody>
+            <p className="text-base-content">
+              Are you sure you want to save this post as a draft? You can publish it later.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              color="default"
+              onPress={() => setShowSaveModal(false)}
+              isDisabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="secondary"
+              onPress={saveAsDraft}
+              isLoading={loading}
+              isDisabled={loading}
+            >
+              Save Draft
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Publish Confirmation Modal */}
+      <Modal
+        isOpen={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        isDismissable
+        placement="center"
+        size="md"
+      >
+        <ModalContent>
+          <ModalHeader className="flex items-center gap-2">
+            <ExclamationTriangleIcon className="w-5 h-5 text-primary" />
+            <span>Publish Post</span>
+          </ModalHeader>
+          <ModalBody>
+            <div className="space-y-3">
+              <p className="text-base-content">
+                {isAdmin
+                  ? "Are you sure you want to publish this post? It will be immediately visible to all users."
+                  : "Are you sure you want to publish this post? It will be submitted for admin approval."}
+              </p>
+              <div className="bg-base-200 rounded-lg p-3 space-y-2">
+                <p className="text-sm font-semibold text-base-content">Post Details:</p>
+                <p className="text-sm text-base-content/70">
+                  <strong>Title:</strong> {title || "Untitled"}
+                </p>
+                <p className="text-sm text-base-content/70">
+                  <strong>Status:</strong>{" "}
+                  {isAdmin ? "Will be approved immediately" : "Will be pending approval"}
+                </p>
+                {category && (
+                  <p className="text-sm text-base-content/70">
+                    <strong>Category:</strong> {category}
+                  </p>
+                )}
+                {tags.length > 0 && (
+                  <p className="text-sm text-base-content/70">
+                    <strong>Tags:</strong> {tags.join(", ")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="flat"
+              color="default"
+              onPress={() => setShowPublishModal(false)}
+              isDisabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              onPress={publishPost}
+              isLoading={loading}
+              isDisabled={loading}
+            >
+              {isAdmin ? "Publish Now" : "Submit for Approval"}
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -14,6 +14,7 @@ import {
 import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
+import { queryKeys } from "../utils/queryClient";
 import type { BlogPost } from "../types";
 
 interface CreatePostData {
@@ -27,61 +28,37 @@ interface UpdatePostData {
   data: Partial<BlogPost>;
 }
 
-// Fetch all posts (filtered by role - only admins see unapproved posts)
+// Fetch all posts
 export const usePosts = () => {
-  const role = useAuthStore((state) => state.role);
-  const displayStatus = useAuthStore((state) => state.displayStatus);
-  const isAdmin = role === "admin";
-  const isAuthReady = displayStatus === "ready";
-
   return useQuery<BlogPost[]>({
-    queryKey: ["posts", isAdmin ? "all" : "approved"],
+    queryKey: queryKeys.posts.all,
     queryFn: async () => {
-      const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-        collection(db, "posts")
-      );
-      const allPosts = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as BlogPost[];
-
-      // Filter: Only admins see unapproved/rejected posts
-      // Regular users ONLY see approved posts (strict filtering)
-      if (isAdmin) {
-        return allPosts;
+      try {
+        const snapshot: QuerySnapshot<DocumentData> = await getDocs(
+          collection(db, "posts")
+        );
+        return snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as BlogPost[];
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        throw new Error("Failed to fetch posts. Please try again later.");
       }
-      // Non-admins: Only show posts with status === "approved"
-      return allPosts.filter((post) => post.status === "approved");
     },
-    // Only enable when auth is ready
-    enabled: isAuthReady,
-    // Optimize caching: posts don't change frequently
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
-  });
-};
-
-// Fetch all posts (admin only - includes unapproved)
-export const useAllPosts = () => {
-  const displayStatus = useAuthStore((state) => state.displayStatus);
-  const isAuthReady = displayStatus === "ready";
-
-  return useQuery<BlogPost[]>({
-    queryKey: ["posts", "all"],
-    queryFn: async () => {
-      const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-        collection(db, "posts")
-      );
-      return snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as BlogPost[];
+    // Reduced stale time for blog page - data considered fresh for 30 seconds
+    staleTime: 30 * 1000, // 30 seconds (instead of default 5 minutes)
+    // Cache data for 2 minutes
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    // Retry configuration
+    retry: (failureCount, error) => {
+      // Don't retry on 4xx errors (client errors)
+      if (error instanceof Error && error.message.includes("permission")) {
+        return false;
+      }
+      // Retry up to 2 times for network errors
+      return failureCount < 2;
     },
-    // Only enable when auth is ready
-    enabled: isAuthReady,
-    // Admin dashboard needs fresher data
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    gcTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
   });
 };
 
@@ -90,7 +67,7 @@ export const usePostsRealtime = () => {
   const queryClient = useQueryClient();
 
   return useQuery<BlogPost[]>({
-    queryKey: ["posts", "realtime"],
+    queryKey: queryKeys.posts.realtime,
     queryFn: () => {
       return new Promise<BlogPost[]>((resolve) => {
         const unsub = onSnapshot(collection(db, "posts"), (snap) => {
@@ -98,7 +75,7 @@ export const usePostsRealtime = () => {
             id: d.id,
             ...d.data(),
           })) as BlogPost[];
-          queryClient.setQueryData(["posts"], blogs);
+          queryClient.setQueryData(queryKeys.posts.all, blogs);
           resolve(blogs);
         });
         // Return unsubscribe function
@@ -149,7 +126,7 @@ export const useCreatePost = () => {
       return blogData;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       showNotification({
         type: "success",
@@ -182,18 +159,10 @@ export const useUpdatePost = () => {
         ...data,
         updatedAt: serverTimestamp(),
       });
-      return { id, data };
+      return { id, ...data };
     },
-    onSuccess: (result) => {
-      // Optimistically update the cache for the specific post
-      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
-        if (!oldPosts) return oldPosts;
-        return oldPosts.map((post) =>
-          post.id === result.id ? { ...post, ...result.data } : post
-        );
-      });
-      // Also invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       showNotification({
         type: "success",
         title: "Post Updated",
@@ -224,18 +193,8 @@ export const useDeletePost = () => {
       await deleteDoc(doc(db, "posts", id));
       return id;
     },
-    onSuccess: (id) => {
-      // Optimistically remove from cache
-      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
-        if (!oldPosts) return oldPosts;
-        return oldPosts.filter((post) => post.id !== id);
-      });
-      queryClient.setQueryData<BlogPost[]>(["posts", "approved"], (oldPosts) => {
-        if (!oldPosts) return oldPosts;
-        return oldPosts.filter((post) => post.id !== id);
-      });
-      // Invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       showNotification({
         type: "success",
         title: "Post Deleted",
@@ -279,16 +238,8 @@ export const useApprovePost = () => {
 
       return id;
     },
-    onSuccess: (id) => {
-      // Optimistically update post status in cache
-      queryClient.setQueryData<BlogPost[]>(["posts", "all"], (oldPosts) => {
-        if (!oldPosts) return oldPosts;
-        return oldPosts.map((post) =>
-          post.id === id ? { ...post, status: "approved" as const } : post
-        );
-      });
-      // Invalidate to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       showNotification({
         type: "success",
@@ -369,10 +320,10 @@ export const useLikePost = () => {
     // Optimistic Update: Update UI immediately before server confirms
     onMutate: async ({ postId, currentLikedBy = [] }) => {
       // Cancel any outgoing refetches to avoid overwriting optimistic update
-      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.posts.all });
 
       // Snapshot the previous value for rollback
-      const previousPosts = queryClient.getQueryData<BlogPost[]>(["posts"]);
+      const previousPosts = queryClient.getQueryData<BlogPost[]>(queryKeys.posts.all);
 
       // Get current user for optimistic update
       const currentUser = user;
@@ -387,7 +338,7 @@ export const useLikePost = () => {
         : [...currentLikedBy, userId];
 
       // Optimistically update the cache
-      queryClient.setQueryData<BlogPost[]>(["posts"], (oldPosts) => {
+      queryClient.setQueryData<BlogPost[]>(queryKeys.posts.all, (oldPosts) => {
         if (!oldPosts) return oldPosts;
 
         return oldPosts.map((post) =>
@@ -402,19 +353,19 @@ export const useLikePost = () => {
       });
 
       // Return context with snapshot for potential rollback
-      return { previousPosts } as { previousPosts: BlogPost[] | undefined };
+      return { previousPosts };
     },
 
     // On Success: Invalidate queries to sync with server
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
 
     // On Error: Rollback optimistic update and show error
     onError: (error: Error, variables, context) => {
       // Rollback: Restore previous state
-      if (context && context.previousPosts) {
-        queryClient.setQueryData<BlogPost[]>(["posts"], context.previousPosts);
+      if (context?.previousPosts) {
+        queryClient.setQueryData<BlogPost[]>(queryKeys.posts.all, context.previousPosts);
       }
 
       // Show user-friendly error notification
@@ -431,7 +382,7 @@ export const useLikePost = () => {
 
     // Always refetch after error or success to ensure consistency
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
   });
 };

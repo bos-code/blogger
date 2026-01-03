@@ -2,86 +2,208 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is admin
-    function isAdmin() {
-      return request.auth != null 
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
     
-    // Helper function to check if user is authenticated
+    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Users collection
+    // Get user's role from Firestore (single source of truth)
+    function getUserRole() {
+      if (!isAuthenticated()) return null;
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return userDoc.data.role;
+    }
+    
+    // Check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    // Check if user is writer (includes admin)
+    function isWriter() {
+      let role = getUserRole();
+      return isAuthenticated() && (role == 'writer' || role == 'admin');
+    }
+    
+    // Check if user is the owner of a resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if attempting to modify admin role
+    function isModifyingAdminRole(userId) {
+      let targetUser = get(/databases/$(database)/documents/users/$(userId));
+      let currentRole = targetUser.data.role;
+      let newRole = request.resource.data.role;
+      // Check if changing TO admin or FROM admin
+      return (currentRole == 'admin' || newRole == 'admin') && currentRole != newRole;
+    }
+    
+    // Validate role value
+    function isValidRole(role) {
+      return role in ['user', 'writer', 'admin', 'reader'];
+    }
+    
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
     match /users/{userId} {
-      // Allow admins to read all users
-      allow read: if isAuthenticated() && isAdmin();
+      // READ RULES
+      allow read: if isAuthenticated() && (
+        // Admin can read all users
+        isAdmin() ||
+        // Users can read their own document
+        isOwner(userId)
+      );
       
-      // Allow users to read their own document
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // CREATE RULES
+      allow create: if isAuthenticated() && (
+        // Only admin can create users with roles
+        (isAdmin() && isValidRole(request.resource.data.role)) ||
+        // Regular signup creates user with default 'user' role
+        (!('role' in request.resource.data) || request.resource.data.role == 'user')
+      );
       
-      // Allow admins to create/update any user
-      allow create, update: if isAuthenticated() && isAdmin();
+      // UPDATE RULES
+      allow update: if isAuthenticated() && (
+        // Admin can update any user (but cannot modify other admins)
+        (isAdmin() && 
+         !isModifyingAdminRole(userId) &&
+         // Cannot change role to admin
+         (!('role' in request.resource.data) || 
+          request.resource.data.role != 'admin')) ||
+        // Users can update their own profile (but not role)
+        (isOwner(userId) && 
+         !('role' in request.resource.data) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoURL', 'email', 'updatedAt']))
+      );
       
-      // Allow users to update their own document (limited fields)
-      allow update: if isAuthenticated() 
-        && request.auth.uid == userId
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      // DELETE RULES
+      allow delete: if isAuthenticated() && (
+        // Only admin can delete users
+        isAdmin() ||
+        // Users can delete their own account (but not if they're admin)
+        (isOwner(userId) && resource.data.role != 'admin')
+      );
     }
     
-    // Posts collection
+    // ============================================
+    // POSTS COLLECTION
+    // ============================================
     match /posts/{postId} {
-      // Allow authenticated users to read approved posts
-      allow read: if isAuthenticated() 
-        && (resource.data.status == 'approved' || isAdmin());
+      // READ RULES
+      allow read: if isAuthenticated() && (
+        // Admin can read all posts
+        isAdmin() ||
+        // Writers can read all approved posts and their own posts
+        (isWriter() && (resource.data.status == 'approved' || resource.data.authorId == request.auth.uid)) ||
+        // Regular users can only read approved posts
+        (resource.data.status == 'approved')
+      );
       
-      // Allow writers/admins to create posts
-      allow create: if isAuthenticated() 
-        && (isAdmin() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'writer');
+      // CREATE RULES
+      allow create: if isAuthenticated() && (
+        // Admin can create posts
+        isAdmin() ||
+        // Writers can create posts
+        (isWriter() && request.resource.data.authorId == request.auth.uid)
+      );
       
-      // Allow authors or admins to update posts
-      allow update: if isAuthenticated() 
-        && (isAdmin() || resource.data.authorId == request.auth.uid);
+      // UPDATE RULES
+      allow update: if isAuthenticated() && (
+        // Admin can update any post
+        isAdmin() ||
+        // Writers can update their own posts
+        (isWriter() && resource.data.authorId == request.auth.uid)
+      );
       
-      // Only admins can delete posts
-      allow delete: if isAuthenticated() && isAdmin();
+      // DELETE RULES
+      allow delete: if isAuthenticated() && (
+        // Admin can delete any post
+        isAdmin() ||
+        // Writers can delete their own posts
+        (isWriter() && resource.data.authorId == request.auth.uid)
+      );
     }
     
-    // Categories collection
+    // ============================================
+    // CATEGORIES COLLECTION
+    // ============================================
     match /categories/{categoryId} {
-      // Everyone can read categories
+      // READ: All authenticated users can read categories
       allow read: if isAuthenticated();
       
-      // Only admins can create/update/delete categories
-      allow create, update, delete: if isAuthenticated() && isAdmin();
+      // CREATE/UPDATE/DELETE: Only admins
+      allow create, update, delete: if isAdmin();
     }
     
-    // Comments collection
+    // ============================================
+    // COMMENTS COLLECTION
+    // ============================================
     match /comments/{commentId} {
-      // Allow authenticated users to read comments
+      // READ: All authenticated users can read comments
       allow read: if isAuthenticated();
       
-      // Allow authenticated users to create comments
-      allow create: if isAuthenticated();
+      // CREATE: All authenticated users (except readers)
+      allow create: if isAuthenticated() && getUserRole() != 'reader';
       
-      // Allow users to update/delete their own comments, or admins to delete any
-      allow update, delete: if isAuthenticated() 
-        && (resource.data.authorId == request.auth.uid || isAdmin());
+      // UPDATE/DELETE: Author or admin
+      allow update, delete: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.authorId == request.auth.uid
+      );
     }
     
-    // Notifications collection
+    // ============================================
+    // NOTIFICATIONS COLLECTION
+    // ============================================
     match /notifications/{notificationId} {
-      // Users can only read their own notifications
-      allow read: if isAuthenticated() 
-        && resource.data.userId == request.auth.uid;
+      // READ: Users can only read their own notifications
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
       
-      // Only system/admins can create notifications
-      allow create: if isAuthenticated() && isAdmin();
+      // CREATE: Only system (admin) can create
+      allow create: if isAdmin();
       
-      // Users can update their own notifications (e.g., mark as read)
-      allow update: if isAuthenticated() 
-        && resource.data.userId == request.auth.uid;
-    }
+      // UPDATE: Users can update their own notifications
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+      
+    // DELETE: Users can delete their own notifications
+    allow delete: if isAuthenticated() && (
+      isAdmin() ||
+      resource.data.userId == request.auth.uid
+    );
   }
+  
+  // ============================================
+  // MESSAGES COLLECTION (Contact Form)
+  // ============================================
+  match /messages/{messageId} {
+    // CREATE: Anyone can send a message (no auth required for contact form)
+    allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
+                     request.resource.data.name is string &&
+                     request.resource.data.email is string &&
+                     request.resource.data.message is string &&
+                     request.resource.data.name.size() >= 3 &&
+                     request.resource.data.message.size() >= 10;
+    
+    // READ: Only admins can read messages
+    allow read: if isAdmin();
+    
+    // UPDATE: Only admins can update messages (e.g., mark as read)
+    allow update: if isAdmin();
+    
+    // DELETE: Only admins can delete messages
+    allow delete: if isAdmin();
+  }
+}
 }

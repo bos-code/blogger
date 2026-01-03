@@ -1,102 +1,132 @@
 import { useState } from "react";
-import {
-  useCategories,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-} from "../hooks/useCategories";
 import { usePosts } from "../hooks/usePosts";
+import { useUpdatePost } from "../hooks/usePosts";
 import { motion } from "framer-motion";
 import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
 import {
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
+  XMarkIcon,
   TagIcon,
 } from "@heroicons/react/24/outline";
-import { showDeleteConfirm, showSuccess } from "../utils/sweetalert";
-import type { Category } from "../hooks/useCategories";
+import { showSuccess, showError, showConfirm } from "../utils/sweetalert";
+import type { BlogPost } from "../types";
 
 export default function Categories(): React.ReactElement {
-  const { data: categories = [], isLoading } = useCategories();
-  const { data: posts = [] } = usePosts();
-  const createCategory = useCreateCategory();
-  const updateCategory = useUpdateCategory();
-  const deleteCategory = useDeleteCategory();
-
+  const { data: posts = [], isLoading } = usePosts();
+  const updatePost = useUpdatePost();
+  const [newCategory, setNewCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
 
-  // Calculate post count for each category
-  const categoriesWithCounts = categories.map((cat) => ({
-    ...cat,
-    postCount: posts.filter((p) => p.category === cat.name).length,
-  }));
+  // Extract unique categories from posts
+  const categories = Array.from(
+    new Set(
+      posts
+        .map((post: BlogPost) => post.category)
+        .filter((cat): cat is string => Boolean(cat))
+    )
+  ).sort();
 
   // Filter categories
-  const filteredCategories = categoriesWithCounts.filter((cat) =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCategories = categories.filter((cat) =>
+    cat.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleOpenModal = (category?: Category): void => {
-    if (category) {
-      setEditingCategory(category);
-      setFormData({
-        name: category.name,
-        description: category.description || "",
-      });
-    } else {
-      setEditingCategory(null);
-      setFormData({ name: "", description: "" });
-    }
-    setIsModalOpen(true);
+  // Count posts per category
+  const getCategoryCount = (category: string): number => {
+    return posts.filter((post: BlogPost) => post.category === category).length;
   };
 
-  const handleCloseModal = (): void => {
-    setIsModalOpen(false);
-    setEditingCategory(null);
-    setFormData({ name: "", description: "" });
+  // Get posts by category
+  const getPostsByCategory = (category: string): BlogPost[] => {
+    return posts.filter((post: BlogPost) => post.category === category);
   };
 
-  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
+  const handleAddCategory = (): void => {
+    if (!newCategory.trim()) {
+      showError("Invalid Category", "Please enter a category name.");
       return;
     }
 
-    try {
-      if (editingCategory) {
-        await updateCategory.mutateAsync({
-          id: editingCategory.id,
-          data: formData,
-        });
-      } else {
-        await createCategory.mutateAsync(formData);
+    if (categories.includes(newCategory.trim())) {
+      showError("Category Exists", "This category already exists.");
+      return;
+    }
+
+    setNewCategory("");
+    showSuccess("Category Added", "You can now assign this category to posts.");
+  };
+
+  const handleRenameCategory = (oldCategory: string): void => {
+    const newName = prompt(`Rename "${oldCategory}" to:`, oldCategory);
+    if (!newName || !newName.trim() || newName === oldCategory) return;
+
+    if (categories.includes(newName.trim())) {
+      showError("Category Exists", "A category with this name already exists.");
+      return;
+    }
+
+    // Update all posts with this category
+    const postsToUpdate = getPostsByCategory(oldCategory);
+    
+    showConfirm(
+      "Rename Category",
+      `This will update ${postsToUpdate.length} post(s). Continue?`,
+      {
+        confirmText: "Rename",
+        cancelText: "Cancel",
+        confirmColor: "primary",
+        onConfirm: async () => {
+          try {
+            await Promise.all(
+              postsToUpdate.map((post) =>
+                updatePost.mutateAsync({
+                  id: post.id,
+                  data: { category: newName.trim() },
+                })
+              )
+            );
+            showSuccess(
+              "Category Renamed",
+              `"${oldCategory}" has been renamed to "${newName.trim()}".`
+            );
+          } catch (error) {
+            showError("Failed", "Could not rename category. Please try again.");
+          }
+        },
       }
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error saving category:", error);
-    }
+    );
   };
 
-  const handleDelete = (category: Category): void => {
-    const postCount = posts.filter((p) => p.category === category.name).length;
-    if (postCount > 0) {
-      showSuccess(
-        "Cannot Delete",
-        `This category is used by ${postCount} post(s). Please reassign those posts before deleting.`
-      );
-      return;
-    }
-
-    showDeleteConfirm(
-      category.name,
-      () => {
-        deleteCategory.mutate(category.id);
-        showSuccess("Category Deleted", "The category has been deleted successfully!");
+  const handleDeleteCategory = (category: string): void => {
+    const postsWithCategory = getPostsByCategory(category);
+    
+    showConfirm(
+      "Delete Category",
+      `This will remove the category from ${postsWithCategory.length} post(s). Continue?`,
+      {
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        confirmColor: "error",
+        onConfirm: async () => {
+          try {
+            // Remove category from all posts
+            await Promise.all(
+              postsWithCategory.map((post) =>
+                updatePost.mutateAsync({
+                  id: post.id,
+                  data: { category: "" },
+                })
+              )
+            );
+            showSuccess(
+              "Category Deleted",
+              `"${category}" has been removed from all posts.`
+            );
+          } catch (error) {
+            showError("Failed", "Could not delete category. Please try again.");
+          }
+        },
       }
     );
   };
@@ -120,22 +150,51 @@ export default function Categories(): React.ReactElement {
         <div>
           <h1 className="text-3xl font-bold text-base-content">Manage Categories</h1>
           <p className="text-base-content/70 mt-1">
-            {filteredCategories.length} of {categories.length} categories
+            {filteredCategories.length} categories
           </p>
         </div>
-        <button
-          className="btn btn-primary gap-2"
-          onClick={() => handleOpenModal()}
-        >
-          <PlusIcon className="w-5 h-5" />
-          <span>Add Category</span>
-        </button>
+      </motion.div>
+
+      {/* Add Category */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card bg-base-100 shadow-lg"
+      >
+        <div className="card-body p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <label className="input input-bordered flex items-center gap-2 flex-1">
+              <TagIcon className="w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Enter new category name..."
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCategory();
+                  }
+                }}
+                className="grow"
+              />
+            </label>
+            <button
+              className="btn btn-primary gap-2"
+              onClick={handleAddCategory}
+            >
+              <PlusIcon className="w-5 h-5" />
+              Add Category
+            </button>
+          </div>
+        </div>
       </motion.div>
 
       {/* Search */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
         className="card bg-base-100 shadow-lg"
       >
         <div className="card-body p-4">
@@ -152,137 +211,70 @@ export default function Categories(): React.ReactElement {
         </div>
       </motion.div>
 
-      {/* Categories Grid */}
+      {/* Categories List */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        transition={{ delay: 0.2 }}
+        className="card bg-base-100 shadow-xl"
       >
-        {filteredCategories.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <p className="text-base-content/70 text-lg">
-              {searchQuery ? "No categories match your search" : "No categories yet"}
-            </p>
-          </div>
-        ) : (
-          filteredCategories.map((category) => (
-            <div
-              key={category.id}
-              className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow"
-            >
-              <div className="card-body">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <TagIcon className="w-6 h-6 text-primary" />
-                    <h3 className="text-xl font-bold text-base-content">
-                      {category.name}
-                    </h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => handleOpenModal(category)}
-                      title="Edit Category"
-                    >
-                      <PencilIcon className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="btn btn-sm btn-error"
-                      onClick={() => handleDelete(category)}
-                      title="Delete Category"
-                      disabled={deleteCategory.isPending}
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                {category.description && (
-                  <p className="text-base-content/70 text-sm mb-3">
-                    {category.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between mt-auto pt-3 border-t border-base-300">
-                  <span className="text-sm text-base-content/70">
-                    {category.postCount || 0} post
-                    {(category.postCount || 0) !== 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
+        <div className="card-body">
+          {filteredCategories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-base-content/70 text-lg">
+                {searchQuery
+                  ? "No categories match your search"
+                  : "No categories yet. Create your first category!"}
+              </p>
             </div>
-          ))
-        )}
-      </motion.div>
-
-      {/* Create/Edit Modal */}
-      {isModalOpen && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">
-              {editingCategory ? "Edit Category" : "Create New Category"}
-            </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="form-control mb-4">
-                <label className="label">
-                  <span className="label-text">Category Name</span>
-                </label>
-                <input
-                  type="text"
-                  className="input input-bordered"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="e.g., Technology, Health, Lifestyle"
-                  required
-                />
-              </div>
-              <div className="form-control mb-4">
-                <label className="label">
-                  <span className="label-text">Description (Optional)</span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Brief description of this category..."
-                  rows={3}
-                />
-              </div>
-              <div className="modal-action">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={handleCloseModal}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={
-                    createCategory.isPending || updateCategory.isPending
-                  }
-                >
-                  {createCategory.isPending || updateCategory.isPending ? (
-                    <>
-                      <CompactSpinner size="sm" variant="primary" />
-                      <span>Saving...</span>
-                    </>
-                  ) : editingCategory ? (
-                    "Update"
-                  ) : (
-                    "Create"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-          <div className="modal-backdrop" onClick={handleCloseModal}></div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCategories.map((category) => {
+                const count = getCategoryCount(category);
+                return (
+                  <motion.div
+                    key={category}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="card bg-base-200 shadow-md hover:shadow-lg transition-shadow"
+                  >
+                    <div className="card-body p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-base-content">
+                          {category}
+                        </h3>
+                        <div className="badge badge-primary badge-lg">
+                          {count} {count === 1 ? "post" : "posts"}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          className="btn btn-sm btn-primary flex-1"
+                          onClick={() => handleRenameCategory(category)}
+                          disabled={updatePost.isPending}
+                        >
+                          {updatePost.isPending ? (
+                            <CompactSpinner size="sm" variant="primary" />
+                          ) : (
+                            "Rename"
+                          )}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-error"
+                          onClick={() => handleDeleteCategory(category)}
+                          disabled={updatePost.isPending}
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </motion.div>
     </div>
   );
 }

@@ -1,49 +1,58 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import App from "./App";
-import "./index.css";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import App from "./App.tsx";
+import "./App.css";
 
+// Create a QueryClient instance with optimized defaults
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Cache data for 10 minutes before considering it stale
-      staleTime: 1000 * 60 * 10,
-      // Keep unused data in cache for 30 minutes
-      gcTime: 1000 * 60 * 30, // Previously cacheTime
-      // Retry failed requests 2 times
-      retry: 2,
-      // Retry delay increases exponentially
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Don't refetch on window focus for better UX
+      // Don't refetch on window focus to reduce unnecessary requests
       refetchOnWindowFocus: false,
-      // Don't refetch on reconnect immediately
-      refetchOnReconnect: true,
+      // Retry failed requests once
+      retry: 1,
+      // Consider data fresh for 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      // Cache data for 10 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
       // Refetch on mount if data is stale
       refetchOnMount: true,
+      // Don't refetch on reconnect automatically
+      refetchOnReconnect: false,
     },
     mutations: {
-      // Retry mutations once on failure
+      // Retry failed mutations once
       retry: 1,
-      // Retry delay for mutations
-      retryDelay: 1000,
+      // Don't throw errors by default, let components handle them
+      throwOnError: false,
     },
   },
 });
 
+// Get the root element
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
+// Render the app
+createRoot(rootElement).render(
+  <StrictMode>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+        {/* React Query DevTools - only shows in development */}
+        {(import.meta.env?.DEV || import.meta.env?.MODE === "development") && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </QueryClientProvider>
+    </ErrorBoundary>
+  </StrictMode>
 );

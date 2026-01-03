@@ -48,9 +48,11 @@ export interface AuthState {
   logStatus: boolean;
   authError: string | null;
   displayStatus: "loading" | "ready" | "error";
+  emailVerified: boolean;
   setUser: (user: User, role: UserRole) => void;
   setAuthError: (error: string) => void;
   clearAuthError: () => void;
+  setEmailVerified: (verified: boolean) => void;
   signOut: () => void;
   initAuth: () => (() => void) | undefined;
 }
