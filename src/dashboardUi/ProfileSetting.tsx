@@ -4,7 +4,7 @@ import { updateProfile } from "firebase/auth";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseconfig";
 import { motion } from "framer-motion";
-import PremiumSpinner from "../components/PremiumSpinner";
+import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -12,15 +12,20 @@ import {
   KeyIcon,
   PaintBrushIcon,
   SparklesIcon,
+  ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { showSuccess, showError } from "../utils/sweetalert";
 import { useThemeStore, themes, type ThemeName } from "../stores/themeStore";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfileSetting(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
   const currentTheme = useThemeStore((state) => state.currentTheme);
   const setTheme = useThemeStore((state) => state.setTheme);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -287,8 +292,8 @@ export default function ProfileSetting(): React.ReactElement {
               >
                 {isLoading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    Updating...
+                    <CompactSpinner size="sm" variant="primary" />
+                    <span>Updating...</span>
                   </>
                 ) : (
                   "Update Profile"
@@ -438,8 +443,8 @@ export default function ProfileSetting(): React.ReactElement {
               >
                 {isLoading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    Changing...
+                    <CompactSpinner size="sm" variant="primary" />
+                    <span>Changing...</span>
                   </>
                 ) : (
                   "Change Password"
@@ -447,6 +452,52 @@ export default function ProfileSetting(): React.ReactElement {
               </button>
             </div>
           </form>
+        </div>
+      </motion.div>
+
+      {/* Logout Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="card bg-base-100 shadow-xl"
+      >
+        <div className="card-body">
+          <h2 className="text-2xl font-semibold text-base-content mb-4 flex items-center gap-2">
+            <ArrowRightOnRectangleIcon className="w-6 h-6" />
+            Account Actions
+          </h2>
+          <div className="form-control">
+            <button
+              className="btn btn-error w-full"
+              onClick={async () => {
+                setIsLoggingOut(true);
+                try {
+                  await signOut();
+                  showSuccess("Logged Out", "You have been successfully logged out.");
+                  navigate("/");
+                } catch (error) {
+                  console.error("Logout error:", error);
+                  showError("Logout Failed", "There was an error logging out. Please try again.");
+                } finally {
+                  setIsLoggingOut(false);
+                }
+              }}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <>
+                  <CompactSpinner size="sm" variant="primary" />
+                  <span>Logging out...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  Logout
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

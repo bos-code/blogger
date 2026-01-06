@@ -13,7 +13,7 @@ import {
   ExclamationTriangleIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
-import PremiumSpinner from "../components/PremiumSpinner";
+import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
 
 export default function CompleteSignIn(): React.ReactElement {
   const navigate = useNavigate();
@@ -246,8 +246,8 @@ export default function CompleteSignIn(): React.ReactElement {
                 >
                   {isLoading ? (
                     <>
-                      <span className="loading loading-spinner"></span>
-                      Completing sign-in...
+                      <CompactSpinner size="sm" variant="primary" />
+                      <span>Completing sign-in...</span>
                     </>
                   ) : (
                     <>

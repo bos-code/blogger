@@ -10,41 +10,74 @@ import {
 import type { UserRole } from "../types";
 
 /**
- * Hook to check user authentication and role
- * Provides comprehensive role-based permission checks
+ * useRole with Super Admin support
+ * Backward-compatible & production-safe
  */
 export function useRole() {
   const user = useAuthStore((state) => state.user);
-  const role = useAuthStore((state) => state.role);
+  const rawRole = useAuthStore((state) => state.role);
   const logStatus = useAuthStore((state) => state.logStatus);
   const emailVerified = useAuthStore((state) => state.emailVerified);
 
-  const isAuthenticated = logStatus && user !== null;
-  const isEmailVerified = emailVerified;
+  // ------------------------------------------------------------------
+  // SAFETY LAYER
+  // ------------------------------------------------------------------
 
-  // Role checks - Admin has full access regardless of email verification
-  // Other roles need email verification
-  const isAdmin = isAuthenticated && role === "admin";
+  const isAuthenticated = Boolean(logStatus && user);
+  const role: UserRole = (rawRole ?? "reader") as UserRole;
+  const isEmailVerified = Boolean(emailVerified);
+
+  // ------------------------------------------------------------------
+  // ROLE FLAGS
+  // ------------------------------------------------------------------
+
+  const isSuperAdmin = isAuthenticated && role === "super_admin";
+  const isAdmin = isAuthenticated && (role === "admin" || isSuperAdmin);
   const isWriter = isAuthenticated && hasRolePermission(role, "writer");
   const isUser = isAuthenticated && hasRolePermission(role, "user");
   const isReader = isAuthenticated && role === "reader";
 
-  // Permission checks
-  const canAdmin = canPerformAdminAction(role);
-  const canCreate = canCreatePost(role);
-  const canManagePostsAccess = canManagePosts(role);
-  const canManageUsersAccess = canManageUsers(role);
-  const canManageCategoriesAccess = canManageCategories(role);
+  // ------------------------------------------------------------------
+  // RAW ROLE PERMISSIONS
+  // ------------------------------------------------------------------
 
-  // Dashboard access: Admin always has access, others need email verification
-  const canViewDashboard =
-    isAuthenticated &&
-    (isAdmin || (isEmailVerified && (isWriter || isUser || isReader)));
+  const roleCanAdmin = canPerformAdminAction(role);
+  const roleCanCreate = canCreatePost(role);
+  const roleCanManagePosts = canManagePosts(role);
+  const roleCanManageUsers = canManageUsers(role);
+  const roleCanManageCategories = canManageCategories(role);
 
-  // Admin has full access regardless of email verification
-  // Others need email verification for most actions
-  const canAccessAdminFeatures = isAdmin || (isEmailVerified && canAdmin);
-  const canAccessWriterFeatures = isAdmin || (isEmailVerified && canCreate);
+  // ------------------------------------------------------------------
+  // FINAL PERMISSIONS (SUPER ADMIN BYPASS)
+  // ------------------------------------------------------------------
+
+  const canAdmin = isSuperAdmin || isAdmin;
+
+  const canCreate =
+    isSuperAdmin || isAdmin || (isEmailVerified && roleCanCreate);
+
+  const canManagePostsAccess =
+    isSuperAdmin || isAdmin || (isEmailVerified && roleCanManagePosts);
+
+  const canManageUsersAccess =
+    isSuperAdmin || isAdmin || (isEmailVerified && roleCanManageUsers);
+
+  const canManageCategoriesAccess =
+    isSuperAdmin || isAdmin || (isEmailVerified && roleCanManageCategories);
+
+  // ------------------------------------------------------------------
+  // ACCESS FLAGS
+  // ------------------------------------------------------------------
+
+  const canViewDashboard = isAuthenticated;
+
+  // Backward compatibility
+  const canAccessAdminFeatures = canAdmin;
+  const canAccessWriterFeatures = canCreate;
+
+  // ------------------------------------------------------------------
+  // RETURN (SAFE FOR EXISTING CODE)
+  // ------------------------------------------------------------------
 
   return {
     // User data
@@ -54,14 +87,15 @@ export function useRole() {
     isEmailVerified,
 
     // Role checks
+    isSuperAdmin, // ✅ NEW
     isAdmin,
     isWriter,
     isUser,
     isReader,
 
-    // Permission checks
-    canAdmin: canAccessAdminFeatures,
-    canCreate: canAccessWriterFeatures,
+    // Permissions
+    canAdmin,
+    canCreate,
     canManagePosts: canManagePostsAccess,
     canManageUsers: canManageUsersAccess,
     canManageCategories: canManageCategoriesAccess,
@@ -71,9 +105,8 @@ export function useRole() {
     canAccessAdminFeatures,
     canAccessWriterFeatures,
 
-    // Helper: Check if role has permission
+    // Helper
     hasPermission: (requiredRole: UserRole) =>
-      hasRolePermission(role, requiredRole),
+      isSuperAdmin || hasRolePermission(role, requiredRole),
   };
 }
-

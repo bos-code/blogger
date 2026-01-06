@@ -1,14 +1,20 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import { showSuccess } from "./utils/sweetalert";
 import Github from "./assets/github";
 import LinkedIn from "./assets/linkedin";
 import Twitter from "./assets/twitter";
 
 export function Navbar(): React.ReactElement {
   const logStatus = useAuthStore((state) => state.logStatus);
+  const signOut = useAuthStore((state) => state.signOut);
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const location = useLocation();
 
   // Close menu when clicking outside
@@ -41,6 +47,30 @@ export function Navbar(): React.ReactElement {
 
   const toggleMenu = (): void => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      showSuccess("Logged Out", "You have been successfully logged out.");
+      navigate("/");
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Get user initials for avatar fallback
+  const getUserInitials = (name: string | null): string => {
+    if (!name || name.trim().length === 0) return "?";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
   };
 
   return (
@@ -131,7 +161,7 @@ export function Navbar(): React.ReactElement {
         )}
       </ul>
 
-      {/* Right side (search + social) */}
+      {/* Right side (search + social + profile) */}
       <div className="navbar-end gap-4 sm:gap-6 lg:gap-8 pl-4 sm:pl-8">
         {/* Search - Hidden on mobile, visible on tablet+ */}
         <label className="input bg-base-200/50 hover:bg-base-200 rounded-full w-32 sm:w-40 md:w-48 lg:w-56 hidden sm:flex items-center gap-2 border border-base-300 focus-within:border-primary transition-colors">
@@ -204,6 +234,157 @@ export function Navbar(): React.ReactElement {
             </span>
           </motion.a>
         </div>
+
+        {/* User Profile Dropdown - Only show when authenticated, at the end */}
+        {logStatus && user && (
+          <div className="dropdown dropdown-end">
+            <div
+              tabIndex={0}
+              role="button"
+              className="btn btn-ghost btn-circle avatar"
+            >
+              <div className="w-10 h-10 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.name || "User"}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to initials if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = "none";
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const initials = getUserInitials(user.name);
+                        if (!parent.querySelector(".avatar-initials")) {
+                          const initialsDiv = document.createElement("div");
+                          initialsDiv.className =
+                            "avatar-initials w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-sm";
+                          initialsDiv.textContent = initials;
+                          parent.appendChild(initialsDiv);
+                        }
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-sm">
+                    {getUserInitials(user.name)}
+                  </div>
+                )}
+              </div>
+            </div>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-56 border border-base-300 mt-2"
+            >
+              <li className="px-4 py-3 border-b border-base-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden flex-shrink-0">
+                    {user.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt={user.name || "User"}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const initials = getUserInitials(user.name);
+                            if (!parent.querySelector(".avatar-initials")) {
+                              const initialsDiv = document.createElement("div");
+                              initialsDiv.className =
+                                "avatar-initials w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-base";
+                              initialsDiv.textContent = initials;
+                              parent.appendChild(initialsDiv);
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-base">
+                        {getUserInitials(user.name)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-semibold text-base-content truncate">
+                      {user.name || "User"}
+                    </span>
+                    <span className="text-xs text-base-content/70 truncate">
+                      {user.email}
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
+                  </svg>
+                  Dashboard
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMenuOpen(false);
+                    navigate("/admin");
+                    // Dispatch event to set dashboard screen to profile
+                    setTimeout(() => {
+                      const event = new CustomEvent("set-dashboard-screen", {
+                        detail: { screen: "profile" },
+                      });
+                      window.dispatchEvent(event);
+                    }, 100);
+                  }}
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                  Profile
+                </Link>
+              </li>
+              <li>
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-2 text-error hover:bg-error/10"
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Mobile Menu Overlay */}
@@ -304,15 +485,30 @@ export function Navbar(): React.ReactElement {
                     </>
                   )}
                   {logStatus && (
-                    <li>
-                      <NavLink
-                        to="/admin"
-                        className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        Dashboard
-                      </NavLink>
-                    </li>
+                    <>
+                      <li>
+                        <NavLink
+                          to="/admin"
+                          className="block px-4 py-3 rounded-lg hover:bg-base-200 transition-colors text-base font-medium"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Dashboard
+                        </NavLink>
+                      </li>
+                      <li>
+                        <button
+                          onClick={async () => {
+                            await handleLogout();
+                            setIsMenuOpen(false);
+                          }}
+                          disabled={isLoggingOut}
+                          className="w-full text-left px-4 py-3 rounded-lg hover:bg-error/20 hover:text-error transition-colors text-base font-medium flex items-center gap-2"
+                        >
+                          <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                          {isLoggingOut ? "Logging out..." : "Logout"}
+                        </button>
+                      </li>
+                    </>
                   )}
                 </ul>
 

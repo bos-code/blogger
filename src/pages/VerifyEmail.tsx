@@ -4,11 +4,8 @@ import { useAuthStore } from "../stores/authStore";
 import { sendVerificationEmail, reloadAuthUser } from "../stores/authStore";
 import { showError, showSuccess } from "../utils/sweetalert";
 import { motion } from "framer-motion";
-import {
-  EnvelopeIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-} from "@heroicons/react/24/outline";
+import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
+import { EnvelopeIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function VerifyEmail(): React.ReactElement {
   const navigate = useNavigate();
@@ -80,7 +77,7 @@ export default function VerifyEmail(): React.ReactElement {
   if (!logStatus || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="loading loading-spinner"></div>
+        <PremiumSpinner size="lg" variant="primary" text="Loading..." />
       </div>
     );
   }
@@ -146,8 +143,8 @@ export default function VerifyEmail(): React.ReactElement {
                 >
                   {isSending ? (
                     <>
-                      <span className="loading loading-spinner"></span>
-                      Sending...
+                      <CompactSpinner size="sm" variant="primary" />
+                      <span>Sending...</span>
                     </>
                   ) : (
                     <>
@@ -164,8 +161,8 @@ export default function VerifyEmail(): React.ReactElement {
                 >
                   {isChecking ? (
                     <>
-                      <span className="loading loading-spinner"></span>
-                      Checking...
+                      <CompactSpinner size="sm" variant="primary" />
+                      <span>Checking...</span>
                     </>
                   ) : (
                     <>

@@ -9,6 +9,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
   user: 2,
   writer: 3,
   admin: 4,
+  super_admin: 5,
 };
 
 /**
@@ -76,4 +77,5 @@ export function getRolesWithPermission(requiredRole: UserRole): UserRole[] {
     (role) => ROLE_HIERARCHY[role] >= requiredLevel
   );
 }
+
 

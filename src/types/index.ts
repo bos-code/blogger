@@ -6,7 +6,7 @@ export interface User {
   photoURL?: string | null;
 }
 
-export type UserRole = "admin" | "writer" | "user" | "reader";
+export type UserRole = "super_admin" | "admin" | "writer" | "user" | "reader";
 
 // Blog/Post types
 export interface BlogPost {
@@ -59,7 +59,7 @@ export interface AuthState {
 
 // UI Store types
 export interface UIState {
-  dashboardScreen: "home" | "posts" | "users" | "settings" | "categories" | "profile";
+  dashboardScreen: "home" | "posts" | "users" | "settings" | "categories" | "profile" | "super_admin";
   openModal: boolean;
   selectedBlog: BlogPost | null;
   setDashboardScreen: (screen: UIState["dashboardScreen"]) => void;

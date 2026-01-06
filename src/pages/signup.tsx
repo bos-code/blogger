@@ -4,6 +4,7 @@ import { signUp, signInWithGoogle, signInWithApple } from "../stores/authStore";
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
 import { showError, showSuccess } from "../utils/sweetalert";
+import PremiumSpinner from "../components/PremiumSpinner";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -25,8 +26,6 @@ export default function Signup(): React.ReactElement {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
 
@@ -312,8 +311,8 @@ export default function Signup(): React.ReactElement {
               >
                 {isLoading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    Creating account...
+                    <PremiumSpinner size="sm" variant="primary" />
+                    <span>Creating account...</span>
                   </>
                 ) : (
                   "Sign Up"
@@ -334,8 +333,8 @@ export default function Signup(): React.ReactElement {
           >
             {isGoogleLoading ? (
               <>
-                <span className="loading loading-spinner"></span>
-                Signing up...
+                <PremiumSpinner size="sm" variant="primary" />
+                <span>Signing up...</span>
               </>
             ) : (
               <>
@@ -371,8 +370,8 @@ export default function Signup(): React.ReactElement {
           >
             {isAppleLoading ? (
               <>
-                <span className="loading loading-spinner"></span>
-                Signing up...
+                <PremiumSpinner size="sm" variant="primary" />
+                <span>Signing up...</span>
               </>
             ) : (
               <>

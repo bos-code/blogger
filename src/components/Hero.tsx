@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
 import Twitter from "../assets/twitter";
+import { useState, useEffect } from "react";
+import type { BlogPost } from "../types";
+import resumeStats from "../data/resumeStats";
 
 const stack = [
   "HTML",
@@ -16,6 +19,51 @@ const stack = [
 ];
 
 function Hero(): React.ReactElement {
+  // Animated counter state
+  const [animatedStats, setAnimatedStats] = useState({
+    stat1: 0,
+    stat2: 0,
+    stat3: 0,
+  });
+
+  // Animate numbers
+  useEffect(() => {
+    const duration = 2000; // 2 seconds
+    const steps = 60;
+    const interval = duration / steps;
+
+    const animateValue = (
+      start: number,
+      end: number,
+      callback: (value: number) => void
+    ) => {
+      const increment = (end - start) / steps;
+      let current = start;
+      let stepCount = 0;
+
+      const timer = setInterval(() => {
+        stepCount++;
+        current += increment;
+        if (stepCount >= steps) {
+          callback(end);
+          clearInterval(timer);
+        } else {
+          callback(Math.floor(current));
+        }
+      }, interval);
+    };
+
+    animateValue(0, resumeStats.stat1.value, (value) => {
+      setAnimatedStats((prev) => ({ ...prev, stat1: value }));
+    });
+    animateValue(0, resumeStats.stat2.value, (value) => {
+      setAnimatedStats((prev) => ({ ...prev, stat2: value }));
+    });
+    animateValue(0, resumeStats.stat3.value, (value) => {
+      setAnimatedStats((prev) => ({ ...prev, stat3: value }));
+    });
+  }, []);
+
   return (
     <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 pb-12 sm:pb-16 md:pb-20 lg:pb-24 xl:pb-32 page-padding max-w-7xl flex flex-col items-center justify-center min-h-[80vh]">
       {/* Main heading */}
@@ -29,7 +77,7 @@ function Hero(): React.ReactElement {
       </motion.h1>
 
       {/* Hero Content Container */}
-      <div className="hero__content flex flex-col lg:flex-row items-center lg:items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full">
+      <div className="hero__content flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full max-w-6xl mx-auto">
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
@@ -350,42 +398,45 @@ function Hero(): React.ReactElement {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="stacks flex flex-row lg:flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-6 xl:gap-8 w-full lg:w-auto justify-center lg:justify-start lg:items-start"
+            className="stacks flex flex-row lg:flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-6 xl:gap-8 w-full lg:w-auto justify-center items-center"
           >
             <motion.p
               whileHover={{ scale: 1.05 }}
-              className="text-center lg:text-left flex flex-col items-center lg:items-start"
+              className="text-center flex flex-col items-center"
             >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2">
-                3
+              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
+                {animatedStats.stat1.toLocaleString()}{resumeStats.stat1.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                Programming
-                <br className="hidden sm:inline" /> languages.
+                {resumeStats.stat1.label.split("\n")[0]}
+                <br className="hidden sm:inline" />
+                {resumeStats.stat1.label.split("\n")[1]}
               </span>
             </motion.p>
             <motion.p
               whileHover={{ scale: 1.05 }}
-              className="text-center lg:text-left flex flex-col items-center lg:items-start"
+              className="text-center flex flex-col items-center"
             >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2">
-                2
+              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
+                {animatedStats.stat2.toLocaleString()}{resumeStats.stat2.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                Developmental
-                <br className="hidden sm:inline" /> tools
+                {resumeStats.stat2.label.split("\n")[0]}
+                <br className="hidden sm:inline" />
+                {resumeStats.stat2.label.split("\n")[1]}
               </span>
             </motion.p>
             <motion.p
               whileHover={{ scale: 1.05 }}
-              className="text-center lg:text-left flex flex-col items-center lg:items-start"
+              className="text-center flex flex-col items-center"
             >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2">
-                1
+              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
+                {animatedStats.stat3.toLocaleString()}{resumeStats.stat3.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                Years of
-                <br className="hidden sm:inline" /> experience
+                {resumeStats.stat3.label.split("\n")[0]}
+                <br className="hidden sm:inline" />
+                {resumeStats.stat3.label.split("\n")[1]}
               </span>
             </motion.p>
           </motion.div>

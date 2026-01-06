@@ -21,18 +21,30 @@ export default function AdminDashboard(): React.ReactElement {
   if (postsLoading || usersLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <PremiumSpinner size="lg" variant="primary" text="Loading dashboard..." />
+        <PremiumSpinner
+          size="lg"
+          variant="primary"
+          text="Loading dashboard..."
+        />
       </div>
     );
   }
 
   // Calculate statistics
   const totalPosts = posts.length;
-  const approvedPosts = posts.filter((p: BlogPost) => p.status === "approved").length;
-  const pendingPosts = posts.filter((p: BlogPost) => p.status === "pending").length;
-  const totalViews = posts.reduce((sum: number, p: BlogPost) => sum + (p.views || 0), 0);
+  const approvedPosts = posts.filter(
+    (p: BlogPost) => p.status === "approved"
+  ).length;
+  const pendingPosts = posts.filter(
+    (p: BlogPost) => p.status === "pending"
+  ).length;
+  const totalViews = posts.reduce(
+    (sum: number, p: BlogPost) => sum + (p.views || 0),
+    0
+  );
   const totalLikes = posts.reduce(
-    (sum: number, p: BlogPost) => sum + ((p.likedBy?.length || 0) || (p.likes || 0)),
+    (sum: number, p: BlogPost) =>
+      sum + (p.likedBy?.length || 0 || p.likes || 0),
     0
   );
   const totalUsers = users.length;
@@ -193,8 +205,8 @@ export default function AdminDashboard(): React.ReactElement {
                             post.status === "approved"
                               ? "badge-success"
                               : post.status === "pending"
-                              ? "badge-warning"
-                              : "badge-secondary"
+                                ? "badge-warning"
+                                : "badge-secondary"
                           }`}
                         >
                           {post.status || "draft"}

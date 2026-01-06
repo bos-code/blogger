@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
 import { showError, showSuccess } from "../utils/sweetalert";
+import PremiumSpinner from "../components/PremiumSpinner";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -303,8 +304,8 @@ export default function Login(): React.ReactElement {
                   >
                     {isSendingReset ? (
                       <>
-                        <span className="loading loading-spinner"></span>
-                        Sending...
+                        <PremiumSpinner size="sm" variant="primary" />
+                        <span>Sending...</span>
                       </>
                     ) : (
                       <>
@@ -410,8 +411,8 @@ export default function Login(): React.ReactElement {
                 >
                   {isLoading ? (
                     <>
-                      <span className="loading loading-spinner"></span>
-                      Signing in...
+                      <PremiumSpinner size="sm" variant="primary" />
+                      <span>Signing in...</span>
                     </>
                   ) : (
                     "Sign In"
@@ -474,8 +475,8 @@ export default function Login(): React.ReactElement {
                 >
                   {isSendingEmailLink ? (
                     <>
-                      <span className="loading loading-spinner"></span>
-                      Sending link...
+                      <PremiumSpinner size="sm" variant="primary" />
+                      <span>Sending link...</span>
                     </>
                   ) : (
                     <>
@@ -530,8 +531,8 @@ export default function Login(): React.ReactElement {
               >
                 {isGoogleLoading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    Signing in...
+                    <PremiumSpinner size="sm" variant="primary" />
+                    <span>Signing in...</span>
                   </>
                 ) : (
                   <>
@@ -567,8 +568,8 @@ export default function Login(): React.ReactElement {
               >
                 {isAppleLoading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    Signing in...
+                    <PremiumSpinner size="sm" variant="primary" />
+                    <span>Signing in...</span>
                   </>
                 ) : (
                   <>
