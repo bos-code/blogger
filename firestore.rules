@@ -96,13 +96,20 @@ service cloud.firestore {
     // ============================================
     match /posts/{postId} {
       // READ RULES
-      allow read: if isAuthenticated() && (
-        // Admin can read all posts
-        isAdmin() ||
-        // Writers can read all approved posts and their own posts
-        (isWriter() && (resource.data.status == 'approved' || resource.data.authorId == request.auth.uid)) ||
-        // Regular users can only read approved posts
-        (resource.data.status == 'approved')
+      // Public can read approved posts (for public blog access)
+      allow read: if (
+        // Public/unauthenticated access only to approved content
+        (request.auth == null && resource.data.status == 'approved') ||
+        (
+          isAuthenticated() && (
+            // Admin can read all posts
+            isAdmin() ||
+            // Writers can read all approved posts and their own posts
+            (isWriter() && (resource.data.status == 'approved' || resource.data.authorId == request.auth.uid)) ||
+            // Regular authenticated users can only read approved posts
+            (resource.data.status == 'approved')
+          )
+        )
       );
       
       // CREATE RULES

@@ -1,12 +1,48 @@
-# React + Vite
+# Blogger (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Role-aware blogging platform with Firebase Auth/Firestore, TipTap editor, AI assistance, and an admin dashboard.
 
-Currently, two official plugins are available:
+## Features
+- Email/password, Google, Apple, and magic-link auth with email verification enforcement.
+- Role-based access (reader/user/writer/admin/super_admin) guarded by `ProtectedRoute`.
+- Firestore-backed CMS: create/edit/draft/publish posts, admin approval workflow, optimistic like/unlike.
+- TipTap editor with syntax highlighting, live preview, autosave, and AI helper (Hugging Face API).
+- Admin dashboard: stats, user management, categories, notifications, and super-admin panel.
+- Public blog listing/detail with reading progress and motion polish.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Quick Start
+```bash
+pnpm install
+pnpm dev
+```
+Visit http://localhost:5173
 
-## Expanding the ESLint configuration
+## Environment
+Copy `.env.example` to `.env` and fill values:
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_HUGGINGFACE_API_KEY=...   # optional, for AI assistant
+```
+See `FIREBASE_SETUP.md` for screenshots and troubleshooting.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Scripts
+- `pnpm dev` – run Vite dev server
+- `pnpm build` – production build
+- `pnpm preview` – preview build locally
+- `pnpm lint` – ESLint
+
+## Firebase Rules
+Rules live in `firestore.rules`. Public users can read **approved** posts; all writes/other reads remain role-gated. Deploy via Firebase CLI after edits.
+
+## Known Gaps / Next Up
+- Image uploads use base64; add Firebase Storage for persistent media.
+- Public blog depends on Firestore availability; ensure `.env` is set or add a cache layer.
+- Add tests (React Query hooks, auth flows) and CI.
+
+## Tech Stack
+React 19, Vite 7, TypeScript, Tailwind v4 + DaisyUI/Heroui, TanStack Query, Zustand, TipTap, SweetAlert2, Framer Motion, Firebase.

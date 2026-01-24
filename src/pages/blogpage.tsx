@@ -4,9 +4,12 @@ import { motion } from "framer-motion";
 import BlogPostCard from "../components/BlogPostCard";
 import PremiumSpinner from "../components/PremiumSpinner";
 import ReadingProgressBar from "../components/ReadingProgressBar";
+import { useMemo, useState } from "react";
 
 export default function Blog(): React.ReactElement {
   const { data: posts = [], isLoading, error } = usePosts();
+  const [sortBy, setSortBy] = useState<"newest" | "popular">("newest");
+  const [visibleCount, setVisibleCount] = useState<number>(10);
 
   // Show premium spinner while loading
   if (isLoading) {
@@ -26,8 +29,11 @@ export default function Blog(): React.ReactElement {
     );
   }
 
-  // Error state
+  // Error state (graceful public fallback)
   if (error) {
+    const errMsg =
+      (error as Error)?.message ||
+      "Unable to load posts right now. Please try again shortly.";
     return (
       <>
         <ReadingProgressBar />
@@ -36,30 +42,65 @@ export default function Blog(): React.ReactElement {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="alert alert-error max-w-md sm:max-w-lg shadow-2xl rounded-2xl"
+            className="max-w-xl w-full space-y-4 p-6 sm:p-8 rounded-2xl shadow-2xl bg-base-100 border border-base-300"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-5 w-5 sm:h-6 sm:w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
-              <h3 className="font-bold text-base sm:text-lg">Error loading posts</h3>
-              <div className="text-xs sm:text-sm">{(error as Error).message}</div>
+            <div className="flex items-start gap-3">
+              <div className="badge badge-error badge-lg text-base-100">!</div>
+              <div className="space-y-2">
+                <h3 className="text-lg sm:text-xl font-bold text-base-content">
+                  We hit a snag loading posts
+                </h3>
+                <p className="text-sm sm:text-base text-base-content/70">
+                  {errMsg.includes("Firestore is not configured")
+                    ? "Blog data requires Firebase credentials. Add your .env values and refresh."
+                    : errMsg}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                className="btn btn-primary"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
+              <button
+                className="btn btn-outline"
+                onClick={() => (window.location.href = "/")}
+              >
+                Go Home
+              </button>
             </div>
           </motion.div>
         </div>
       </>
     );
   }
+
+  // derived lists
+  const approvedPosts = useMemo(
+    () =>
+      (posts as BlogPost[]).filter(
+        (post) => post.status === "approved" || !post.status
+      ),
+    [posts]
+  );
+
+  const sortedPosts = useMemo(() => {
+    return [...approvedPosts].sort((a, b) => {
+      if (sortBy === "popular") {
+        const aLikes = a.likedBy?.length ?? a.likes ?? 0;
+        const bLikes = b.likedBy?.length ?? b.likes ?? 0;
+        if (bLikes !== aLikes) return bLikes - aLikes;
+      }
+      // default: newest by createdAt fallback to 0
+      const aTime = a.createdAt?.toDate?.()?.getTime?.() ?? 0;
+      const bTime = b.createdAt?.toDate?.()?.getTime?.() ?? 0;
+      return bTime - aTime;
+    });
+  }, [approvedPosts, sortBy]);
+
+  const visiblePosts = sortedPosts.slice(0, visibleCount);
 
   return (
     <>
@@ -96,7 +137,7 @@ export default function Blog(): React.ReactElement {
                 </motion.p>
               </div>
             </div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -113,8 +154,31 @@ export default function Blog(): React.ReactElement {
             </motion.div>
           </motion.div>
 
+          {/* Sort & controls */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex items-center justify-between flex-wrap gap-3 mb-6"
+          >
+            <div className="text-sm sm:text-base text-base-content/70">
+              Showing {visiblePosts.length} of {approvedPosts.length} posts
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-base-content/70">Sort by</label>
+              <select
+                className="select select-bordered select-sm"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "newest" | "popular")}
+              >
+                <option value="newest">Newest</option>
+                <option value="popular">Most liked</option>
+              </select>
+            </div>
+          </motion.div>
+
           {/* Posts List - Vertical Stack */}
-          {posts.length === 0 ? (
+          {approvedPosts.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -148,31 +212,36 @@ export default function Blog(): React.ReactElement {
             </motion.div>
           ) : (
             <div className="space-y-0">
-              {(posts as BlogPost[])
-                .filter((post) => post.status === "approved" || !post.status)
-                .map((post, index) => {
-                  const filteredPosts = (posts as BlogPost[]).filter(
-                    (p) => p.status === "approved" || !p.status
-                  );
-                  return (
-                    <motion.div
-                      key={post.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                    >
-                      <BlogPostCard post={post} index={index} />
-                      {index < filteredPosts.length - 1 && (
-                        <motion.div
-                          initial={{ opacity: 0, scaleX: 0 }}
-                          animate={{ opacity: 1, scaleX: 1 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 + 0.3 }}
-                          className="divider my-5 sm:my-6 md:my-8 lg:my-10"
-                        ></motion.div>
-                      )}
-                    </motion.div>
-                  );
-                })}
+              {visiblePosts.map((post, index) => {
+                return (
+                  <motion.div
+                    key={post.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.05 }}
+                  >
+                    <BlogPostCard post={post} index={index} />
+                    {index < visiblePosts.length - 1 && (
+                      <motion.div
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 + 0.2 }}
+                        className="divider my-5 sm:my-6 md:my-8 lg:my-10"
+                      ></motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+              {visibleCount < approvedPosts.length && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    className="btn btn-outline btn-primary"
+                    onClick={() => setVisibleCount((c) => c + 10)}
+                  >
+                    Load more
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

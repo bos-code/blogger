@@ -28,6 +28,9 @@ export interface BlogPost {
   likedBy?: string[]; // Array of user IDs who liked this post
   readingTime?: number; // in minutes
   technicalStack?: string[];
+  coverImage?: string | null;
+  excerpt?: string | null;
+  scheduledFor?: any; // Firestore Timestamp or JS Date for scheduled publishing
 }
 
 // Notification types
@@ -103,4 +106,3 @@ export interface GrammarCheck {
   suggestions: string[];
   score: number;
 }
-

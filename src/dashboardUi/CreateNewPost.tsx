@@ -44,6 +44,7 @@ import { useCreatePost, useUpdatePost } from "../hooks/usePosts";
 import { useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { showConfirm, showSuccess } from "../utils/sweetalert";
+import { uploadImageToStorage } from "../services/storageService";
 
 // Register languages
 lowlight.registerLanguage("js", javascript);
@@ -73,13 +74,28 @@ export default function CreatePost(): React.ReactElement {
   const [category, setCategory] = useState<string>(
     () => editState.category ?? ""
   );
+  const [coverImage, setCoverImage] = useState<string>(
+    () => editState.coverImage ?? ""
+  );
+  const [excerpt, setExcerpt] = useState<string>(() => editState.excerpt ?? "");
+  const [scheduledAt, setScheduledAt] = useState<string>(() => {
+    if (editState.scheduledFor?.toDate) {
+      return editState.scheduledFor.toDate().toISOString().slice(0, 16);
+    }
+    if (typeof editState.scheduledFor === "string") {
+      return editState.scheduledFor.slice(0, 16);
+    }
+    return "";
+  });
   const [status, setStatus] = useState<"draft" | "published">(() =>
     editState.status === "draft" ? "draft" : "published"
   );
   const [showPublishModal, setShowPublishModal] = useState<boolean>(false);
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
 
   const previewBodyRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* --- TipTap Editable Editor --- */
   const editor = useEditor({
@@ -162,6 +178,9 @@ export default function CreatePost(): React.ReactElement {
         content: editor?.getHTML() ?? "",
         tags,
         category,
+        coverImage: coverImage || null,
+        excerpt: excerpt || null,
+        scheduledFor: scheduledAt ? new Date(scheduledAt) : null,
         status: "draft",
       };
 
@@ -203,6 +222,12 @@ export default function CreatePost(): React.ReactElement {
         content: editor?.getHTML() ?? "",
         tags,
         category,
+        coverImage: coverImage || null,
+        excerpt: excerpt || null,
+        scheduledFor:
+          scheduledAt && new Date(scheduledAt).getTime() > Date.now()
+            ? new Date(scheduledAt)
+            : null,
         status: isAdmin ? "approved" : "pending",
       };
 
@@ -274,6 +299,9 @@ export default function CreatePost(): React.ReactElement {
           editor?.commands.clearContent();
           setTags([]);
           setCategory("");
+          setCoverImage("");
+          setExcerpt("");
+          setScheduledAt("");
           localStorage.removeItem("create-post-draft");
           showSuccess(
             "Content Cleared",
@@ -293,6 +321,9 @@ export default function CreatePost(): React.ReactElement {
           content: editor?.getHTML() ?? "",
           tags,
           category,
+          coverImage,
+          excerpt,
+          scheduledAt,
           status,
           updatedAt: Date.now(),
           id: editState?.id ?? null,
@@ -315,6 +346,9 @@ export default function CreatePost(): React.ReactElement {
         setTitle(d.title || "");
         setTags(d.tags || []);
         setCategory(d.category || "");
+        setCoverImage(d.coverImage || "");
+        setExcerpt(d.excerpt || "");
+        setScheduledAt(d.scheduledAt || "");
         setStatus(d.status || "draft");
         editor?.commands.setContent(d.content || "<p></p>");
       }
@@ -324,6 +358,15 @@ export default function CreatePost(): React.ReactElement {
         editor?.commands.setContent(editState.rawText || "<p></p>");
         setTags(editState.tags || []);
         setCategory(editState.category || "");
+        setCoverImage(editState.coverImage || "");
+        setExcerpt(editState.excerpt || "");
+        if (editState.scheduledFor?.toDate) {
+          setScheduledAt(
+            editState.scheduledFor.toDate().toISOString().slice(0, 16)
+          );
+        } else if (editState.scheduledFor) {
+          setScheduledAt(String(editState.scheduledFor));
+        }
         setStatus(editState.status === "draft" ? "draft" : "published");
       }
     } catch (err) {
@@ -354,6 +397,49 @@ export default function CreatePost(): React.ReactElement {
                   onContentInsert={(content: string) => {
                     if (editor) {
                       editor.commands.insertContent(content);
+                    }
+                  }}
+                />
+
+                {/* Upload Image */}
+                <Button
+                  size="sm"
+                  variant="flat"
+                  color="primary"
+                  onPress={() => fileInputRef.current?.click()}
+                  isLoading={isUploadingImage}
+                  isDisabled={isUploadingImage}
+                  className="hidden sm:flex"
+                >
+                  <ArrowRightIcon className="w-4 h-4 rotate-90" />
+                  <span className="ml-1">Upload Image</span>
+                </Button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      setIsUploadingImage(true);
+                      const url = await uploadImageToStorage(file, {
+                        userId: authUser?.uid ?? "anon",
+                        folder: "post-images",
+                      });
+                      editor?.commands.insertContent(
+                        `<img src="${url}" alt="${title || file.name}" />`
+                      );
+                      showSuccess("Image uploaded", "Inserted into the editor.");
+                    } catch (err) {
+                      showModalMsg(
+                        (err as Error)?.message ||
+                          "Failed to upload image. Check Firebase Storage config."
+                      );
+                    } finally {
+                      setIsUploadingImage(false);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
                     }
                   }}
                 />
@@ -447,6 +533,48 @@ export default function CreatePost(): React.ReactElement {
                 {/* Editor Toolbar & Content */}
                 <div className="bg-base-100">
                   <TipTapToolbar editor={editor} />
+                  {/* Meta fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 py-4 border-b border-base-300 bg-base-200/40">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text text-sm">Cover image URL</span>
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={coverImage}
+                        onChange={(e) => setCoverImage(e.target.value)}
+                        className="input input-bordered w-full"
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text text-sm">Excerpt (140-200 chars)</span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={220}
+                        value={excerpt}
+                        onChange={(e) => setExcerpt(e.target.value)}
+                        className="input input-bordered w-full"
+                        placeholder="Short summary shown in lists"
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text text-sm">Schedule publish (optional)</span>
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={(e) => setScheduledAt(e.target.value)}
+                        className="input input-bordered w-full"
+                      />
+                      <p className="text-xs text-base-content/60 mt-1">
+                        If set in the future, post stays pending until this time (admin can override).
+                      </p>
+                    </div>
+                  </div>
                   <div className="border-t border-base-300">
                     <EditorContent editor={editor} />
                   </div>
