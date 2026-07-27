@@ -1,4 +1,4 @@
-import dera from "../assets/dera.png";
+import dera from "../assets/dera.webp";
 import { motion } from "framer-motion";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";

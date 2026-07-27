@@ -1,11 +1,13 @@
 import { Span } from "./Span";
 import Scroll from "../assets/Scroll";
-import comp from "../assets/about-comp.png"
+import comp from "../assets/about-comp.webp";
+import background from "../assets/whoop-bg.webp";
 
 function AboutMe(): React.ReactElement {
   return (
     <section
-      className={`section-about bg-cover bg-center bg-base-200 bg-[url('./assets/whoop-bg.png')]`} 
+      className="section-about bg-cover bg-center bg-base-200"
+      style={{ backgroundImage: `url(${background})` }}
     >
       <div className="all bg-base-200/90 p-4 sm:p-8 md:p-12 lg:p-16 xl:p-20 flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center h-full">
         <div className="scroll-container hidden sm:block">
@@ -68,4 +70,4 @@ function Image(): React.ReactElement {
   );
 }
 
-export default AboutMe
+export default AboutMe;

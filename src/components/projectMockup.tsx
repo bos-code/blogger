@@ -10,7 +10,7 @@ import portfolio from "../assets/portfolio.png";
 import project2 from "../assets/banquee.png";
 import project3 from "../assets/cashapp.png";
 import project4 from "../assets/fast.png";
-import project5 from "../assets/streamvibe.png";
+import project5 from "../assets/streamvibe.webp";
 import project6 from "../assets/store.png";
 
 function ProjectMockup(): React.ReactElement {

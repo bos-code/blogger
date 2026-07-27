@@ -3,4 +3,3 @@ allowBuilds:
   '@heroui/shared-utils': true
   esbuild: true
   protobufjs: true
-  puppeteer: false

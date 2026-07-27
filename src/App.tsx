@@ -10,7 +10,6 @@ import "./App.css";
 import "sweetalert2/dist/sweetalert2.min.css";
 import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
-import CreatePost from "./dashboardUi/CreateNewPost";
 import PremiumSpinner from "./components/PremiumSpinner";
 
 // Lazy-loaded pages
@@ -22,6 +21,7 @@ const CompleteSignIn = lazy(() => import("./pages/CompleteSignIn"));
 const Blog = lazy(() => import("./pages/blogpage"));
 const BlogPostDetail = lazy(() => import("./pages/BlogPostDetail"));
 const Admin = lazy(() => import("./pages/admin"));
+const CreatePost = lazy(() => import("./dashboardUi/CreateNewPost"));
 
 function App(): React.ReactElement {
   const initAuth = useAuthStore((state) => state.initAuth);
@@ -84,7 +84,6 @@ function App(): React.ReactElement {
 }
 
 export default App;
-
 
 
 
