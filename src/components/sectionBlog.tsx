@@ -6,16 +6,17 @@ import BlogPostCard from "./BlogPostCard";
 import PremiumSpinner from "./PremiumSpinner";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import type { BlogPost } from "../types";
+import { isPostPublic, toTimestamp } from "../utils/date";
 
 function SectionBlog(): React.ReactElement {
   const { data: posts = [], isLoading } = usePosts();
 
   // Filter approved posts and sort by date (newest first)
   const approvedPosts = posts
-    .filter((post: BlogPost) => post.status === "approved")
+    .filter(isPostPublic)
     .sort((a: BlogPost, b: BlogPost) => {
-      const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
-      const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+      const aTime = toTimestamp(a.createdAt);
+      const bTime = toTimestamp(b.createdAt);
       return bTime - aTime;
     })
     .slice(0, 3); // Show only latest 3 posts

@@ -1,5 +1,5 @@
-import { useRef, useState, MouseEvent, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Modal,
   ModalBody,
@@ -41,10 +41,11 @@ import typescriptLang from "highlight.js/lib/languages/typescript";
 import TipTapToolbar from "../components/TipTapToolbar";
 import AIAssistant from "../components/AIAssistant";
 import { useCreatePost, useUpdatePost } from "../hooks/usePosts";
-import { useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { showConfirm, showSuccess } from "../utils/sweetalert";
 import { uploadImageToStorage } from "../services/storageService";
+import type { BlogPost, CreatePostInput } from "../types";
+import { toDateTimeLocalValue } from "../utils/date";
 
 // Register languages
 lowlight.registerLanguage("js", javascript);
@@ -56,13 +57,33 @@ lowlight.registerLanguage("json", json);
 lowlight.registerLanguage("typescript", typescriptLang);
 lowlight.registerLanguage("ts", typescriptLang);
 
+type EditorStatus = "draft" | "published";
+
+interface EditorLocationState extends Partial<BlogPost> {
+  rawText?: string;
+}
+
+interface LocalDraft {
+  title?: string;
+  content?: string;
+  tags?: string[];
+  category?: string;
+  coverImage?: string;
+  excerpt?: string;
+  scheduledAt?: string;
+  status?: EditorStatus;
+}
+
 export default function CreatePost(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const authUser = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
-  const isAdmin = role === "admin";
-  const editState = (location.state || {}) as any;
+  const isAdmin = role === "admin" || role === "super_admin";
+  const editState = useMemo<EditorLocationState>(() => {
+    if (!location.state || typeof location.state !== "object") return {};
+    return location.state as EditorLocationState;
+  }, [location.state]);
 
   // inputs
   const [title, setTitle] = useState<string>("");
@@ -78,17 +99,11 @@ export default function CreatePost(): React.ReactElement {
     () => editState.coverImage ?? ""
   );
   const [excerpt, setExcerpt] = useState<string>(() => editState.excerpt ?? "");
-  const [scheduledAt, setScheduledAt] = useState<string>(() => {
-    if (editState.scheduledFor?.toDate) {
-      return editState.scheduledFor.toDate().toISOString().slice(0, 16);
-    }
-    if (typeof editState.scheduledFor === "string") {
-      return editState.scheduledFor.slice(0, 16);
-    }
-    return "";
-  });
-  const [status, setStatus] = useState<"draft" | "published">(() =>
-    editState.status === "draft" ? "draft" : "published"
+  const [scheduledAt, setScheduledAt] = useState<string>(() =>
+    toDateTimeLocalValue(editState.scheduledFor)
+  );
+  const [status, setStatus] = useState<EditorStatus>(() =>
+    editState.status && editState.status !== "draft" ? "published" : "draft"
   );
   const [showPublishModal, setShowPublishModal] = useState<boolean>(false);
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
@@ -173,7 +188,7 @@ export default function CreatePost(): React.ReactElement {
 
     try {
       setLoading(true);
-      const payload = {
+      const payload: CreatePostInput = {
         title,
         content: editor?.getHTML() ?? "",
         tags,
@@ -188,10 +203,11 @@ export default function CreatePost(): React.ReactElement {
         await updatePost.mutateAsync({ id: editState.id, data: payload });
         showSuccess("Draft Saved", "Your post has been saved as a draft!");
       } else {
-        await createPost.mutateAsync(payload as any);
+        await createPost.mutateAsync(payload);
         showSuccess("Draft Saved", "Your post has been saved as a draft!");
       }
 
+      setStatus("draft");
       setShowSaveModal(false);
       // Don't clear form, just save
     } catch (error) {
@@ -217,7 +233,7 @@ export default function CreatePost(): React.ReactElement {
 
     try {
       setLoading(true);
-      const payload = {
+      const payload: CreatePostInput = {
         title,
         content: editor?.getHTML() ?? "",
         tags,
@@ -240,7 +256,7 @@ export default function CreatePost(): React.ReactElement {
             : "Your post has been submitted for approval!"
         );
       } else {
-        await createPost.mutateAsync(payload as any);
+        await createPost.mutateAsync(payload);
         showSuccess(
           "Post Published!",
           isAdmin
@@ -268,21 +284,6 @@ export default function CreatePost(): React.ReactElement {
     } finally {
       setLoading(false);
     }
-  };
-
-  /* --- Old save function (kept for backward compatibility) --- */
-  const saveToFirebase = async (): Promise<void> => {
-    setShowSaveModal(true);
-  };
-
-  const handleNext = (e?: MouseEvent<HTMLButtonElement>): void => {
-    e?.preventDefault();
-    if (!title.trim()) return showModalMsg("Please enter a post title");
-    if (!editor?.getHTML().trim())
-      return showModalMsg("Please write something first");
-    navigate("/edit-post", {
-      state: { title, rawText: editor.getHTML() },
-    });
   };
 
   const handleClear = (): void => {
@@ -335,21 +336,31 @@ export default function CreatePost(): React.ReactElement {
     }, 10000);
 
     return () => clearInterval(id);
-  }, [title, editor, tags, category, status, editState]);
+  }, [
+    title,
+    editor,
+    tags,
+    category,
+    coverImage,
+    excerpt,
+    scheduledAt,
+    status,
+    editState.id,
+  ]);
 
   // Load draft on mount when not editing, or populate editor for edit
   useEffect(() => {
     try {
       const raw = localStorage.getItem("create-post-draft");
       if (raw && !editState?.id) {
-        const d = JSON.parse(raw);
+        const d = JSON.parse(raw) as LocalDraft;
         setTitle(d.title || "");
         setTags(d.tags || []);
         setCategory(d.category || "");
         setCoverImage(d.coverImage || "");
         setExcerpt(d.excerpt || "");
         setScheduledAt(d.scheduledAt || "");
-        setStatus(d.status || "draft");
+        setStatus(d.status === "published" ? "published" : "draft");
         editor?.commands.setContent(d.content || "<p></p>");
       }
 
@@ -360,14 +371,12 @@ export default function CreatePost(): React.ReactElement {
         setCategory(editState.category || "");
         setCoverImage(editState.coverImage || "");
         setExcerpt(editState.excerpt || "");
-        if (editState.scheduledFor?.toDate) {
-          setScheduledAt(
-            editState.scheduledFor.toDate().toISOString().slice(0, 16)
-          );
-        } else if (editState.scheduledFor) {
-          setScheduledAt(String(editState.scheduledFor));
-        }
-        setStatus(editState.status === "draft" ? "draft" : "published");
+        setScheduledAt(toDateTimeLocalValue(editState.scheduledFor));
+        setStatus(
+          editState.status && editState.status !== "draft"
+            ? "published"
+            : "draft"
+        );
       }
     } catch (err) {
       console.warn("Failed to load draft:", err);
@@ -481,8 +490,8 @@ export default function CreatePost(): React.ReactElement {
                   variant="flat"
                   color="secondary"
                   onPress={() => setShowSaveModal(true)}
-                  isDisabled={loading || (createPost as any).isLoading}
-                  isLoading={loading || (createPost as any).isLoading}
+                  isDisabled={loading || createPost.isPending}
+                  isLoading={loading || createPost.isPending}
                 >
                   <CheckIcon className="w-4 h-4" />
                   <span className="ml-1 hidden sm:inline">Save Draft</span>
@@ -492,7 +501,7 @@ export default function CreatePost(): React.ReactElement {
                   size="sm"
                   color="primary"
                   onPress={() => setShowPublishModal(true)}
-                  isDisabled={loading || (createPost as any).isLoading}
+                  isDisabled={loading || createPost.isPending}
                 >
                   <span className="hidden sm:inline">Publish</span>
                   <ArrowRightIcon className="w-4 h-4 sm:ml-2" />

@@ -1,3 +1,5 @@
+import type { Timestamp } from "firebase/firestore";
+
 // User types
 export interface User {
   uid: string;
@@ -9,18 +11,21 @@ export interface User {
 export type UserRole = "super_admin" | "admin" | "writer" | "user" | "reader";
 
 // Blog/Post types
+export type PostStatus = "draft" | "pending" | "approved" | "rejected";
+export type DateValue = Timestamp | Date | string | number | null;
+
 export interface BlogPost {
   id: string;
   title: string;
   content: string;
-  excerpt?: string;
-  coverImage?: string;
+  excerpt?: string | null;
+  coverImage?: string | null;
   authorId: string;
   authorName: string | null; // Can be null if not set during post creation
-  authorAvatar?: string;
-  createdAt?: any; // Firestore Timestamp
-  updatedAt?: any; // Firestore Timestamp
-  status?: "pending" | "approved" | "rejected";
+  authorAvatar?: string | null;
+  createdAt?: DateValue;
+  updatedAt?: DateValue;
+  status?: PostStatus;
   category?: string;
   tags?: string[];
   views?: number;
@@ -28,10 +33,26 @@ export interface BlogPost {
   likedBy?: string[]; // Array of user IDs who liked this post
   readingTime?: number; // in minutes
   technicalStack?: string[];
-  coverImage?: string | null;
-  excerpt?: string | null;
-  scheduledFor?: any; // Firestore Timestamp or JS Date for scheduled publishing
+  scheduledFor?: DateValue;
 }
+
+export type CreatePostInput = Pick<BlogPost, "title" | "content"> &
+  Partial<
+    Pick<
+      BlogPost,
+      | "excerpt"
+      | "coverImage"
+      | "status"
+      | "category"
+      | "tags"
+      | "views"
+      | "likedBy"
+      | "likes"
+      | "readingTime"
+      | "technicalStack"
+      | "scheduledFor"
+    >
+  >;
 
 // Notification types
 export interface Notification {
@@ -40,7 +61,7 @@ export interface Notification {
   type: string;
   message: string;
   blogId?: string;
-  createdAt?: any; // Firestore Timestamp
+  createdAt?: DateValue;
   read?: boolean;
 }
 

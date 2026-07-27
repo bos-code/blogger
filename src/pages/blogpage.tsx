@@ -5,6 +5,7 @@ import BlogPostCard from "../components/BlogPostCard";
 import PremiumSpinner from "../components/PremiumSpinner";
 import ReadingProgressBar from "../components/ReadingProgressBar";
 import { useMemo, useState } from "react";
+import { isPostPublic, toTimestamp } from "../utils/date";
 
 export default function Blog(): React.ReactElement {
   const { data: posts = [], isLoading, error } = usePosts();
@@ -12,10 +13,7 @@ export default function Blog(): React.ReactElement {
   const [visibleCount, setVisibleCount] = useState<number>(10);
 
   const approvedPosts = useMemo(
-    () =>
-      (posts as BlogPost[]).filter(
-        (post) => post.status === "approved" || !post.status
-      ),
+    () => (posts as BlogPost[]).filter(isPostPublic),
     [posts]
   );
 
@@ -27,8 +25,8 @@ export default function Blog(): React.ReactElement {
         if (bLikes !== aLikes) return bLikes - aLikes;
       }
 
-      const aTime = a.createdAt?.toDate?.()?.getTime?.() ?? 0;
-      const bTime = b.createdAt?.toDate?.()?.getTime?.() ?? 0;
+      const aTime = toTimestamp(a.createdAt);
+      const bTime = toTimestamp(b.createdAt);
       return bTime - aTime;
     });
   }, [approvedPosts, sortBy]);

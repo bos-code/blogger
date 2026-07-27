@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
@@ -15,7 +16,7 @@ import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
 import { queryKeys } from "../utils/queryClient";
-import type { BlogPost, User } from "../types";
+import type { BlogPost, CreatePostInput, User } from "../types";
 
 // Helper function to get user display name (nickname or first name or full name)
 const getUserDisplayName = (user: User | null): string => {
@@ -31,33 +32,40 @@ const getUserDisplayName = (user: User | null): string => {
   return "Anonymous";
 };
 
-interface CreatePostData {
-  title: string;
-  content: string;
-  [key: string]: any;
-}
-
 interface UpdatePostData {
   id: string;
   data: Partial<BlogPost>;
 }
+
+interface UpdatePostResult {
+  id: string;
+  data: Partial<BlogPost>;
+}
+
+interface LikeMutationContext {
+  previousPosts?: BlogPost[];
+}
+
+const postsFromSnapshot = (
+  snapshot: QuerySnapshot<DocumentData>
+): BlogPost[] =>
+  snapshot.docs.map((snapshotDocument) => ({
+    id: snapshotDocument.id,
+    ...snapshotDocument.data(),
+  })) as BlogPost[];
+
+const fetchPosts = async (): Promise<BlogPost[]> => {
+  const snapshot = await getDocs(collection(db, "posts"));
+  return postsFromSnapshot(snapshot);
+};
 
 // Fetch all posts
 export const usePosts = () => {
   return useQuery<BlogPost[]>({
     queryKey: queryKeys.posts.all,
     queryFn: async () => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       try {
-        const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-          collection(db, "posts")
-        );
-        return snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })) as BlogPost[];
+        return await fetchPosts();
       } catch (error) {
         console.error("Error fetching posts:", error);
         throw new Error("Failed to fetch posts. Please try again later.");
@@ -83,27 +91,29 @@ export const usePosts = () => {
 export const usePostsRealtime = () => {
   const queryClient = useQueryClient();
 
-  return useQuery<BlogPost[]>({
+  const postsQuery = useQuery<BlogPost[]>({
     queryKey: queryKeys.posts.realtime,
-    queryFn: () => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
-      return new Promise<BlogPost[]>((resolve) => {
-        const unsub = onSnapshot(collection(db, "posts"), (snap) => {
-          const blogs = snap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          })) as BlogPost[];
-          queryClient.setQueryData(queryKeys.posts.all, blogs);
-          resolve(blogs);
-        });
-        // Return unsubscribe function
-        return () => unsub();
-      });
-    },
-    enabled: true,
+    queryFn: fetchPosts,
+    staleTime: Infinity,
   });
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "posts"),
+      (snapshot) => {
+        const posts = postsFromSnapshot(snapshot);
+        queryClient.setQueryData(queryKeys.posts.realtime, posts);
+        queryClient.setQueryData(queryKeys.posts.all, posts);
+      },
+      (error) => {
+        console.error("Real-time post subscription failed:", error);
+      }
+    );
+
+    return unsubscribe;
+  }, [queryClient]);
+
+  return postsQuery;
 };
 
 // Create post mutation
@@ -114,25 +124,22 @@ export const useCreatePost = () => {
   const showNotification = useNotificationStore(
     (state) => state.showNotification
   );
-  const isAdmin = role === "admin";
+  const isAdmin = role === "admin" || role === "super_admin";
 
-  return useMutation<BlogPost, Error, CreatePostData>({
+  return useMutation<BlogPost, Error, CreatePostInput>({
     mutationFn: async (data) => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       const blog = {
         ...data,
         authorId: user?.uid || "guest",
         authorName: getUserDisplayName(user),
         authorAvatar: user?.photoURL || null, // Include author avatar
         createdAt: serverTimestamp(),
-        status: (data as any).status ?? (isAdmin ? "approved" : "pending"),
+        status: data.status ?? (isAdmin ? "approved" : "pending"),
         likedBy: [], // Initialize with empty array
         likes: 0, // Initialize with 0
       };
       const ref = await addDoc(collection(db, "posts"), blog);
-      const blogData = { id: ref.id, ...blog } as BlogPost;
+      const blogData = { id: ref.id, ...blog } as unknown as BlogPost;
 
       // Create notification
       try {
@@ -177,16 +184,13 @@ export const useUpdatePost = () => {
     (state) => state.showNotification
   );
 
-  return useMutation<UpdatePostData, Error, UpdatePostData>({
+  return useMutation<UpdatePostResult, Error, UpdatePostData>({
     mutationFn: async ({ id, data }) => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       await updateDoc(doc(db, "posts", id), {
         ...data,
         updatedAt: serverTimestamp(),
       });
-      return { id, ...data };
+      return { id, data };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
@@ -217,9 +221,6 @@ export const useDeletePost = () => {
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       await deleteDoc(doc(db, "posts", id));
       return id;
     },
@@ -251,9 +252,6 @@ export const useApprovePost = () => {
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       await updateDoc(doc(db, "posts", id), { status: "approved" });
 
       // Create notification
@@ -322,7 +320,8 @@ export const useLikePost = () => {
   return useMutation<
     { postId: string; likedBy: string[] },
     Error,
-    { postId: string; currentLikedBy?: string[] }
+    { postId: string; currentLikedBy?: string[] },
+    LikeMutationContext
   >({
     mutationFn: async ({ postId, currentLikedBy = [] }) => {
       // Security: Ensure user is authenticated
@@ -340,9 +339,6 @@ export const useLikePost = () => {
         ? currentLikedBy.filter((id) => id !== userId) // Unlike: remove user ID
         : [...currentLikedBy, userId]; // Like: add user ID
 
-      if (!db) {
-        throw new Error("Firestore is not configured. Please set up your Firebase credentials.");
-      }
       // Atomic update: Update both likedBy array and likes count in single transaction
       await updateDoc(doc(db, "posts", postId), {
         likedBy: newLikedBy,
@@ -393,7 +389,7 @@ export const useLikePost = () => {
     },
 
     // On Success: Invalidate queries to sync with server
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
 
@@ -413,7 +409,7 @@ export const useLikePost = () => {
           "There was an error updating the like. Please try again.",
       });
 
-      console.error("Like mutation error:", error);
+      console.error(`Like mutation error for ${variables.postId}:`, error);
     },
 
     // Always refetch after error or success to ensure consistency

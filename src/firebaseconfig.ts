@@ -1,7 +1,7 @@
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
-import { getAuth, type Auth } from "firebase/auth";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 // Firebase configuration
 // Replace these with your actual Firebase config values
@@ -18,58 +18,26 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id",
 };
 
-// Check if Firebase is already initialized
-let app: FirebaseApp | undefined;
-let db: Firestore | undefined;
-let auth: Auth | undefined;
-let storage: FirebaseStorage | undefined;
+const hasValidConfig =
+  firebaseConfig.apiKey !== "your-api-key" &&
+  firebaseConfig.authDomain !== "your-auth-domain" &&
+  firebaseConfig.projectId !== "your-project-id";
 
-try {
-  // Initialize Firebase only if not already initialized
-  if (getApps().length === 0) {
-    // Validate config before initializing
-    const hasValidConfig =
-      firebaseConfig.apiKey !== "your-api-key" &&
-      firebaseConfig.authDomain !== "your-auth-domain" &&
-      firebaseConfig.projectId !== "your-project-id";
-
-    if (!hasValidConfig) {
-      console.warn(
-        "⚠️ Firebase config not set. Please create a .env file with your Firebase credentials.\n" +
-          "The app will work but Firebase features (auth, database) will not function.\n" +
-          "See FIREBASE_SETUP.md for instructions."
-      );
-    }
-
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApps()[0];
-  }
-
-  // Initialize services only if app was successfully created
-  if (app) {
-    db = getFirestore(app);
-    auth = getAuth(app);
-    storage = getStorage(app);
-  }
-} catch (error) {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  console.error("❌ Firebase initialization error:", errorMessage);
-
-  // Don't throw - allow app to work in limited mode
-  // The auth functions will handle the errors gracefully
+if (!hasValidConfig) {
   console.warn(
-    "⚠️ Firebase services may not work. Please configure Firebase in .env file.\n" +
+    "⚠️ Firebase config not set. Add your credentials to a .env file.\n" +
+      "Firebase-backed features will remain unavailable until then.\n" +
       "See FIREBASE_SETUP.md for instructions."
   );
-
-  // Set to undefined so components can check and handle gracefully
-  app = undefined;
-  db = undefined;
-  auth = undefined;
 }
 
-// Export with type assertions - components will handle undefined cases
-export { db, auth };
-export { storage };
+// Firebase service objects can be created before a network connection exists.
+// Keeping them non-optional gives every consumer one consistent contract; any
+// missing credentials surface when a Firebase operation is attempted.
+const app = getApps()[0] ?? initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
+
+export { db, auth, storage };
 export default app;

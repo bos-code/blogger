@@ -19,7 +19,8 @@ import {
   FunnelIcon,
 } from "@heroicons/react/24/outline";
 import { showConfirm, showSuccess, showError } from "../utils/sweetalert";
-import type { BlogPost } from "../types";
+import type { BlogPost, DateValue } from "../types";
+import { toDate } from "../utils/date";
 
 export default function Post(): React.ReactElement {
   const { data: posts = [], isLoading } = usePosts();
@@ -48,7 +49,7 @@ export default function Post(): React.ReactElement {
   });
 
   const handleApprove = async (post: BlogPost): Promise<void> => {
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "super_admin") {
       showError("Permission Denied", "Only admins can approve posts.");
       return;
     }
@@ -64,7 +65,7 @@ export default function Post(): React.ReactElement {
             "Post Approved",
             "The post has been approved successfully!"
           );
-        } catch (error) {
+        } catch {
           showError("Failed", "Could not approve the post. Please try again.");
         }
       },
@@ -72,7 +73,7 @@ export default function Post(): React.ReactElement {
   };
 
   const handleReject = async (post: BlogPost): Promise<void> => {
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "super_admin") {
       showError("Permission Denied", "Only admins can reject posts.");
       return;
     }
@@ -91,7 +92,7 @@ export default function Post(): React.ReactElement {
               data: { status: "rejected" },
             });
             showSuccess("Post Rejected", "The post has been rejected.");
-          } catch (error) {
+          } catch {
             showError("Failed", "Could not reject the post. Please try again.");
           }
         },
@@ -100,7 +101,10 @@ export default function Post(): React.ReactElement {
   };
 
   const handleDelete = async (post: BlogPost): Promise<void> => {
-    const canDelete = role === "admin" || currentUser?.uid === post.authorId;
+    const canDelete =
+      role === "admin" ||
+      role === "super_admin" ||
+      currentUser?.uid === post.authorId;
 
     if (!canDelete) {
       showError(
@@ -124,7 +128,7 @@ export default function Post(): React.ReactElement {
               "Post Deleted",
               "The post has been deleted successfully."
             );
-          } catch (error) {
+          } catch {
             showError("Failed", "Could not delete the post. Please try again.");
           }
         },
@@ -140,6 +144,9 @@ export default function Post(): React.ReactElement {
         rawText: post.content,
         tags: post.tags || [],
         category: post.category || "",
+        coverImage: post.coverImage || "",
+        excerpt: post.excerpt || "",
+        scheduledFor: post.scheduledFor || null,
         status: post.status || "draft",
       },
     });
@@ -149,18 +156,15 @@ export default function Post(): React.ReactElement {
     navigate(`/blog/${post.id}`);
   };
 
-  const formatDate = (timestamp: any): string => {
-    if (!timestamp) return "Unknown";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }).format(date);
-    } catch {
-      return "Unknown";
-    }
+  const formatDate = (timestamp: DateValue | undefined): string => {
+    const date = toDate(timestamp);
+    if (!date) return "Unknown";
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
   };
 
   if (isLoading) {

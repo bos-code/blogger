@@ -11,7 +11,8 @@ import {
   HeartIcon,
 } from "@heroicons/react/24/outline";
 import PremiumSpinner from "../components/PremiumSpinner";
-import type { BlogPost } from "../types";
+import type { BlogPost, DateValue } from "../types";
+import { toDate, toTimestamp } from "../utils/date";
 
 export default function AdminDashboard(): React.ReactElement {
   const { data: posts = [], isLoading: postsLoading } = usePosts();
@@ -50,8 +51,8 @@ export default function AdminDashboard(): React.ReactElement {
   const totalUsers = users.length;
   const recentPosts = [...posts]
     .sort((a: BlogPost, b: BlogPost) => {
-      const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
-      const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+      const aTime = toTimestamp(a.createdAt);
+      const bTime = toTimestamp(b.createdAt);
       return bTime - aTime;
     })
     .slice(0, 5);
@@ -101,18 +102,15 @@ export default function AdminDashboard(): React.ReactElement {
     },
   ];
 
-  const formatDate = (timestamp: any): string => {
-    if (!timestamp) return "Unknown";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }).format(date);
-    } catch {
-      return "Unknown";
-    }
+  const formatDate = (timestamp: DateValue | undefined): string => {
+    const date = toDate(timestamp);
+    if (!date) return "Unknown";
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
   };
 
   return (
