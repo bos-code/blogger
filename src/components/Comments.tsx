@@ -12,6 +12,8 @@ import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
 import { CompactSpinner } from "./PremiumSpinner";
+import type { DateValue } from "../types";
+import { toDate } from "../utils/date";
 
 interface Comment {
   id: string;
@@ -19,7 +21,7 @@ interface Comment {
   authorId: string;
   authorName: string;
   content: string;
-  createdAt?: any;
+  createdAt?: DateValue;
 }
 
 export default function Comments({ postId }: { postId: string }): React.ReactElement {
@@ -35,34 +37,34 @@ export default function Comments({ postId }: { postId: string }): React.ReactEle
       orderBy("createdAt", "asc")
     );
     const unsub = onSnapshot(q, (snap) => {
-      const cs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-      setComments(cs as Comment[]);
+      const comments = snap.docs.map((commentDocument) => ({
+        id: commentDocument.id,
+        ...(commentDocument.data() as Omit<Comment, "id">),
+      }));
+      setComments(comments);
     });
     return () => unsub();
   }, [postId]);
 
-  const formatDate = (timestamp: any): string => {
-    if (!timestamp) return "Just now";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
+  const formatDate = (timestamp: DateValue | undefined): string => {
+    const date = toDate(timestamp);
+    if (!date) return "Just now";
 
-      if (minutes < 1) return "Just now";
-      if (minutes < 60) return `${minutes}m ago`;
-      if (hours < 24) return `${hours}h ago`;
-      if (days < 7) return `${days}d ago`;
-      return new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      }).format(date);
-    } catch {
-      return "Unknown time";
-    }
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    }).format(date);
   };
 
   const submit = async (e?: React.FormEvent): Promise<void> => {
@@ -122,7 +124,7 @@ export default function Comments({ postId }: { postId: string }): React.ReactEle
                   </div>
                 </div>
               </div>
-              <div className="text-sm sm:text-base text-base-content ml-0 sm:ml-12 sm:ml-14">
+              <div className="text-sm sm:text-base text-base-content ml-0 sm:ml-14">
                 {c.content}
               </div>
             </div>

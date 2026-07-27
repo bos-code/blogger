@@ -5,7 +5,7 @@ import { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 
-export default function TipTapEditor({ authorId }: { authorId: string }): JSX.Element {
+export default function TipTapEditor({ authorId }: { authorId: string }): React.ReactElement {
   const [title, setTitle] = useState("");
   const editor = useEditor({
     extensions: [StarterKit],
@@ -24,7 +24,7 @@ export default function TipTapEditor({ authorId }: { authorId: string }): JSX.El
     });
 
     setTitle("");
-    editor.commands.setContent("<p>Start writing your blog post here...</p>");
+    editor?.commands.setContent("<p>Start writing your blog post here...</p>");
   };
 
   return (

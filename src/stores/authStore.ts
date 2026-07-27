@@ -65,8 +65,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   signOut: async () => {
     if (!auth) return;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await firebaseSignOut(auth as any);
+      await firebaseSignOut(auth);
       set({
         user: null,
         role: null,
@@ -89,9 +88,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const unsubscribe = onAuthStateChanged(
-        auth as any,
+        auth,
         async (firebaseUser: FirebaseUser | null) => {
           if (firebaseUser) {
             // Update email verification status
@@ -109,6 +107,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
                   email: firebaseUser.email,
                   name: firebaseUser.displayName || userData.name || null,
                   photoURL: firebaseUser.photoURL || userData.photoURL || null,
+                  nickname: userData.nickname || null,
                 };
                 const role = (userData.role as UserRole) || "user";
                 get().setUser(user, role);
@@ -207,8 +206,7 @@ export const signIn = async (
 
   const { setAuthError } = useAuthStore.getState();
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await signInWithEmailAndPassword(auth as any, email, password);
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);
@@ -232,9 +230,8 @@ export const signUp = async (
   const { setAuthError } = useAuthStore.getState();
   try {
     if (!auth) throw new Error("Firebase Auth not available");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userCredential = await createUserWithEmailAndPassword(
-      auth as any,
+      auth,
       email,
       password
     );
@@ -274,8 +271,7 @@ export const resetPassword = async (email: string): Promise<void> => {
 
   const { setAuthError } = useAuthStore.getState();
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await sendPasswordResetEmail(auth as any, email);
+    await sendPasswordResetEmail(auth, email);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);
@@ -293,8 +289,7 @@ export const sendVerificationEmail = async (): Promise<void> => {
 
   const { setAuthError } = useAuthStore.getState();
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await sendEmailVerification(auth.currentUser as any);
+    await sendEmailVerification(auth.currentUser);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);
@@ -309,8 +304,7 @@ export const reloadAuthUser = async (): Promise<void> => {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (auth.currentUser as any).reload();
+    await auth.currentUser.reload();
     const firebaseUser = auth.currentUser;
     if (firebaseUser) {
       useAuthStore.getState().setEmailVerified(firebaseUser.emailVerified);
@@ -341,8 +335,7 @@ export const signInWithGoogle = async (): Promise<void> => {
   const provider = new GoogleAuthProvider();
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await signInWithPopup(auth as any, provider);
+    const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
     // Check if user document exists, create if not
@@ -410,8 +403,7 @@ export const sendEmailLink = async (email: string): Promise<void> => {
       handleCodeInApp: true,
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await sendSignInLinkToEmail(auth as any, email, actionCodeSettings);
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     setAuthError(errorMessage);
@@ -426,8 +418,7 @@ export const sendEmailLink = async (email: string): Promise<void> => {
 export const checkEmailLink = (): boolean => {
   if (!auth) return false;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return isSignInWithEmailLink(auth as any, window.location.href);
+    return isSignInWithEmailLink(auth, window.location.href);
   } catch {
     return false;
   }
@@ -468,9 +459,8 @@ export const completeEmailLinkSignIn = async (
     }
 
     // Complete sign-in with email link
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userCredential = await signInWithEmailLink(
-      auth as any,
+      auth,
       emailToUse,
       window.location.href
     );
@@ -480,8 +470,7 @@ export const completeEmailLinkSignIn = async (
 
     // Refresh auth token to ensure security rules evaluate correctly
     if (userCredential.user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (userCredential.user as any).getIdToken(true);
+      await userCredential.user.getIdToken(true);
     }
 
     // Check if user document exists, create if not
@@ -538,8 +527,7 @@ export const signInWithApple = async (): Promise<void> => {
   provider.addScope("name");
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await signInWithPopup(auth as any, provider);
+    const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
     // Check if user document exists, create if not

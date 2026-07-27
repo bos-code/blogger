@@ -28,7 +28,7 @@ export default function ApprovalModal(): null {
               await approvePost.mutateAsync(selectedBlog.id);
               closeModal();
               showSuccess("Post Approved", "The blog post has been approved successfully!");
-            } catch (error) {
+            } catch {
               showError("Failed to Approve", "There was an error approving the post. Please try again.");
             }
           },
@@ -42,7 +42,6 @@ export default function ApprovalModal(): null {
 
   return null;
 }
-
 
 
 

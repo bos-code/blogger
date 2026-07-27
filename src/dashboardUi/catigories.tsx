@@ -90,7 +90,7 @@ export default function Categories(): React.ReactElement {
               "Category Renamed",
               `"${oldCategory}" has been renamed to "${newName.trim()}".`
             );
-          } catch (error) {
+          } catch {
             showError("Failed", "Could not rename category. Please try again.");
           }
         },
@@ -123,7 +123,7 @@ export default function Categories(): React.ReactElement {
               "Category Deleted",
               `"${category}" has been removed from all posts.`
             );
-          } catch (error) {
+          } catch {
             showError("Failed", "Could not delete category. Please try again.");
           }
         },

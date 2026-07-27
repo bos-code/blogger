@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import type { UIState, BlogPost } from "../types";
 
-interface UIStore extends UIState {}
-
-export const useUIStore = create<UIStore>((set) => ({
+export const useUIStore = create<UIState>((set) => ({
   dashboardScreen: "home",
   openModal: false,
   selectedBlog: null,
@@ -16,7 +14,6 @@ export const useUIStore = create<UIStore>((set) => ({
 
   closeModal: () => set({ selectedBlog: null, openModal: false }),
 }));
-
 
 
 

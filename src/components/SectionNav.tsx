@@ -13,7 +13,7 @@ interface Section {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  element: HTMLElement | null;
+  element: HTMLElement;
 }
 
 const sectionConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -32,22 +32,23 @@ export default function SectionNav(): React.ReactElement {
   useEffect(() => {
     // Find all sections with IDs (Hero, About, Stack, Work, Blog, Contact)
     const sectionIds = ["hero", "about", "stack", "work", "blog", "contact"];
-    const foundSections: Section[] = sectionIds
-      .map((id) => {
-        const element = document.getElementById(id) || 
-                      document.querySelector(`[data-section="${id}"]`) as HTMLElement;
-        const config = sectionConfig[id];
-        if (element && config) {
-          return {
+    const foundSections = sectionIds.flatMap((id): Section[] => {
+      const element =
+        document.getElementById(id) ??
+        document.querySelector<HTMLElement>(`[data-section="${id}"]`);
+      const config = sectionConfig[id];
+      if (element && config) {
+        return [
+          {
             id,
             label: config.label,
             icon: config.icon,
             element,
-          };
-        }
-        return null;
-      })
-      .filter((s): s is Section => s !== null);
+          },
+        ];
+      }
+      return [];
+    });
 
     setSections(foundSections);
 
@@ -70,23 +71,19 @@ export default function SectionNav(): React.ReactElement {
     );
 
     foundSections.forEach((section) => {
-      if (section.element) {
-        observer.observe(section.element);
-      }
+      observer.observe(section.element);
     });
 
     return () => {
       foundSections.forEach((section) => {
-        if (section.element) {
-          observer.unobserve(section.element);
-        }
+        observer.unobserve(section.element);
       });
     };
   }, []);
 
   const scrollToSection = (sectionId: string): void => {
     const section = sections.find((s) => s.id === sectionId);
-    if (section?.element) {
+    if (section) {
       section.element.scrollIntoView({
         behavior: "smooth",
         block: "start",
@@ -169,4 +166,3 @@ export default function SectionNav(): React.ReactElement {
     </motion.div>
   );
 }
-

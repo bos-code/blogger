@@ -47,7 +47,7 @@ export default function Users(): React.ReactElement {
       });
       showSuccess("Role Updated", `User role has been updated to ${newRole}.`);
       setEditingUserId(null);
-    } catch (error) {
+    } catch {
       showError(
         "Update Failed",
         "Failed to update user role. Please try again."

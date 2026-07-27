@@ -1,4 +1,5 @@
 import Swal from "sweetalert2";
+import type { SweetAlertOptions, SweetAlertResult } from "sweetalert2";
 
 /**
  * SweetAlert Utility with Background Blur
@@ -43,32 +44,32 @@ const removeBlur = (): void => {
  * Configure SweetAlert with default settings and blur effect
  * Uses Tailwind CSS classes for styling
  */
-const configureSwal = (): typeof Swal => {
-  // Set up global configuration with Tailwind classes
-  Swal.mixin({
-    customClass: {
-      popup: "swal-popup rounded-2xl shadow-2xl bg-base-100 text-base-content",
-      container: "swal-container",
-      title: "text-2xl font-bold text-base-content",
-      content: "text-base text-base-content/80",
-      confirmButton: "btn btn-primary rounded-lg px-6 py-2 font-medium",
-      cancelButton: "btn btn-ghost rounded-lg px-6 py-2 font-medium",
-      actions: "gap-3",
-    },
-    buttonsStyling: false,
-    didOpen: () => {
-      applyBlur();
-    },
-    didClose: () => {
-      removeBlur();
-    },
-  });
+const StyledSwal = Swal.mixin({
+  customClass: {
+    popup: "swal-popup rounded-2xl shadow-2xl bg-base-100 text-base-content",
+    container: "swal-container",
+    title: "text-2xl font-bold text-base-content",
+    htmlContainer: "text-base text-base-content/80",
+    confirmButton: "btn btn-primary rounded-lg px-6 py-2 font-medium",
+    cancelButton: "btn btn-ghost rounded-lg px-6 py-2 font-medium",
+    actions: "gap-3",
+  },
+  buttonsStyling: false,
+  didOpen: () => {
+    applyBlur();
+  },
+  didClose: () => {
+    removeBlur();
+  },
+});
 
-  return Swal;
-};
-
-// Initialize
-configureSwal();
+const mergeCustomClass = (
+  options: SweetAlertOptions,
+  confirmButton: string
+): SweetAlertOptions["customClass"] => ({
+  confirmButton,
+  ...(typeof options.customClass === "object" ? options.customClass : {}),
+});
 
 /**
  * Success Alert with Tailwind styling
@@ -76,19 +77,19 @@ configureSwal();
 export const showSuccess = (
   title: string,
   message?: string,
-  options?: any
-): Promise<any> => {
-  return Swal.fire({
+  options: SweetAlertOptions = {}
+): Promise<SweetAlertResult> => {
+  return StyledSwal.fire({
+    ...options,
     icon: "success",
     title,
     text: message,
-    confirmButtonText: options?.confirmButtonText || "OK",
-    customClass: {
-      confirmButton: "btn btn-success rounded-lg px-6 py-2 font-medium",
-      ...options?.customClass,
-    },
+    confirmButtonText: options.confirmButtonText || "OK",
+    customClass: mergeCustomClass(
+      options,
+      "btn btn-success rounded-lg px-6 py-2 font-medium"
+    ),
     buttonsStyling: false,
-    ...options,
   });
 };
 
@@ -98,19 +99,19 @@ export const showSuccess = (
 export const showError = (
   title: string,
   message?: string,
-  options?: any
-): Promise<any> => {
-  return Swal.fire({
+  options: SweetAlertOptions = {}
+): Promise<SweetAlertResult> => {
+  return StyledSwal.fire({
+    ...options,
     icon: "error",
     title,
     text: message,
-    confirmButtonText: options?.confirmButtonText || "OK",
-    customClass: {
-      confirmButton: "btn btn-error rounded-lg px-6 py-2 font-medium",
-      ...options?.customClass,
-    },
+    confirmButtonText: options.confirmButtonText || "OK",
+    customClass: mergeCustomClass(
+      options,
+      "btn btn-error rounded-lg px-6 py-2 font-medium"
+    ),
     buttonsStyling: false,
-    ...options,
   });
 };
 
@@ -120,19 +121,19 @@ export const showError = (
 export const showWarning = (
   title: string,
   message?: string,
-  options?: any
-): Promise<any> => {
-  return Swal.fire({
+  options: SweetAlertOptions = {}
+): Promise<SweetAlertResult> => {
+  return StyledSwal.fire({
+    ...options,
     icon: "warning",
     title,
     text: message,
-    confirmButtonText: options?.confirmButtonText || "OK",
-    customClass: {
-      confirmButton: "btn btn-warning rounded-lg px-6 py-2 font-medium",
-      ...options?.customClass,
-    },
+    confirmButtonText: options.confirmButtonText || "OK",
+    customClass: mergeCustomClass(
+      options,
+      "btn btn-warning rounded-lg px-6 py-2 font-medium"
+    ),
     buttonsStyling: false,
-    ...options,
   });
 };
 
@@ -142,19 +143,19 @@ export const showWarning = (
 export const showInfo = (
   title: string,
   message?: string,
-  options?: any
-): Promise<any> => {
-  return Swal.fire({
+  options: SweetAlertOptions = {}
+): Promise<SweetAlertResult> => {
+  return StyledSwal.fire({
+    ...options,
     icon: "info",
     title,
     text: message,
-    confirmButtonText: options?.confirmButtonText || "OK",
-    customClass: {
-      confirmButton: "btn btn-info rounded-lg px-6 py-2 font-medium",
-      ...options?.customClass,
-    },
+    confirmButtonText: options.confirmButtonText || "OK",
+    customClass: mergeCustomClass(
+      options,
+      "btn btn-info rounded-lg px-6 py-2 font-medium"
+    ),
     buttonsStyling: false,
-    ...options,
   });
 };
 
@@ -172,11 +173,11 @@ export const showConfirm = (
     onConfirm?: () => void | Promise<void>;
     onCancel?: () => void;
   }
-): Promise<any> => {
+): Promise<SweetAlertResult | void> => {
   const confirmColor = options?.confirmColor || "primary";
   const cancelColor = options?.cancelColor || "ghost";
   
-  return Swal.fire({
+  return StyledSwal.fire({
     icon: "question",
     title,
     text: message,
@@ -189,7 +190,6 @@ export const showConfirm = (
     },
     buttonsStyling: false,
     reverseButtons: true,
-    ...options,
   }).then((result) => {
     if (result.isConfirmed && options?.onConfirm) {
       return options.onConfirm();
@@ -206,8 +206,8 @@ export const showConfirm = (
 export const showDeleteConfirm = (
   itemName: string,
   onConfirm: () => void | Promise<void>
-): Promise<any> => {
-  return Swal.fire({
+): Promise<SweetAlertResult | void> => {
+  return StyledSwal.fire({
     icon: "warning",
     title: "Are you sure?",
     text: `This will permanently delete "${itemName}". This action cannot be undone.`,
@@ -232,19 +232,17 @@ export const showDeleteConfirm = (
 /**
  * Custom Alert (Full Control)
  */
-export const showCustom = (options: any): Promise<any> => {
-  return Swal.fire({
-    didOpen: () => applyBlur(),
-    didClose: () => removeBlur(),
-    ...options,
-  });
+export const showCustom = (
+  options: SweetAlertOptions
+): Promise<SweetAlertResult> => {
+  return StyledSwal.fire(options);
 };
 
 /**
  * Loading Alert with Tailwind styling
  */
 export const showLoading = (title: string = "Loading..."): void => {
-  Swal.fire({
+  void StyledSwal.fire({
     title,
     allowOutsideClick: false,
     allowEscapeKey: false,
@@ -254,7 +252,7 @@ export const showLoading = (title: string = "Loading..."): void => {
     buttonsStyling: false,
     didOpen: () => {
       applyBlur();
-      Swal.showLoading();
+      StyledSwal.showLoading();
     },
   });
 };
@@ -263,10 +261,9 @@ export const showLoading = (title: string = "Loading..."): void => {
  * Close any open alert
  */
 export const closeAlert = (): void => {
-  Swal.close();
+  StyledSwal.close();
   removeBlur();
 };
 
 // Export default Swal instance
-export default Swal;
-
+export default StyledSwal;

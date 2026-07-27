@@ -1,5 +1,5 @@
-import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   completeEmailLinkSignIn,
   checkEmailLink,
@@ -11,13 +11,11 @@ import {
   EnvelopeIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
 
 export default function CompleteSignIn(): React.ReactElement {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const authError = useAuthStore((state) => state.authError);
   const clearAuthError = useAuthStore((state) => state.clearAuthError);
   const logStatus = useAuthStore((state) => state.logStatus);
@@ -27,6 +25,7 @@ export default function CompleteSignIn(): React.ReactElement {
   const [isChecking, setIsChecking] = useState(true);
   const [hasEmailLink, setHasEmailLink] = useState(false);
   const [needsEmail, setNeedsEmail] = useState(false);
+  const autoSignInAttempted = useRef(false);
 
   // Clear auth error when component mounts
   useEffect(() => {
@@ -68,68 +67,86 @@ export default function CompleteSignIn(): React.ReactElement {
     }
   }, [logStatus, navigate]);
 
-  const handleCompleteSignIn = async (
-    e?: FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    if (e) {
-      e.preventDefault();
-    }
-
-    if (!email.trim()) {
-      showError("Validation Error", "Please enter your email address.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await completeEmailLinkSignIn(email.trim());
-      showSuccess(
-        "Sign In Successful!",
-        "You have been signed in successfully. Redirecting..."
-      );
-      // Small delay to show success message
-      setTimeout(() => {
-        navigate("/admin");
-      }, 1500);
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to complete sign-in. Please try again.";
-      let userFriendlyMessage = errorMessage;
-
-      // Convert Firebase error codes to user-friendly messages
-      if (errorMessage.includes("auth/invalid-action-code")) {
-        userFriendlyMessage =
-          "This sign-in link has expired or is invalid. Please request a new one.";
-      } else if (errorMessage.includes("auth/expired-action-code")) {
-        userFriendlyMessage =
-          "This sign-in link has expired. Please request a new one.";
-      } else if (errorMessage.includes("auth/invalid-email")) {
-        userFriendlyMessage = "Invalid email address format.";
-      } else if (errorMessage.includes("auth/user-disabled")) {
-        userFriendlyMessage = "This account has been disabled.";
-      } else if (errorMessage.includes("auth/network-request-failed")) {
-        userFriendlyMessage = "Network error. Please check your connection.";
-      } else if (
-        errorMessage.includes("apiKey") ||
-        errorMessage.includes("Firebase") ||
-        errorMessage.includes("auth/invalid-api-key")
-      ) {
-        userFriendlyMessage =
-          "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
+  const handleCompleteSignIn = useCallback(
+    async (e?: FormEvent<HTMLFormElement>): Promise<void> => {
+      if (e) {
+        e.preventDefault();
       }
 
-      showError("Sign In Failed", userFriendlyMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (!email.trim()) {
+        showError("Validation Error", "Please enter your email address.");
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        await completeEmailLinkSignIn(email.trim());
+        showSuccess(
+          "Sign In Successful!",
+          "You have been signed in successfully. Redirecting..."
+        );
+        // Small delay to show success message
+        setTimeout(() => {
+          navigate("/admin");
+        }, 1500);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to complete sign-in. Please try again.";
+        let userFriendlyMessage = errorMessage;
+
+        // Convert Firebase error codes to user-friendly messages
+        if (errorMessage.includes("auth/invalid-action-code")) {
+          userFriendlyMessage =
+            "This sign-in link has expired or is invalid. Please request a new one.";
+        } else if (errorMessage.includes("auth/expired-action-code")) {
+          userFriendlyMessage =
+            "This sign-in link has expired. Please request a new one.";
+        } else if (errorMessage.includes("auth/invalid-email")) {
+          userFriendlyMessage = "Invalid email address format.";
+        } else if (errorMessage.includes("auth/user-disabled")) {
+          userFriendlyMessage = "This account has been disabled.";
+        } else if (errorMessage.includes("auth/network-request-failed")) {
+          userFriendlyMessage = "Network error. Please check your connection.";
+        } else if (
+          errorMessage.includes("apiKey") ||
+          errorMessage.includes("Firebase") ||
+          errorMessage.includes("auth/invalid-api-key")
+        ) {
+          userFriendlyMessage =
+            "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
+        }
+
+        showError("Sign In Failed", userFriendlyMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [email, navigate]
+  );
 
   // Auto-complete if email is stored (same device)
   useEffect(() => {
-    if (hasEmailLink && email && !needsEmail && !isLoading && !logStatus) {
-      handleCompleteSignIn();
+    if (
+      hasEmailLink &&
+      email &&
+      !needsEmail &&
+      !isLoading &&
+      !logStatus &&
+      !autoSignInAttempted.current
+    ) {
+      autoSignInAttempted.current = true;
+      void handleCompleteSignIn();
     }
-  }, [hasEmailLink, email, needsEmail]);
+  }, [
+    hasEmailLink,
+    email,
+    needsEmail,
+    isLoading,
+    logStatus,
+    handleCompleteSignIn,
+  ]);
 
   if (isChecking) {
     return (
@@ -282,4 +299,3 @@ export default function CompleteSignIn(): React.ReactElement {
     </div>
   );
 }
-

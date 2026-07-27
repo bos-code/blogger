@@ -10,7 +10,6 @@ import "./App.css";
 import "sweetalert2/dist/sweetalert2.min.css";
 import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
-import EditPost from "./dashboardUi/EditPost";
 import CreatePost from "./dashboardUi/CreateNewPost";
 import PremiumSpinner from "./components/PremiumSpinner";
 
@@ -82,7 +81,6 @@ function App(): React.ReactElement {
 }
 
 export default App;
-
 
 
 

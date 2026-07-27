@@ -1,9 +1,7 @@
 import { create } from "zustand";
 import type { NotificationState, NotificationData } from "../types";
 
-interface NotificationStore extends NotificationState {}
-
-export const useNotificationStore = create<NotificationStore>((set) => ({
+export const useNotificationStore = create<NotificationState>((set) => ({
   notification: null,
 
   showNotification: (notification: NotificationData | null) =>
@@ -11,4 +9,3 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
 
   hideNotification: () => set({ notification: null }),
 }));
-

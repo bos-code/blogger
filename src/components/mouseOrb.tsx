@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 
-const MouseOrb = (): JSX.Element => {
+const MouseOrb = (): React.ReactElement => {
   const orbRef = useRef<HTMLDivElement | null>(null);
   const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const position = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
+    let animationFrameId = 0;
+
     const updateMouse = (e: MouseEvent) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
@@ -23,10 +25,10 @@ const MouseOrb = (): JSX.Element => {
         });
       }
 
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
-    const handleClick = (e) => {
+    const handleClick = (e: MouseEvent) => {
       const ripple = document.createElement("div");
       Object.assign(ripple.style, {
         position: "fixed",
@@ -70,11 +72,12 @@ const MouseOrb = (): JSX.Element => {
 
     document.addEventListener("mousemove", updateMouse);
     document.addEventListener("click", handleClick);
-    animate();
+    animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       document.removeEventListener("mousemove", updateMouse);
       document.removeEventListener("click", handleClick);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 

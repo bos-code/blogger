@@ -51,7 +51,7 @@ export function useRole() {
   // FINAL PERMISSIONS (SUPER ADMIN BYPASS)
   // ------------------------------------------------------------------
 
-  const canAdmin = isSuperAdmin || isAdmin;
+  const canAdmin = isAuthenticated && (isSuperAdmin || roleCanAdmin);
 
   const canCreate =
     isSuperAdmin || isAdmin || (isEmailVerified && roleCanCreate);

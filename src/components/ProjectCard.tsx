@@ -1,4 +1,4 @@
-function ProjectCard({ imgSrc, url, title }: { imgSrc: string; url: string; title: string }): JSX.Element {
+function ProjectCard({ imgSrc, url, title }: { imgSrc: string; url: string; title: string }): React.ReactElement {
   return (
     <div className="text-center">
       <div className="mockup-window bg-base-100 border border-base-300">

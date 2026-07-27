@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
+import { useState } from "react";
+import { updateDoc, doc } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 import { useRole } from "../hooks/useRole";
 import { useUsers } from "../hooks/useUsers";
@@ -14,10 +14,6 @@ export default function SuperAdminPanel(): React.ReactElement {
   const { data: users = [], isLoading } = useUsers();
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isSuperAdmin) return;
-  }, [isSuperAdmin]);
-
   if (!isSuperAdmin) {
     return (
       <div className="w-full max-w-7xl mx-auto p-6">
@@ -29,11 +25,6 @@ export default function SuperAdminPanel(): React.ReactElement {
   }
 
   const updateRole = async (uid: string, role: UserRole): Promise<void> => {
-    if (!db) {
-      showError("Database Error", "Firebase is not configured.");
-      return;
-    }
-
     setUpdatingUserId(uid);
     try {
       await updateDoc(doc(db, "users", uid), { role });
@@ -270,5 +261,4 @@ export default function SuperAdminPanel(): React.ReactElement {
     </div>
   );
 }
-
 

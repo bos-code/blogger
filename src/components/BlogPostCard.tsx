@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import type { BlogPost } from "../types";
+import type { BlogPost, DateValue } from "../types";
 import { Link } from "react-router-dom";
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { useLikePost } from "../hooks/usePosts";
 import { useAuthStore } from "../stores/authStore";
+import { toDate } from "../utils/date";
 
 interface BlogPostCardProps {
   post: BlogPost;
@@ -20,7 +21,7 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
   const likeCount = likedBy.length || post.likes || 0;
   const isLiked = user?.uid ? likedBy.includes(user.uid) : false;
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = (e: React.MouseEvent): void => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -33,20 +34,6 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
       currentLikedBy: likedBy,
     });
   };
-  const formatDate = (timestamp: any): string => {
-    if (!timestamp) return "Unknown date";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      }).format(date);
-    } catch {
-      return "Unknown date";
-    }
-  };
-
   const calculateReadingTime = (content: string): number => {
     const text = content.replace(/<[^>]*>/g, ""); // Remove HTML tags
     const words = text.split(/\s+/).filter((word) => word.length > 0);
@@ -58,18 +45,17 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
   const excerpt = post.excerpt || post.content.replace(/<[^>]*>/g, "").substring(0, 150) + "...";
 
   // Format date for metadata display
-  const formatMetadataDate = (timestamp: any): string => {
-    if (!timestamp) return "Unknown date";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }).format(date);
-    } catch {
-      return "Unknown date";
-    }
+  const formatMetadataDate = (
+    timestamp: DateValue | undefined
+  ): string => {
+    const date = toDate(timestamp);
+    if (!date) return "Unknown date";
+
+    return new Intl.DateTimeFormat("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
   };
 
   // Get author initials for avatar fallback
@@ -217,4 +203,3 @@ export default function BlogPostCard({ post, index }: BlogPostCardProps): React.
     </motion.article>
   );
 }
-

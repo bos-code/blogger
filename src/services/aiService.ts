@@ -16,14 +16,13 @@
  * For better results, consider using GPT-3.5/4 or Claude via their APIs.
  */
 
-import type { AIGenerateOptions, SEOSuggestions, GrammarCheck } from "../types";
+import type { SEOSuggestions, GrammarCheck } from "../types";
 
 const HUGGINGFACE_API_URL = "https://api-inference.huggingface.co/models";
 const API_KEY: string = import.meta.env.VITE_HUGGINGFACE_API_KEY || "";
 
 interface HuggingFaceResponse {
   generated_text?: string;
-  [key: string]: any;
 }
 
 interface OpenAIResponse {
@@ -32,7 +31,6 @@ interface OpenAIResponse {
       content?: string;
     };
   }>;
-  [key: string]: any;
 }
 
 export const aiService = {
@@ -152,7 +150,10 @@ export const aiService = {
     title: string,
     content: string
   ): Promise<SEOSuggestions> {
-    const words = content.toLowerCase().split(/\s+/);
+    const plainContent = content.replace(/<[^>]*>/g, " ").trim();
+    const words = `${title} ${plainContent}`
+      .toLowerCase()
+      .match(/[a-z0-9]+/g) ?? [];
     const wordFreq: Record<string, number> = {};
     words.forEach((word) => {
       if (word.length > 4) {
@@ -167,7 +168,7 @@ export const aiService = {
 
     return {
       keywords,
-      metaDescription: content.substring(0, 160) + "...",
+      metaDescription: `${title}: ${plainContent}`.slice(0, 160),
       suggestions: [
         "Add more relevant keywords naturally",
         "Include internal links to related posts",
@@ -179,10 +180,20 @@ export const aiService = {
 
   // Check grammar and spelling
   async checkGrammar(content: string): Promise<GrammarCheck> {
+    const trimmedContent = content.replace(/<[^>]*>/g, " ").trim();
+    const suggestions: string[] = [];
+
+    if (trimmedContent.length < 80) {
+      suggestions.push("Add more detail so readers have enough context.");
+    }
+    if (trimmedContent && !/[.!?]$/.test(trimmedContent)) {
+      suggestions.push("Finish the final sentence with punctuation.");
+    }
+
     return {
       errors: [],
-      suggestions: [],
-      score: 95,
+      suggestions,
+      score: trimmedContent ? Math.max(75, 100 - suggestions.length * 10) : 0,
     };
   },
 };
@@ -217,7 +228,6 @@ export const openAIService = {
     }
   },
 };
-
 
 
 

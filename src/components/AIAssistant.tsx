@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactElement } from "react";
 import {
   Modal,
   ModalContent,
@@ -33,7 +33,7 @@ export default function AIAssistant({
   title,
   onTitleChange,
   onContentInsert,
-}: AIAssistantProps): JSX.Element {
+}: AIAssistantProps): ReactElement {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("generate");
   const [loading, setLoading] = useState<boolean>(false);
@@ -368,7 +368,6 @@ export default function AIAssistant({
     </>
   );
 }
-
 
 
 

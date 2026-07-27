@@ -4,7 +4,6 @@ import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
 import Twitter from "../assets/twitter";
 import { useState, useEffect } from "react";
-import type { BlogPost } from "../types";
 import resumeStats from "../data/resumeStats";
 
 const stack = [

@@ -18,7 +18,7 @@ interface TipTapToolbarProps {
   editor: Editor | null;
 }
 
-export default function TipTapToolbar({ editor }: TipTapToolbarProps): JSX.Element | null {
+export default function TipTapToolbar({ editor }: TipTapToolbarProps): React.ReactElement | null {
   if (!editor) {
     return null;
   }
@@ -245,7 +245,6 @@ export default function TipTapToolbar({ editor }: TipTapToolbarProps): JSX.Eleme
     </div>
   );
 }
-
 
 
 

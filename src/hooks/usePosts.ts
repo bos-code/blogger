@@ -22,8 +22,11 @@ import type { BlogPost, CreatePostInput, User } from "../types";
 const getUserDisplayName = (user: User | null): string => {
   if (!user) return "Anonymous";
   
-  // Check if user has nickname in Firestore (we'll need to fetch it)
-  // For now, use first name if available, otherwise full name
+  if (user.nickname?.trim()) {
+    return user.nickname.trim();
+  }
+
+  // Use first name if available, otherwise full name
   if (user.name) {
     const firstName = user.name.split(" ")[0];
     return firstName || user.name;

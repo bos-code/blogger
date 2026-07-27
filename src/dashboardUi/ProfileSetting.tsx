@@ -15,8 +15,13 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { showSuccess, showError } from "../utils/sweetalert";
-import { useThemeStore, themes, type ThemeName } from "../stores/themeStore";
+import {
+  applyTheme,
+  useThemeStore,
+  themes,
+} from "../stores/themeStore";
 import { useNavigate } from "react-router-dom";
+import type { User } from "../types";
 
 export default function ProfileSetting(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
@@ -41,7 +46,7 @@ export default function ProfileSetting(): React.ReactElement {
   // Load nickname from Firestore
   useEffect(() => {
     const loadUserData = async (): Promise<void> => {
-      if (!user?.uid || !db) return;
+      if (!user?.uid) return;
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
@@ -60,7 +65,6 @@ export default function ProfileSetting(): React.ReactElement {
 
   // Apply theme on mount and when theme changes
   useEffect(() => {
-    const { applyTheme } = require("../stores/themeStore");
     applyTheme(currentTheme);
   }, [currentTheme]);
 
@@ -77,25 +81,34 @@ export default function ProfileSetting(): React.ReactElement {
     setIsLoading(true);
 
     try {
-      const updates: any = {};
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error(
+          "You need to sign in again before updating your profile."
+        );
+      }
+
+      const updates: Partial<
+        Pick<User, "name" | "photoURL" | "nickname">
+      > = {};
 
       // Update Firebase Auth profile
       if (formData.name !== user.name) {
-        await updateProfile(auth.currentUser!, {
+        await updateProfile(firebaseUser, {
           displayName: formData.name,
         });
         updates.name = formData.name;
       }
 
       if (formData.photoURL !== user.photoURL && formData.photoURL) {
-        await updateProfile(auth.currentUser!, {
+        await updateProfile(firebaseUser, {
           photoURL: formData.photoURL,
         });
         updates.photoURL = formData.photoURL;
       }
 
       // Update nickname if changed
-      if (formData.nickname !== (user as any).nickname) {
+      if (formData.nickname !== user.nickname) {
         updates.nickname = formData.nickname;
       }
 
@@ -105,13 +118,15 @@ export default function ProfileSetting(): React.ReactElement {
       }
 
       // Update local state
+      const currentRole = useAuthStore.getState().role ?? "user";
       useAuthStore.getState().setUser(
         {
           ...user,
           name: formData.name,
           photoURL: formData.photoURL || user.photoURL,
+          nickname: formData.nickname,
         },
-        useAuthStore.getState().role!
+        currentRole
       );
 
       showSuccess("Profile Updated", "Your profile has been updated successfully!");
@@ -142,10 +157,17 @@ export default function ProfileSetting(): React.ReactElement {
     setIsLoading(true);
 
     try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error(
+          "You need to sign in again before changing your password."
+        );
+      }
+
       // Note: Firebase Auth requires re-authentication to change password
       // This is a simplified version - in production, you'd need to re-authenticate first
       const { updatePassword } = await import("firebase/auth");
-      await updatePassword(auth.currentUser!, passwordData.newPassword);
+      await updatePassword(firebaseUser, passwordData.newPassword);
 
       setPasswordData({
         currentPassword: "",
@@ -154,9 +176,21 @@ export default function ProfileSetting(): React.ReactElement {
       });
 
       showSuccess("Password Changed", "Your password has been changed successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error changing password:", error);
-      if (error.code === "auth/requires-recent-login") {
+      const errorCode =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : "";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "There was an error changing your password.";
+
+      if (errorCode === "auth/requires-recent-login") {
         showError(
           "Re-authentication Required",
           "Please log out and log back in to change your password."
@@ -164,7 +198,7 @@ export default function ProfileSetting(): React.ReactElement {
       } else {
         showError(
           "Password Change Failed",
-          error.message || "There was an error changing your password."
+          errorMessage
         );
       }
     } finally {

@@ -6,6 +6,7 @@ export interface User {
   email: string | null;
   name: string | null;
   photoURL?: string | null;
+  nickname?: string | null;
 }
 
 export type UserRole = "super_admin" | "admin" | "writer" | "user" | "reader";

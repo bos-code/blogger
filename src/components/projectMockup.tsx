@@ -13,7 +13,7 @@ import project4 from "../assets/fast.png";
 import project5 from "../assets/streamvibe.png";
 import project6 from "../assets/store.png";
 
-function ProjectMockup(): JSX.Element {
+function ProjectMockup(): React.ReactElement {
   const projects = [
     {
       title: "Portfolio",
@@ -66,8 +66,11 @@ function ProjectMockup(): JSX.Element {
           nextEl: nextRef.current,
         }}
         onBeforeInit={(swiper) => {
-          swiper.params.navigation.prevEl = prevRef.current;
-          swiper.params.navigation.nextEl = nextRef.current;
+          const navigation = swiper.params.navigation;
+          if (navigation && typeof navigation !== "boolean") {
+            navigation.prevEl = prevRef.current;
+            navigation.nextEl = nextRef.current;
+          }
         }}
         className="w-full"
       >
