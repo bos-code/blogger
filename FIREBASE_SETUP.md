@@ -1,140 +1,107 @@
-# Firebase Setup Guide
+# Firebase Setup
 
-## 🔥 Quick Setup
+This project uses Firebase Authentication, Cloud Firestore, and Cloud Storage.
+The repository contains the rules and index definitions required by the CMS.
 
-Your app needs Firebase credentials to enable authentication and database features.
+## 1. Create and register the project
 
-## Step 1: Create Firebase Project
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click "Add project" or select an existing project
-3. Follow the setup wizard
-
-## Step 2: Get Your Firebase Config
-
-1. In Firebase Console, click the gear icon ⚙️ next to "Project Overview"
-2. Select "Project settings"
-3. Scroll down to "Your apps" section
-4. Click the web icon `</>` to add a web app
-5. Register your app (you can use any name)
-6. Copy the `firebaseConfig` object
-
-It will look like this:
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
-};
-```
-
-## Step 3: Create .env File
-
-1. In your project root directory, create a file named `.env`
-2. Add your Firebase credentials:
+1. Create or select a project in the
+   [Firebase Console](https://console.firebase.google.com/).
+2. Open Project settings → General → Your apps.
+3. Register a web app and copy its configuration values.
+4. Copy `.env.example` to `.env` and replace every placeholder:
 
 ```env
-VITE_FIREBASE_API_KEY=AIzaSy...
+VITE_FIREBASE_API_KEY=your-api-key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
 VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+VITE_FIREBASE_MESSAGING_SENDER_ID=1234567890
+VITE_FIREBASE_APP_ID=1:1234567890:web:abc123
 ```
 
-**Important:**
-- Replace the values with your actual Firebase config values
-- Don't use quotes around the values
-- Don't commit `.env` to git (it should be in `.gitignore`)
+Do not commit `.env`. It is already ignored by Git.
 
-## Step 4: Enable Authentication
+## 2. Configure Authentication
 
-1. In Firebase Console, go to "Authentication"
-2. Click "Get started"
-3. Enable "Email/Password" sign-in method
-4. Click "Save"
+Enable Email/Password in Authentication → Sign-in method. The application also
+contains Google, Apple, and email-link flows; enable and configure only the
+providers you intend to expose.
 
-## Step 5: Set Up Firestore Database
+Add `localhost` and every deployed hostname in Authentication → Settings →
+Authorized domains. Apple sign-in additionally requires the configuration
+specified by Apple and Firebase for your bundle and return URLs.
 
-1. In Firebase Console, go to "Firestore Database"
-2. Click "Create database"
-3. Start in "test mode" (for development)
-4. Choose a location close to you
-5. Click "Enable"
+CMS permissions require a verified Firebase Authentication email token. A
+profile field named `emailVerified` does not replace Firebase's token claim.
 
-## Step 6: Configure Firestore Rules
+## 3. Create Firestore and Storage
 
-1. Go to "Firestore Database" > "Rules" tab
-2. Your `firestore.rules` file should already have the rules
-3. Click "Publish" to deploy the rules
+Create a Cloud Firestore database and a Cloud Storage bucket in regions suitable
+for the application. Use the committed rules instead of leaving either service
+in an open test mode.
 
-## Step 7: Restart Dev Server
+The application uses these Firestore collections:
 
-After creating the `.env` file:
+- `users`
+- `posts`
+- `comments`
+- `categories`
+- `notifications`
+- `messages`
+
+Post media is stored below `post-images/{uid}/`.
+
+## 4. Deploy rules and indexes
+
+Authenticate the Firebase CLI, select the project, and deploy the versioned
+configuration:
 
 ```bash
-# Stop the current server (Ctrl+C)
-# Then restart:
-pnpm run dev
+pnpm dlx firebase-tools@13.35.1 login
+pnpm dlx firebase-tools@13.35.1 use --add
+pnpm dlx firebase-tools@13.35.1 deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-## ✅ Verification
+The command reads `firebase.json`, `firestore.rules`,
+`firestore.indexes.json`, and `storage.rules`.
 
-After setup, you should be able to:
-- ✅ Sign up new users
-- ✅ Sign in existing users
-- ✅ Create and manage blog posts
-- ✅ Use all database features
+## 5. Bootstrap the first super administrator
 
-## 🔒 Security Notes
+Role escalation is intentionally blocked from normal client code.
 
-- Never commit `.env` file to git
-- Use environment variables in production
-- Set up proper Firestore security rules
-- Enable only the authentication methods you need
+1. Start the app and create the owner's account.
+2. Verify the account's email address.
+3. Copy the account UID from Authentication.
+4. In Firestore, open `users/{uid}` and set `role` to `super_admin`.
+5. Sign out and back in so the UI reloads the role.
 
-## 🆘 Troubleshooting
+Available roles are `reader`, `user`, `writer`, `admin`, and `super_admin`.
 
-### "Firebase is not configured" error
-- Check that `.env` file exists in project root
-- Verify all variables start with `VITE_`
-- Restart dev server after creating `.env`
-- Check browser console for specific errors
+## 6. Verify the integration
 
-### "Permission denied" errors
-- Check Firestore security rules
-- Ensure rules are published
-- Verify user authentication status
-
-### Authentication not working
-- Verify Email/Password is enabled in Firebase Console
-- Check that API key is correct
-- Ensure `.env` file is in the root directory
-
-## 📝 Example .env File
-
-```env
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=AIzaSyC1234567890abcdefghijklmnopqrstuvwxyz
-VITE_FIREBASE_AUTH_DOMAIN=my-blog-app.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=my-blog-app
-VITE_FIREBASE_STORAGE_BUCKET=my-blog-app.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
-VITE_FIREBASE_APP_ID=1:123456789012:web:abcdef1234567890
+```bash
+pnpm dev
 ```
 
-## 🚀 Next Steps
+Check the following:
 
-Once Firebase is configured:
-1. Test sign up functionality
-2. Test sign in functionality
-3. Create your first blog post
-4. Set up admin users in Firestore
+- A new account can sign up and receive a verification email.
+- A verified writer can save a draft and submit it for review.
+- A writer can upload an image smaller than 5 MB.
+- An administrator can approve or reject a post.
+- A guest can read approved posts but cannot read drafts.
+- A user cannot promote their own role.
 
-Your app is ready to use! 🎉
+If Firestore reports `permission-denied`, confirm that the deployed rules match
+the repository, the email is verified, and the `users/{uid}` role is correct.
 
+## Security notes
 
-
+- Firebase web configuration is public by design; security comes from Auth,
+  Firestore rules, Storage rules, App Check, and provider restrictions.
+- Never ship privileged server credentials or service-account JSON in a Vite
+  environment variable.
+- Enable Firebase App Check and billing alerts before a public production
+  launch.
+- Keep the committed rules and production rules synchronized.
