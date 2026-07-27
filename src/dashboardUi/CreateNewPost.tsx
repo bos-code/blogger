@@ -46,6 +46,7 @@ import { showConfirm, showSuccess } from "../utils/sweetalert";
 import { uploadImageToStorage } from "../services/storageService";
 import type { BlogPost, CreatePostInput } from "../types";
 import { toDateTimeLocalValue } from "../utils/date";
+import { sanitizeRichText } from "../utils/sanitize";
 
 // Register languages
 lowlight.registerLanguage("js", javascript);
@@ -434,7 +435,7 @@ export default function CreatePost(): React.ReactElement {
                     try {
                       setIsUploadingImage(true);
                       const url = await uploadImageToStorage(file, {
-                        userId: authUser?.uid ?? "anon",
+                        userId: authUser?.uid,
                         folder: "post-images",
                       });
                       editor?.commands.insertContent(
@@ -659,9 +660,10 @@ export default function CreatePost(): React.ReactElement {
                       <div
                         className="prose prose-sm sm:prose lg:prose-lg max-w-none prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-primary prose-pre:bg-base-300 prose-blockquote:border-l-primary"
                         dangerouslySetInnerHTML={{
-                          __html:
+                          __html: sanitizeRichText(
                             editor?.getHTML() ||
-                            "<p class='text-base-content/50'>Start writing to see preview...</p>",
+                              "<p class='text-base-content/50'>Start writing to see preview...</p>"
+                          ),
                         }}
                       />
                     </div>

@@ -1,0 +1,34 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isVerifiedUser() {
+      return request.auth != null &&
+        request.auth.token.email_verified == true;
+    }
+
+    function canManageMedia() {
+      return isVerifiedUser() &&
+        firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.get('role', 'user') in ['writer', 'admin', 'super_admin'];
+    }
+
+    match /post-images/{userId}/{fileName} {
+      allow read: if true;
+
+      allow create: if canManageMedia() &&
+        request.auth.uid == userId &&
+        request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+
+      allow update: if false;
+
+      allow delete: if isVerifiedUser() && (
+        request.auth.uid == userId ||
+        firestore.get(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        ).data.get('role', 'user') in ['admin', 'super_admin']
+      );
+    }
+  }
+}

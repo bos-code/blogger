@@ -16,6 +16,8 @@ export default function Users(): React.ReactElement {
   const { data: users = [], isLoading } = useUsers();
   const updateUser = useUpdateUser();
   const currentUser = useAuthStore((state) => state.user);
+  const currentRole = useAuthStore((state) => state.role);
+  const isSuperAdmin = currentRole === "super_admin";
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<UserRole>("user");
@@ -62,6 +64,8 @@ export default function Users(): React.ReactElement {
 
   const getRoleBadgeColor = (role: string): string => {
     switch (role) {
+      case "super_admin":
+        return "badge-error";
       case "admin":
         return "badge-error";
       case "writer":
@@ -146,6 +150,10 @@ export default function Users(): React.ReactElement {
                   {filteredUsers.map((user) => {
                     const isCurrentUser = user.id === currentUser?.uid;
                     const isEditing = editingUserId === user.id;
+                    const hasProtectedRole =
+                      user.role === "admin" || user.role === "super_admin";
+                    const canEditRole =
+                      !isCurrentUser && (isSuperAdmin || !hasProtectedRole);
 
                     return (
                       <tr key={user.id} className="hover">
@@ -194,7 +202,9 @@ export default function Users(): React.ReactElement {
                               >
                                 <option value="user">User</option>
                                 <option value="writer">Writer</option>
-                                <option value="admin">Admin</option>
+                                {isSuperAdmin && (
+                                  <option value="admin">Admin</option>
+                                )}
                                 <option value="reader">Reader</option>
                               </select>
                               <button
@@ -226,7 +236,7 @@ export default function Users(): React.ReactElement {
                           )}
                         </td>
                         <td>
-                          {!isEditing && !isCurrentUser && (
+                          {!isEditing && canEditRole && (
                             <button
                               className="btn btn-sm btn-primary gap-2"
                               onClick={() =>

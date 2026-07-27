@@ -3,7 +3,8 @@ import {
   collection,
   getDocs,
   addDoc,
-  onSnapshot,
+  query,
+  where,
   serverTimestamp,
   type DocumentData,
   type QuerySnapshot,
@@ -11,6 +12,7 @@ import {
 import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import type { Notification } from "../types";
+import { queryKeys } from "../utils/queryClient";
 
 interface CreateNotificationData {
   type: string;
@@ -24,45 +26,20 @@ export const useNotifications = () => {
   const user = useAuthStore((state) => state.user);
 
   return useQuery<Notification[]>({
-    queryKey: ["notifications", user?.uid],
+    queryKey: queryKeys.notifications.all(user?.uid),
     queryFn: async () => {
+      if (!user?.uid) return [];
+
       const snapshot: QuerySnapshot<DocumentData> = await getDocs(
-        collection(db, "notifications")
+        query(
+          collection(db, "notifications"),
+          where("userId", "in", ["all", user.uid])
+        )
       );
-      const allNotifications = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
+      return snapshot.docs.map((notificationDocument) => ({
+        id: notificationDocument.id,
+        ...notificationDocument.data(),
       })) as Notification[];
-      return allNotifications.filter(
-        (n) => n.userId === "all" || n.userId === user?.uid
-      );
-    },
-    enabled: !!user,
-  });
-};
-
-// Real-time notifications subscription
-export const useNotificationsRealtime = () => {
-  const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
-
-  return useQuery<Notification[]>({
-    queryKey: ["notifications", "realtime", user?.uid],
-    queryFn: () => {
-      return new Promise<Notification[]>((resolve) => {
-        const unsub = onSnapshot(collection(db, "notifications"), (snap) => {
-          const notes = snap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          })) as Notification[];
-          const filtered = notes.filter(
-            (n) => n.userId === "all" || n.userId === user?.uid
-          );
-          queryClient.setQueryData(["notifications", user?.uid], filtered);
-          resolve(filtered);
-        });
-        return () => unsub();
-      });
     },
     enabled: !!user,
   });
@@ -95,7 +72,6 @@ export const useCreateNotification = () => {
     },
   });
 };
-
 
 
 

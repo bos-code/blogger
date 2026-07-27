@@ -57,7 +57,10 @@ function App(): React.ReactElement {
           <Route
             path="/create-post"
             element={
-              <ProtectedRoute requireEmailVerified={true}>
+              <ProtectedRoute
+                requireEmailVerified={true}
+                requiredRole={["writer", "admin", "super_admin"]}
+              >
                 <CreatePost />
               </ProtectedRoute>
             }
@@ -81,7 +84,6 @@ function App(): React.ReactElement {
 }
 
 export default App;
-
 
 
 

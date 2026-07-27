@@ -192,6 +192,7 @@ export default function SuperAdminPanel(): React.ReactElement {
                               <option value="reader">Reader</option>
                               <option value="writer">Writer</option>
                               <option value="admin">Admin</option>
+                              <option value="super_admin">Super Admin</option>
                             </select>
                           ) : (
                             <span className="text-base-content/50 text-sm italic">
@@ -261,4 +262,3 @@ export default function SuperAdminPanel(): React.ReactElement {
     </div>
   );
 }
-

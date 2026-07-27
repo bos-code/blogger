@@ -1,13 +1,19 @@
-import { useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import {
   collection,
   getDocs,
+  query,
+  where,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
-  onSnapshot,
+  increment,
   serverTimestamp,
   type DocumentData,
   type QuerySnapshot,
@@ -46,8 +52,10 @@ interface UpdatePostResult {
 }
 
 interface LikeMutationContext {
-  previousPosts?: BlogPost[];
+  previousPostQueries: Array<[QueryKey, BlogPost[] | undefined]>;
 }
+
+type PostReadScope = "all" | "writer" | "public";
 
 const postsFromSnapshot = (
   snapshot: QuerySnapshot<DocumentData>
@@ -57,18 +65,61 @@ const postsFromSnapshot = (
     ...snapshotDocument.data(),
   })) as BlogPost[];
 
-const fetchPosts = async (): Promise<BlogPost[]> => {
-  const snapshot = await getDocs(collection(db, "posts"));
-  return postsFromSnapshot(snapshot);
+const fetchPosts = async (
+  scope: PostReadScope,
+  userId?: string
+): Promise<BlogPost[]> => {
+  const postsCollection = collection(db, "posts");
+
+  if (scope === "all") {
+    return postsFromSnapshot(await getDocs(postsCollection));
+  }
+
+  const approvedPostsQuery = query(
+    postsCollection,
+    where("status", "==", "approved")
+  );
+
+  if (scope !== "writer" || !userId) {
+    return postsFromSnapshot(await getDocs(approvedPostsQuery));
+  }
+
+  const ownPostsQuery = query(
+    postsCollection,
+    where("authorId", "==", userId)
+  );
+  const [approvedSnapshot, ownSnapshot] = await Promise.all([
+    getDocs(approvedPostsQuery),
+    getDocs(ownPostsQuery),
+  ]);
+
+  const uniquePosts = new Map<string, BlogPost>();
+  for (const post of [
+    ...postsFromSnapshot(approvedSnapshot),
+    ...postsFromSnapshot(ownSnapshot),
+  ]) {
+    uniquePosts.set(post.id, post);
+  }
+
+  return [...uniquePosts.values()];
 };
 
 // Fetch all posts
 export const usePosts = () => {
+  const user = useAuthStore((state) => state.user);
+  const role = useAuthStore((state) => state.role);
+  const scope: PostReadScope =
+    role === "admin" || role === "super_admin"
+      ? "all"
+      : role === "writer"
+        ? "writer"
+        : "public";
+
   return useQuery<BlogPost[]>({
-    queryKey: queryKeys.posts.all,
+    queryKey: [...queryKeys.posts.all, scope, user?.uid ?? "anonymous"],
     queryFn: async () => {
       try {
-        return await fetchPosts();
+        return await fetchPosts(scope, user?.uid);
       } catch (error) {
         console.error("Error fetching posts:", error);
         throw new Error("Failed to fetch posts. Please try again later.");
@@ -88,35 +139,6 @@ export const usePosts = () => {
       return failureCount < 2;
     },
   });
-};
-
-// Real-time posts subscription
-export const usePostsRealtime = () => {
-  const queryClient = useQueryClient();
-
-  const postsQuery = useQuery<BlogPost[]>({
-    queryKey: queryKeys.posts.realtime,
-    queryFn: fetchPosts,
-    staleTime: Infinity,
-  });
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "posts"),
-      (snapshot) => {
-        const posts = postsFromSnapshot(snapshot);
-        queryClient.setQueryData(queryKeys.posts.realtime, posts);
-        queryClient.setQueryData(queryKeys.posts.all, posts);
-      },
-      (error) => {
-        console.error("Real-time post subscription failed:", error);
-      }
-    );
-
-    return unsubscribe;
-  }, [queryClient]);
-
-  return postsQuery;
 };
 
 // Create post mutation
@@ -144,17 +166,19 @@ export const useCreatePost = () => {
       const ref = await addDoc(collection(db, "posts"), blog);
       const blogData = { id: ref.id, ...blog } as unknown as BlogPost;
 
-      // Create notification
-      try {
-        await addDoc(collection(db, "notifications"), {
-          userId: "all",
-          type: "new_post",
-          message: `${blogData.authorName} added "${blogData.title}"`,
-          blogId: blogData.id,
-          createdAt: serverTimestamp(),
-        });
-      } catch (err) {
-        console.error("Failed to create notification:", err);
+      // Admin-published posts can announce themselves to all signed-in users.
+      if (isAdmin) {
+        try {
+          await addDoc(collection(db, "notifications"), {
+            userId: "all",
+            type: "new_post",
+            message: `${blogData.authorName} added "${blogData.title}"`,
+            blogId: blogData.id,
+            createdAt: serverTimestamp(),
+          });
+        } catch (error) {
+          console.error("Failed to create notification:", error);
+        }
       }
 
       return blogData;
@@ -293,6 +317,25 @@ export const useApprovePost = () => {
   });
 };
 
+export const useIncrementPostView = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, string>({
+    mutationFn: async (postId) => {
+      await updateDoc(doc(db, "posts", postId), {
+        views: increment(1),
+        updatedAt: serverTimestamp(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+    onError: (error) => {
+      console.error("Failed to increment post view:", error);
+    },
+  });
+};
+
 /**
  * Like/Unlike Post Mutation Hook
  *
@@ -358,12 +401,14 @@ export const useLikePost = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.posts.all });
 
       // Snapshot the previous value for rollback
-      const previousPosts = queryClient.getQueryData<BlogPost[]>(queryKeys.posts.all);
+      const previousPostQueries = queryClient.getQueriesData<BlogPost[]>({
+        queryKey: queryKeys.posts.all,
+      });
 
       // Get current user for optimistic update
       const currentUser = user;
       if (!currentUser?.uid) {
-        return { previousPosts };
+        return { previousPostQueries };
       }
 
       const userId = currentUser.uid;
@@ -373,22 +418,25 @@ export const useLikePost = () => {
         : [...currentLikedBy, userId];
 
       // Optimistically update the cache
-      queryClient.setQueryData<BlogPost[]>(queryKeys.posts.all, (oldPosts) => {
-        if (!oldPosts) return oldPosts;
+      queryClient.setQueriesData<BlogPost[]>(
+        { queryKey: queryKeys.posts.all },
+        (oldPosts) => {
+          if (!oldPosts) return oldPosts;
 
-        return oldPosts.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                likedBy: newLikedBy,
-                likes: newLikedBy.length,
-              }
-            : post
-        );
-      });
+          return oldPosts.map((post) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  likedBy: newLikedBy,
+                  likes: newLikedBy.length,
+                }
+              : post
+          );
+        }
+      );
 
       // Return context with snapshot for potential rollback
-      return { previousPosts };
+      return { previousPostQueries };
     },
 
     // On Success: Invalidate queries to sync with server
@@ -399,8 +447,10 @@ export const useLikePost = () => {
     // On Error: Rollback optimistic update and show error
     onError: (error: Error, variables, context) => {
       // Rollback: Restore previous state
-      if (context?.previousPosts) {
-        queryClient.setQueryData<BlogPost[]>(queryKeys.posts.all, context.previousPosts);
+      if (context) {
+        for (const [queryKey, posts] of context.previousPostQueries) {
+          queryClient.setQueryData(queryKey, posts);
+        }
       }
 
       // Show user-friendly error notification

@@ -1,216 +1,265 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ============================================
-    // HELPER FUNCTIONS
-    // ============================================
-    
-    // Check if user is authenticated AND email is verified
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isAuthenticated() {
-      return request.auth != null && request.auth.token.email_verified == true;
+      return isSignedIn() && request.auth.token.email_verified == true;
     }
-    
-    // Get user's role from Firestore (single source of truth)
+
     function getUserRole() {
-      if (!isAuthenticated()) return null;
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc.data.role;
+      return get(
+        /databases/$(database)/documents/users/$(request.auth.uid)
+      ).data.get('role', 'user');
     }
-    
-    // Check if user is admin
+
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+
     function isAdmin() {
-      return isAuthenticated() && getUserRole() == 'admin';
+      return isAuthenticated() &&
+        getUserRole() in ['admin', 'super_admin'];
     }
-    
-    // Check if user is writer (includes admin)
+
     function isWriter() {
-      let role = getUserRole();
-      return isAuthenticated() && (role == 'writer' || role == 'admin');
+      return isAuthenticated() &&
+        getUserRole() in ['writer', 'admin', 'super_admin'];
     }
-    
-    // Check if user is the owner of a resource
+
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
-    
-    // Check if attempting to modify admin role
-    function isModifyingAdminRole(userId) {
-      let targetUser = get(/databases/$(database)/documents/users/$(userId));
-      let currentRole = targetUser.data.role;
-      let newRole = request.resource.data.role;
-      // Check if changing TO admin or FROM admin
-      return (currentRole == 'admin' || newRole == 'admin') && currentRole != newRole;
-    }
-    
-    // Validate role value
+
     function isValidRole(role) {
-      return role in ['user', 'writer', 'admin', 'reader'];
+      return role in [
+        'reader',
+        'user',
+        'writer',
+        'admin',
+        'super_admin'
+      ];
     }
-    
-    // ============================================
-    // USERS COLLECTION
-    // ============================================
+
+    function isValidPostStatus(status) {
+      return status in ['draft', 'pending', 'approved', 'rejected'];
+    }
+
     match /users/{userId} {
-      // READ RULES
-      allow read: if isAuthenticated() && (
-        // Admin can read all users
-        isAdmin() ||
-        // Users can read their own document
-        isOwner(userId)
-      );
-      
-      // CREATE RULES
-      allow create: if isAuthenticated() && (
-        // Only admin can create users with roles
-        (isAdmin() && isValidRole(request.resource.data.role)) ||
-        // Regular signup creates user with default 'user' role
-        (!('role' in request.resource.data) || request.resource.data.role == 'user')
-      );
-      
-      // UPDATE RULES
-      allow update: if isAuthenticated() && (
-        // Admin can update any user (but cannot modify other admins)
-        (isAdmin() && 
-         !isModifyingAdminRole(userId) &&
-         // Cannot change role to admin
-         (!('role' in request.resource.data) || 
-          request.resource.data.role != 'admin')) ||
-        // Users can update their own profile (but not role)
-        (isOwner(userId) && 
-         !('role' in request.resource.data) &&
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'photoURL', 'email', 'updatedAt']))
-      );
-      
-      // DELETE RULES
-      allow delete: if isAuthenticated() && (
-        // Only admin can delete users
-        isAdmin() ||
-        // Users can delete their own account (but not if they're admin)
-        (isOwner(userId) && resource.data.role != 'admin')
-      );
-    }
-    
-    // ============================================
-    // POSTS COLLECTION
-    // ============================================
-    match /posts/{postId} {
-      // READ RULES
-      // Public can read approved posts (for public blog access)
-      allow read: if (
-        // Public/unauthenticated access only to approved content
-        (request.auth == null && resource.data.status == 'approved') ||
+      allow read: if isAdmin() || isOwner(userId);
+
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.get('role', 'user') == 'user';
+
+      allow update: if (
+        isSuperAdmin() &&
+        isValidRole(request.resource.data.get('role', 'user')) &&
         (
-          isAuthenticated() && (
-            // Admin can read all posts
-            isAdmin() ||
-            // Writers can read all approved posts and their own posts
-            (isWriter() && (resource.data.status == 'approved' || resource.data.authorId == request.auth.uid)) ||
-            // Regular authenticated users can only read approved posts
-            (resource.data.status == 'approved')
-          )
+          request.auth.uid != userId ||
+          request.resource.data.get('role', 'user') == 'super_admin'
         )
+      ) || (
+        isAdmin() &&
+        resource.data.get('role', 'user') != 'admin' &&
+        resource.data.get('role', 'user') != 'super_admin' &&
+        isValidRole(request.resource.data.get('role', 'user')) &&
+        request.resource.data.get('role', 'user') != 'admin' &&
+        request.resource.data.get('role', 'user') != 'super_admin'
+      ) || (
+        isOwner(userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'nickname',
+          'photoURL',
+          'updatedAt'
+        ])
       );
-      
-      // CREATE RULES
-      allow create: if isAuthenticated() && (
-        // Admin can create posts
-        isAdmin() ||
-        // Writers can create posts
-        (isWriter() && request.resource.data.authorId == request.auth.uid)
-      );
-      
-      // UPDATE RULES
-      allow update: if isAuthenticated() && (
-        // Admin can update any post
-        isAdmin() ||
-        // Writers can update their own posts
-        (isWriter() && resource.data.authorId == request.auth.uid)
-      );
-      
-      // DELETE RULES
-      allow delete: if isAuthenticated() && (
-        // Admin can delete any post
-        isAdmin() ||
-        // Writers can delete their own posts
-        (isWriter() && resource.data.authorId == request.auth.uid)
+
+      allow delete: if (
+        isSuperAdmin() && request.auth.uid != userId
+      ) || (
+        isAdmin() &&
+        resource.data.get('role', 'user') != 'admin' &&
+        resource.data.get('role', 'user') != 'super_admin'
+      ) || (
+        isOwner(userId) &&
+        resource.data.get('role', 'user') != 'admin' &&
+        resource.data.get('role', 'user') != 'super_admin'
       );
     }
-    
-    // ============================================
-    // CATEGORIES COLLECTION
-    // ============================================
+
+    match /posts/{postId} {
+      function isPostOwner() {
+        return isAuthenticated() &&
+          resource.data.authorId == request.auth.uid;
+      }
+
+      function isValidPostCreate() {
+        return request.resource.data.keys().hasAll([
+          'title',
+          'content',
+          'authorId',
+          'authorName',
+          'createdAt',
+          'status'
+        ]) &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() > 0 &&
+        request.resource.data.title.size() <= 200 &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.authorId == request.auth.uid &&
+        isValidPostStatus(request.resource.data.status) &&
+        request.resource.data.get('likedBy', []) is list &&
+        request.resource.data.get('likes', 0) is int;
+      }
+
+      function isWriterPostUpdate() {
+        return isWriter() &&
+          isPostOwner() &&
+          request.resource.data.authorId == resource.data.authorId &&
+          request.resource.data.status in ['draft', 'pending', 'rejected'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'title',
+            'content',
+            'excerpt',
+            'coverImage',
+            'status',
+            'category',
+            'tags',
+            'readingTime',
+            'technicalStack',
+            'scheduledFor',
+            'updatedAt'
+          ]);
+      }
+
+      function isLikeUpdate() {
+        let before = resource.data.get('likedBy', []);
+        let after = request.resource.data.get('likedBy', []);
+        let added = after.toSet().difference(before.toSet());
+        let removed = before.toSet().difference(after.toSet());
+        return isAuthenticated() &&
+          before is list &&
+          after is list &&
+          after.size() == after.toSet().size() &&
+          added.hasOnly([request.auth.uid]) &&
+          removed.hasOnly([request.auth.uid]) &&
+          added.size() + removed.size() == 1 &&
+          request.resource.data.likes == after.size() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'likedBy',
+            'likes',
+            'updatedAt'
+          ]);
+      }
+
+      function isViewUpdate() {
+        return request.resource.data.get('views', 0) is int &&
+          request.resource.data.get('views', 0) ==
+            resource.data.get('views', 0) + 1 &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'views',
+            'updatedAt'
+          ]);
+      }
+
+      allow read: if resource.data.status == 'approved' ||
+        isAdmin() ||
+        isPostOwner();
+
+      allow create: if isAuthenticated() &&
+        isValidPostCreate() &&
+        (
+          isAdmin() ||
+          (
+            isWriter() &&
+            request.resource.data.status in ['draft', 'pending']
+          )
+        );
+
+      allow update: if isAdmin() ||
+        isWriterPostUpdate() ||
+        isLikeUpdate() ||
+        isViewUpdate();
+
+      allow delete: if isAdmin() || (isWriter() && isPostOwner());
+    }
+
     match /categories/{categoryId} {
-      // READ: All authenticated users can read categories
       allow read: if isAuthenticated();
-      
-      // CREATE/UPDATE/DELETE: Only admins
       allow create, update, delete: if isAdmin();
     }
-    
-    // ============================================
-    // COMMENTS COLLECTION
-    // ============================================
+
     match /comments/{commentId} {
-      // READ: All authenticated users can read comments
-      allow read: if isAuthenticated();
-      
-      // CREATE: All authenticated users (except readers)
-      allow create: if isAuthenticated() && getUserRole() != 'reader';
-      
-      // UPDATE/DELETE: Author or admin
-      allow update, delete: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.authorId == request.auth.uid
+      allow read: if true;
+
+      allow create: if isAuthenticated() &&
+        getUserRole() != 'reader' &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.postId is string &&
+        request.resource.data.authorName is string &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.content.size() <= 500;
+
+      allow update: if isAdmin() || (
+        isAuthenticated() &&
+        resource.data.authorId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'content',
+          'updatedAt'
+        ]) &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.content.size() <= 500
+      );
+
+      allow delete: if isAdmin() || (
+        isAuthenticated() && resource.data.authorId == request.auth.uid
       );
     }
-    
-    // ============================================
-    // NOTIFICATIONS COLLECTION
-    // ============================================
+
     match /notifications/{notificationId} {
-      // READ: Users can only read their own notifications
       allow read: if isAuthenticated() && (
         isAdmin() ||
-        resource.data.userId == request.auth.uid
+        resource.data.userId == request.auth.uid ||
+        resource.data.userId == 'all'
       );
-      
-      // CREATE: Only system (admin) can create
+
       allow create: if isAdmin();
-      
-      // UPDATE: Users can update their own notifications
-      allow update: if isAuthenticated() && (
-        isAdmin() ||
-        resource.data.userId == request.auth.uid
+
+      allow update, delete: if isAuthenticated() && (
+        isAdmin() || resource.data.userId == request.auth.uid
       );
-      
-    // DELETE: Users can delete their own notifications
-    allow delete: if isAuthenticated() && (
-      isAdmin() ||
-      resource.data.userId == request.auth.uid
-    );
+    }
+
+    match /messages/{messageId} {
+      allow create: if request.resource.data.keys().hasOnly([
+        'name',
+        'email',
+        'message',
+        'createdAt',
+        'read'
+      ]) &&
+      request.resource.data.name is string &&
+      request.resource.data.name.size() >= 3 &&
+      request.resource.data.name.size() <= 100 &&
+      request.resource.data.email is string &&
+      request.resource.data.email.size() <= 254 &&
+      request.resource.data.email.matches(
+        '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'
+      ) &&
+      request.resource.data.message is string &&
+      request.resource.data.message.size() >= 10 &&
+      request.resource.data.message.size() <= 5000 &&
+      request.resource.data.createdAt == request.time &&
+      request.resource.data.read == false;
+
+      allow read, update, delete: if isAdmin();
+    }
   }
-  
-  // ============================================
-  // MESSAGES COLLECTION (Contact Form)
-  // ============================================
-  match /messages/{messageId} {
-    // CREATE: Anyone can send a message (no auth required for contact form)
-    allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
-                     request.resource.data.name is string &&
-                     request.resource.data.email is string &&
-                     request.resource.data.message is string &&
-                     request.resource.data.name.size() >= 3 &&
-                     request.resource.data.message.size() >= 10;
-    
-    // READ: Only admins can read messages
-    allow read: if isAdmin();
-    
-    // UPDATE: Only admins can update messages (e.g., mark as read)
-    allow update: if isAdmin();
-    
-    // DELETE: Only admins can delete messages
-    allow delete: if isAdmin();
-  }
-}
 }

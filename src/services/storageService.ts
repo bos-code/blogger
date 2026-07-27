@@ -9,14 +9,30 @@ export async function uploadImageToStorage(
   file: File,
   opts: { userId?: string; folder?: string } = {}
 ): Promise<string> {
-  if (!storage) {
-    throw new Error(
-      "Firebase Storage is not configured. Add VITE_FIREBASE_* env vars."
-    );
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files can be uploaded.");
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("Images must be smaller than 5 MB.");
   }
 
-  const folder = opts.folder || "uploads";
-  const path = `${folder}/${opts.userId || "anon"}/${Date.now()}-${file.name}`;
+  const userId = opts.userId;
+  if (!userId) {
+    throw new Error("You must be signed in to upload an image.");
+  }
+
+  const folder = opts.folder || "post-images";
+  if (folder !== "post-images") {
+    throw new Error("Unsupported upload folder.");
+  }
+
+  const safeName = file.name
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const uniqueId =
+    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  const path = `${folder}/${userId}/${uniqueId}-${safeName || "image"}`;
   const storageRef = ref(storage, path);
   const snapshot = await uploadBytes(storageRef, file);
   return await getDownloadURL(snapshot.ref);

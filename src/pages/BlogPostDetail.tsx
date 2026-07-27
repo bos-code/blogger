@@ -1,5 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { usePosts, useDeletePost } from "../hooks/usePosts";
+import {
+  usePosts,
+  useDeletePost,
+  useIncrementPostView,
+} from "../hooks/usePosts";
 import type { BlogPost } from "../types";
 import { useAuthStore } from "../stores/authStore";
 import Comments from "../components/Comments";
@@ -11,13 +15,14 @@ import {
   ClockIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import ReadingProgressBar from "../components/ReadingProgressBar";
 import FloatingActionButtons from "../components/FloatingActionButtons";
 import TableOfContents from "../components/TableOfContents";
 import PremiumSpinner from "../components/PremiumSpinner";
-import { useUpdatePost } from "../hooks/usePosts";
 import { showDeleteConfirm, showSuccess } from "../utils/sweetalert";
+import { isPostPublic } from "../utils/date";
+import { sanitizeRichText } from "../utils/sanitize";
 
 export default function BlogPostDetail(): React.ReactElement {
   const { id } = useParams<{ id: string }>();
@@ -25,21 +30,39 @@ export default function BlogPostDetail(): React.ReactElement {
   const { data: posts = [], isLoading } = usePosts();
   const currentUser = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
-  const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+  const { mutate: incrementPostView } = useIncrementPostView();
+  const trackedPostRef = useRef<string | null>(null);
 
-  const post = posts.find((p) => p.id === id) as BlogPost | undefined;
+  const matchingPost = posts.find((candidate) => candidate.id === id) as
+    | BlogPost
+    | undefined;
+  const canPreviewPrivatePost =
+    matchingPost &&
+    (currentUser?.uid === matchingPost.authorId ||
+      role === "admin" ||
+      role === "super_admin");
+  const post =
+    matchingPost && (isPostPublic(matchingPost) || canPreviewPrivatePost)
+      ? matchingPost
+      : undefined;
+  const sanitizedContent = sanitizeRichText(post?.content ?? "");
 
   useEffect(() => {
-    // Track views
-    if (post && id) {
-      updatePost.mutate({
-        id,
-        data: { views: (post.views || 0) + 1 },
-      });
+    if (!post || !id) return;
+    if (trackedPostRef.current === id) return;
+    trackedPostRef.current = id;
+
+    const sessionKey = `viewed-post:${id}`;
+    try {
+      if (sessionStorage.getItem(sessionKey)) return;
+      sessionStorage.setItem(sessionKey, "true");
+    } catch {
+      // View tracking still works when storage is blocked by the browser.
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, post?.id]);
+
+    incrementPostView(id);
+  }, [id, post, incrementPostView]);
 
   const handleDelete = (): void => {
     if (!post) return;
@@ -231,7 +254,8 @@ export default function BlogPostDetail(): React.ReactElement {
 
                     {/* Action Buttons */}
                     {(currentUser?.uid === post.authorId ||
-                      role === "admin") && (
+                      role === "admin" ||
+                      role === "super_admin") && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -296,7 +320,7 @@ export default function BlogPostDetail(): React.ReactElement {
                       prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl
                       prose-h1:mt-8 prose-h2:mt-6 prose-h3:mt-4
                       prose-h1:mb-4 prose-h2:mb-3 prose-h3:mb-2`}
-                    dangerouslySetInnerHTML={{ __html: post.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                   />
 
                   {/* Comments Section */}
@@ -309,7 +333,7 @@ export default function BlogPostDetail(): React.ReactElement {
 
             {/* Sidebar - Table of Contents */}
             <aside className="lg:col-span-4">
-              <TableOfContents content={post.content} />
+              <TableOfContents content={sanitizedContent} />
             </aside>
           </div>
         </div>

@@ -1,0 +1,6 @@
+allowBuilds:
+  '@firebase/util': true
+  '@heroui/shared-utils': true
+  esbuild: true
+  protobufjs: true
+  puppeteer: false
