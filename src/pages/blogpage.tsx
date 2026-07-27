@@ -11,6 +11,30 @@ export default function Blog(): React.ReactElement {
   const [sortBy, setSortBy] = useState<"newest" | "popular">("newest");
   const [visibleCount, setVisibleCount] = useState<number>(10);
 
+  const approvedPosts = useMemo(
+    () =>
+      (posts as BlogPost[]).filter(
+        (post) => post.status === "approved" || !post.status
+      ),
+    [posts]
+  );
+
+  const sortedPosts = useMemo(() => {
+    return [...approvedPosts].sort((a, b) => {
+      if (sortBy === "popular") {
+        const aLikes = a.likedBy?.length ?? a.likes ?? 0;
+        const bLikes = b.likedBy?.length ?? b.likes ?? 0;
+        if (bLikes !== aLikes) return bLikes - aLikes;
+      }
+
+      const aTime = a.createdAt?.toDate?.()?.getTime?.() ?? 0;
+      const bTime = b.createdAt?.toDate?.()?.getTime?.() ?? 0;
+      return bTime - aTime;
+    });
+  }, [approvedPosts, sortBy]);
+
+  const visiblePosts = sortedPosts.slice(0, visibleCount);
+
   // Show premium spinner while loading
   if (isLoading) {
     return (
@@ -76,31 +100,6 @@ export default function Blog(): React.ReactElement {
       </>
     );
   }
-
-  // derived lists
-  const approvedPosts = useMemo(
-    () =>
-      (posts as BlogPost[]).filter(
-        (post) => post.status === "approved" || !post.status
-      ),
-    [posts]
-  );
-
-  const sortedPosts = useMemo(() => {
-    return [...approvedPosts].sort((a, b) => {
-      if (sortBy === "popular") {
-        const aLikes = a.likedBy?.length ?? a.likes ?? 0;
-        const bLikes = b.likedBy?.length ?? b.likes ?? 0;
-        if (bLikes !== aLikes) return bLikes - aLikes;
-      }
-      // default: newest by createdAt fallback to 0
-      const aTime = a.createdAt?.toDate?.()?.getTime?.() ?? 0;
-      const bTime = b.createdAt?.toDate?.()?.getTime?.() ?? 0;
-      return bTime - aTime;
-    });
-  }, [approvedPosts, sortBy]);
-
-  const visiblePosts = sortedPosts.slice(0, visibleCount);
 
   return (
     <>

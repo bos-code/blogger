@@ -56,7 +56,7 @@ export default function AIAssistant({
     try {
       const content = await aiService.generateContent(topic);
       setGeneratedContent(content);
-    } catch (error) {
+    } catch {
       showNotification({
         type: "error",
         title: "Generation Failed",
@@ -73,7 +73,7 @@ export default function AIAssistant({
     try {
       const titles = await aiService.generateTitles(topicText, 5);
       setTitleSuggestions(titles);
-    } catch (error) {
+    } catch {
       showNotification({
         type: "error",
         title: "Generation Failed",
@@ -107,7 +107,7 @@ export default function AIAssistant({
         message: "Your content has been improved by AI!",
       });
       setIsOpen(false);
-    } catch (error) {
+    } catch {
       showNotification({
         type: "error",
         title: "Improvement Failed",
@@ -137,7 +137,7 @@ export default function AIAssistant({
       setGeneratedContent(
         `SEO Suggestions:\n\nKeywords: ${seo.keywords.join(", ")}\n\nMeta Description: ${seo.metaDescription}\n\nSuggestions:\n${seo.suggestions.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
       );
-    } catch (error) {
+    } catch {
       showNotification({
         type: "error",
         title: "SEO Analysis Failed",
@@ -149,8 +149,8 @@ export default function AIAssistant({
   };
 
   const insertGeneratedContent = (): void => {
-    if (generatedContent && editor) {
-      editor.commands.insertContent(generatedContent);
+    if (generatedContent) {
+      onContentInsert(generatedContent);
       setIsOpen(false);
       showNotification({
         type: "success",
@@ -160,7 +160,7 @@ export default function AIAssistant({
     }
   };
 
-  const useTitleSuggestion = (suggestedTitle: string): void => {
+  const applyTitleSuggestion = (suggestedTitle: string): void => {
     onTitleChange(suggestedTitle);
     showNotification({
       type: "success",
@@ -304,7 +304,7 @@ export default function AIAssistant({
                           key={index}
                           variant="flat"
                           className="w-full justify-start text-left"
-                          onPress={() => useTitleSuggestion(suggestedTitle)}
+                          onPress={() => applyTitleSuggestion(suggestedTitle)}
                         >
                           {suggestedTitle}
                         </Button>
@@ -368,7 +368,6 @@ export default function AIAssistant({
     </>
   );
 }
-
 
 
 
