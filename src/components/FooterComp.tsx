@@ -7,12 +7,12 @@ import Twitter from "../assets/twitter";
 
 function FooterComp(): React.ReactElement {
   return (
-    <footer className="footer mt-auto  sm:footer-horizontal bg-base-200 border-t-1  flex justify-between border-base-300 items-center px-32 py-4  text-base  ubuntu-light ">
+    <footer className="footer mt-auto sm:footer-horizontal bg-base-200 border-t-1 border-base-300 flex flex-col sm:flex-row flex-wrap justify-center sm:justify-between items-center gap-4 sm:gap-6 px-4 sm:px-8 md:px-10 lg:px-12 xl:px-20 2xl:px-32 py-6 sm:py-4 text-base ubuntu-light text-center sm:text-left">
       <aside className="grid-flow-col items-center  text-base  ubuntu-light ">
         <p>Copyright © {new Date().getFullYear()} - All right reserved</p>
       </aside>
       <div className="privacy">
-        <ul className="flex  items-center justify-center gap-8">
+        <ul className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
           <li>
             <a href="#" className="">
               Privacy Policy
@@ -26,7 +26,7 @@ function FooterComp(): React.ReactElement {
         </ul>
       </div>
       <div className="media">
-        <ul className=" flex items-center justify-center gap-6 sm:gap-8">
+        <ul className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8">
           <li className="">
             <a
               href="https://github.com"

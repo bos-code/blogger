@@ -76,13 +76,13 @@ function Hero(): React.ReactElement {
       </motion.h1>
 
       {/* Hero Content Container */}
-      <div className="hero__content flex flex-col lg:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full max-w-6xl mx-auto">
+      <div className="hero__content flex flex-col xl:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full max-w-6xl mx-auto">
         {/* Profile Card */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="about-me bg-base-100 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 sm:p-5 md:p-6 lg:p-6 xl:p-7 2xl:p-8 flex gap-3 sm:gap-4 md:gap-5 lg:gap-5 xl:gap-6 flex-col w-full sm:max-w-sm md:max-w-md lg:max-w-none lg:w-auto flex-shrink-0"
+          className="about-me bg-base-100 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 sm:p-5 md:p-6 lg:p-6 xl:p-7 2xl:p-8 flex gap-3 sm:gap-4 md:gap-5 lg:gap-5 xl:gap-6 flex-col w-full sm:max-w-sm md:max-w-md xl:max-w-none xl:w-auto flex-shrink-0"
         >
           {/* Profile Image */}
           <div className="flex justify-center">
@@ -333,8 +333,8 @@ function Hero(): React.ReactElement {
           className="textbox flex flex-col lg:flex-row gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-14 w-full lg:w-auto lg:flex-1"
         >
           {/* Text Content */}
-          <div className="text w-full lg:w-auto lg:flex-1 text-center lg:text-left">
-            <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-center lg:justify-start items-center lg:items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
+          <div className="text w-full xl:w-auto xl:flex-1 text-center xl:text-left">
+            <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-center xl:justify-start items-center xl:items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
               <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65">
                 {"<h1>"}
               </span>
@@ -343,7 +343,7 @@ function Hero(): React.ReactElement {
                 i'm <span className="text-primary">Chidera</span>,
               </span>
               <span className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="font-bold whitespace-nowrap">
+                <span className="font-bold sm:whitespace-nowrap">
                   Frontend developer
                 </span>
                 <span className="htag -ml-2 sm:-ml-3 md:-ml-4 lg:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65 inline-block">
@@ -352,7 +352,7 @@ function Hero(): React.ReactElement {
               </span>
             </h1>
 
-            <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-center lg:text-left">
+            <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-center xl:text-left">
               <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/65">
                 {"<p>"}
               </span>
@@ -370,7 +370,7 @@ function Hero(): React.ReactElement {
               href="#contact"
               whileHover={{ scale: 1.05, x: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="link link-hover flex text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl capitalize justify-center lg:justify-start items-center gap-3 sm:gap-4 md:gap-5 link-primary mt-4 sm:mt-5 md:mt-6 font-semibold group"
+              className="link link-hover flex text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl capitalize justify-center xl:justify-start items-center gap-3 sm:gap-4 md:gap-5 link-primary mt-4 sm:mt-5 md:mt-6 font-semibold group"
             >
               <span>let's talk</span>
               <span className="rel-card w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 2xl:w-14 2xl:h-14">

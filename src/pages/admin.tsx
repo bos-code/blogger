@@ -94,8 +94,8 @@ export default function Dashboard(): React.ReactElement {
   };
 
   return (
-    <div className="flex -m-12 px-20 mb-10 bg-base-200 min-h-svh">
-      <div className="w-dvw h-dvh glassy overflow-hidden p-10 pb-80 rounded-4xl shadow-2xl relative">
+    <div className="flex px-4 sm:px-8 lg:px-16 xl:px-20 py-6 bg-base-200 min-h-svh">
+      <div className="w-full min-h-[calc(100dvh-3rem)] glassy overflow-hidden p-4 sm:p-6 lg:p-10 pb-80 rounded-2xl sm:rounded-4xl shadow-2xl relative">
         {/* Profile */}
         <div className="absolute top-5 right-5 flex gap-3">
           <div className="w-12 h-12 rounded-full ring ring-primary overflow-hidden">
