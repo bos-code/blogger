@@ -335,7 +335,7 @@ function Hero(): React.ReactElement {
           {/* Text Content */}
           <div className="text w-full lg:w-auto lg:flex-1 text-center lg:text-left">
             <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-center lg:justify-start items-center lg:items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/50">
+              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65">
                 {"<h1>"}
               </span>
               <span className="font-bold">hey,</span>
@@ -346,14 +346,14 @@ function Hero(): React.ReactElement {
                 <span className="font-bold whitespace-nowrap">
                   Frontend developer
                 </span>
-                <span className="htag -ml-2 sm:-ml-3 md:-ml-4 lg:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/50 inline-block">
+                <span className="htag -ml-2 sm:-ml-3 md:-ml-4 lg:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65 inline-block">
                   {"</h1>"}
                 </span>
               </span>
             </h1>
 
             <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-center lg:text-left">
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/50">
+              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/65">
                 {"<p>"}
               </span>
               <span className="text-base-content">
@@ -361,7 +361,7 @@ function Hero(): React.ReactElement {
                 <br className="hidden sm:inline" />
                 beautiful and functional user interfaces.
               </span>
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/50">
+              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/65">
                 {"</p>"}
               </span>
             </p>

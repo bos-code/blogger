@@ -100,7 +100,11 @@ export default function Dashboard(): React.ReactElement {
         <div className="absolute top-5 right-5 flex gap-3">
           <div className="w-12 h-12 rounded-full ring ring-primary overflow-hidden">
             {photoURL ? (
-              <img src={photoURL} className="w-full h-full object-cover" />
+              <img
+                src={photoURL}
+                alt={name || "User"}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                 {getUserInitials(name)}
