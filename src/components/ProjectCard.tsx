@@ -1,8 +1,8 @@
 function ProjectCard({ imgSrc, url, title }: { imgSrc: string; url: string; title: string }): React.ReactElement {
   return (
-    <div className="text-center">
+    <div className="text-center w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
       <div className="mockup-window bg-base-100 border border-base-300">
-        <div className="grid place-content-center h-[40vh] w-[50vw]">
+        <div className="w-full aspect-video">
           <img
             src={imgSrc}
             alt={title}
