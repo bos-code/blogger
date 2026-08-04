@@ -397,7 +397,7 @@ export function Navbar(): React.ReactElement {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed top-0 left-0 w-full h-dvh bg-black/50 backdrop-blur-sm z-40 lg:hidden"
               onClick={() => setIsMenuOpen(false)}
             />
             
@@ -407,7 +407,7 @@ export function Navbar(): React.ReactElement {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'tween', duration: 0.3, ease: 'easeInOut' }}
-              className="mobile-menu fixed top-0 left-0 h-full w-80 max-w-[85vw] bg-base-100 shadow-2xl z-50 lg:hidden overflow-y-auto"
+              className="mobile-menu fixed top-0 left-0 h-dvh w-80 max-w-[85vw] bg-base-100 shadow-2xl z-50 lg:hidden overflow-y-auto"
             >
               <div className="flex flex-col h-full">
                 {/* Menu Header */}
