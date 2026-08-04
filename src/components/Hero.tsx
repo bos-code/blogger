@@ -407,9 +407,7 @@ function Hero(): React.ReactElement {
                 {animatedStats.stat1.toLocaleString()}{resumeStats.stat1.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat1.label.split("\n")[0]}
-                <br className="hidden sm:inline" />
-                {resumeStats.stat1.label.split("\n")[1]}
+                {resumeStats.stat1.label.replace("\n", " ")}
               </span>
             </motion.p>
             <motion.p
@@ -420,9 +418,7 @@ function Hero(): React.ReactElement {
                 {animatedStats.stat2.toLocaleString()}{resumeStats.stat2.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat2.label.split("\n")[0]}
-                <br className="hidden sm:inline" />
-                {resumeStats.stat2.label.split("\n")[1]}
+                {resumeStats.stat2.label.replace("\n", " ")}
               </span>
             </motion.p>
             <motion.p
@@ -433,9 +429,7 @@ function Hero(): React.ReactElement {
                 {animatedStats.stat3.toLocaleString()}{resumeStats.stat3.suffix || ""}
               </span>
               <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat3.label.split("\n")[0]}
-                <br className="hidden sm:inline" />
-                {resumeStats.stat3.label.split("\n")[1]}
+                {resumeStats.stat3.label.replace("\n", " ")}
               </span>
             </motion.p>
           </motion.div>
