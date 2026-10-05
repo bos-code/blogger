@@ -88,6 +88,8 @@ test("admin dashboard, messages, categories and users", async ({ page }) => {
   await login(page, "admin@example.com");
   await expect(page.getByRole("heading", { name: "Views, last 30 days" })).toBeVisible();
   await expect(page.getByRole("img", { name: /Daily views/ })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow, "dashboard overflows horizontally").toBeLessThanOrEqual(0);
 
   await openDashboardScreen(page, "Messages");
   await expect(page.getByRole("heading", { name: "Messages" })).toBeVisible();

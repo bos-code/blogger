@@ -22,7 +22,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: AuthLa
         </div>
         {footer && <div className="mt-6 text-center text-sm text-base-content/70">{footer}</div>}
         <p className="mt-4 text-center">
-          <Link to="/" className="link link-hover text-sm text-base-content/60">
+          <Link to="/" className="link link-hover inline-block py-1.5 text-sm text-base-content/60">
             ← Back to home
           </Link>
         </p>

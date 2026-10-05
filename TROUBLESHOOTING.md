@@ -1,135 +1,44 @@
-# Application Troubleshooting Guide
+# Troubleshooting
 
-## Issues Fixed
+## "Missing or insufficient permissions"
 
-### 1. ✅ Firebase Configuration
-- **Problem**: Firebase was initializing with placeholder values, causing silent failures
-- **Fix**: Added validation and graceful error handling
-- **Result**: App now works even without Firebase configured (limited mode)
+- Verify your email address — most writes require a verified account.
+- Make sure the latest `firestore.rules` / `storage.rules` are deployed
+  (see `docs/EMAIL_AND_DEPLOYMENT.md`).
+- Roles are read from `users/{uid}.role`. The first owner must be promoted to
+  `super_admin` in the Firebase Console.
 
-### 2. ✅ Error Boundary
-- **Problem**: No error boundary to catch React errors
-- **Fix**: Added ErrorBoundary component to catch and display errors gracefully
-- **Result**: App won't crash completely on errors
+## Signed in but sent to "Verify your email"
 
-### 3. ✅ Missing index.css
-- **Problem**: index.css was empty
-- **Fix**: Added base styles
-- **Result**: Better default styling
+Open the verification link, then press **I've verified my email** (or just
+return to the tab — it re-checks automatically).
 
-### 4. ✅ Auth Store Error Handling
-- **Problem**: Auth initialization could crash the app
-- **Fix**: Added try-catch and fallback behavior
-- **Result**: App works even if Firebase Auth fails
+## Images fail to upload
 
-## Common Issues & Solutions
+Uploads require a verified `writer`, `admin` or `super_admin` account, an
+image file, and a size under 5 MB (enforced by `storage.rules`).
 
-### Issue: "Firebase not configured" warning
-**Solution**: 
-1. Create a `.env` file in the root directory
-2. Copy values from `.env.example`
-3. Add your Firebase credentials from Firebase Console
+## Subscribe form says subscriptions aren't set up
 
-### Issue: Blank screen / Nothing rendering
-**Check**:
-1. Open browser DevTools (F12)
-2. Check Console tab for errors
-3. Check Network tab for failed requests
-4. Verify `index.html` has `<div id="root"></div>`
+Email needs `GMAIL_USER`, `GMAIL_APP_PASSWORD` and `FIREBASE_SERVICE_ACCOUNT`
+on the deployment. Locally, `pnpm dev:emulators` logs emails instead of
+sending them.
 
-### Issue: "Module not found" errors
-**Solution**:
-```bash
-pnpm install
-```
+## Routes 404 after a hard refresh
 
-### Issue: Firebase errors in console
-**Solution**:
-- If you don't have Firebase set up yet, the app will work in limited mode
-- To enable full features, configure Firebase (see above)
+The host must serve `index.html` for unknown paths. `vercel.json` does this on
+Vercel; configure the equivalent rewrite elsewhere.
 
-### Issue: Routing not working
-**Check**:
-- Verify `BrowserRouter` wraps your app in `main.tsx`
-- Check that routes are defined in `App.tsx`
-- Ensure all page components exist and export default
+## Comments don't load
 
-### Issue: Styles not loading
-**Check**:
-- Verify `index.css` and `App.css` are imported
-- Check that Tailwind is configured in `vite.config.ts`
-- Ensure DaisyUI is properly set up
+The comments query needs the composite index in `firestore.indexes.json`;
+deploy indexes with the Firebase CLI.
 
-## Quick Health Check
+## The AI button is missing
 
-Run these commands to verify everything is set up:
+It only appears when `VITE_HUGGINGFACE_API_KEY` is set.
 
-```bash
-# Check if dependencies are installed
-pnpm list
+## End-to-end tests
 
-# Check for TypeScript errors
-pnpm run build
-
-# Check for linting errors
-pnpm run lint
-
-# Start dev server
-pnpm run dev
-```
-
-## Expected Behavior
-
-### ✅ App Should:
-- Load without errors in console
-- Display the Home page at `/`
-- Show navigation in Navbar
-- Handle routing between pages
-- Display error messages gracefully (if Firebase not configured)
-
-### ⚠️ Limited Mode (No Firebase):
-- App will load and display UI
-- Authentication won't work
-- Database operations won't work
-- Blog posts won't load from Firestore
-- You can still navigate and see static content
-
-### ✅ Full Mode (With Firebase):
-- All features work
-- Authentication works
-- Database operations work
-- Real-time updates work
-
-## Next Steps
-
-1. **If app still doesn't work:**
-   - Check browser console for specific errors
-   - Verify all files exist (no missing imports)
-   - Ensure dev server is running on correct port
-
-2. **To enable Firebase:**
-   - Get credentials from Firebase Console
-   - Create `.env` file with credentials
-   - Restart dev server
-
-3. **For production:**
-   - Set environment variables in your hosting platform
-   - Build the app: `pnpm run build`
-   - Deploy the `dist` folder
-
-## Debug Checklist
-
-- [ ] Dev server starts without errors
-- [ ] Browser console shows no critical errors
-- [ ] Home page loads
-- [ ] Navigation works
-- [ ] Routes respond correctly
-- [ ] Components render
-- [ ] Styles are applied
-- [ ] Firebase (if configured) initializes
-
-If all checkboxes are checked, your app should be working! 🎉
-
-
-
-
+`pnpm test:e2e` needs Java 11+ (for the Firebase emulators) and a Chromium
+browser for Playwright (`pnpm exec playwright install chromium`).

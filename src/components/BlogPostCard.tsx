@@ -135,7 +135,7 @@ export default function BlogPostCard({
           {post.category && (
             <Link
               to={`/blog?category=${encodeURIComponent(post.category)}`}
-              className="font-semibold uppercase tracking-wide text-primary hover:underline"
+              className="inline-block py-1 font-semibold uppercase tracking-wide text-primary hover:underline"
             >
               {post.category}
             </Link>

@@ -32,7 +32,7 @@ export default function ViewsChart({ data, label = "Daily views" }: ViewsChartPr
   const activeDay = active !== null ? data[active] : null;
 
   return (
-    <figure className="relative">
+    <figure className="relative overflow-hidden">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="h-auto w-full"

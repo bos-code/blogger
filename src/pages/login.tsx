@@ -164,7 +164,7 @@ export default function Login(): React.ReactElement {
                   <label htmlFor="login-password" className="field-label">
                     Password
                   </label>
-                  <button type="button" className="link link-primary mb-1.5 text-xs" onClick={() => switchMode("reset")}>
+                  <button type="button" className="link link-primary mb-1.5 inline-block py-1 text-xs" onClick={() => switchMode("reset")}>
                     Forgot password?
                   </button>
                 </div>

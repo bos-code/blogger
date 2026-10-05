@@ -127,7 +127,7 @@ export default function AdminDashboard(): React.ReactElement {
       </section>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <section className="surface" aria-labelledby="top-heading">
+        <section className="surface min-w-0" aria-labelledby="top-heading">
           <h2 id="top-heading" className="border-b border-base-300 px-5 py-4 text-lg font-semibold">
             Top posts {topPosts[0] && !topPosts[0].period && <span className="text-sm font-normal text-base-content/55">(all time)</span>}
           </h2>
@@ -152,7 +152,7 @@ export default function AdminDashboard(): React.ReactElement {
           )}
         </section>
 
-        <section className="surface" aria-labelledby="review-heading">
+        <section className="surface min-w-0" aria-labelledby="review-heading">
           <div className="flex items-center justify-between border-b border-base-300 px-5 py-4">
             <h2 id="review-heading" className="text-lg font-semibold">
               Review queue

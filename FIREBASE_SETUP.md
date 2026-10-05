@@ -49,6 +49,10 @@ The application uses these Firestore collections:
 - `categories`
 - `notifications`
 - `messages`
+- `projects` (portfolio projects managed from the dashboard)
+- `dailyStats` (daily view totals for the analytics chart)
+- `subscribers` (newsletter, written only by the server functions)
+- `posts/{postId}/revisions` (version history)
 
 Post media is stored below `post-images/{uid}/`.
 
@@ -78,7 +82,12 @@ Role escalation is intentionally blocked from normal client code.
 
 Available roles are `reader`, `user`, `writer`, `admin`, and `super_admin`.
 
-## 6. Verify the integration
+## 6. Local development without a project
+
+`pnpm emulators`, `pnpm seed:emulators` and `pnpm dev:emulators` run the app
+against the Firebase emulators with demo data — see the README.
+
+## 7. Verify the integration
 
 ```bash
 pnpm dev

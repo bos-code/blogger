@@ -40,10 +40,10 @@ function FooterComp(): React.ReactElement {
 
         <nav aria-label="Footer">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-base-content/55">Site</h2>
-          <ul className="mt-3 flex flex-col gap-2 text-sm">
+          <ul className="mt-2 flex flex-col text-sm">
             {LINKS.map((link) => (
               <li key={link.to}>
-                <Link to={link.to} className="hover:text-primary">
+                <Link to={link.to} className="inline-block py-1.5 hover:text-primary">
                   {link.label}
                 </Link>
               </li>
@@ -53,24 +53,24 @@ function FooterComp(): React.ReactElement {
 
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-base-content/55">More</h2>
-          <ul className="mt-3 flex flex-col gap-2 text-sm">
+          <ul className="mt-2 flex flex-col text-sm">
             <li>
-              <a href={`mailto:${site.email}`} className="hover:text-primary">
+              <a href={`mailto:${site.email}`} className="inline-block py-1.5 hover:text-primary">
                 Email me
               </a>
             </li>
             <li>
-              <a href={site.resumeUrl} download className="hover:text-primary">
+              <a href={site.resumeUrl} download className="inline-block py-1.5 hover:text-primary">
                 Download CV
               </a>
             </li>
             <li>
-              <Link to="/privacy" className="hover:text-primary">
+              <Link to="/privacy" className="inline-block py-1.5 hover:text-primary">
                 Privacy
               </Link>
             </li>
             <li>
-              <Link to="/terms" className="hover:text-primary">
+              <Link to="/terms" className="inline-block py-1.5 hover:text-primary">
                 Terms
               </Link>
             </li>
