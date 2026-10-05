@@ -1,19 +1,28 @@
-import Scroll from "../assets/Scroll";
+import type { ReactNode } from "react";
 
-function SectionHead({ title, descript }: { title: string; descript: string }): React.ReactElement {
+interface SectionHeadProps {
+  eyebrow?: string;
+  title: string;
+  descript?: ReactNode;
+  id?: string;
+  align?: "center" | "left";
+}
+
+/** Shared heading for home page sections. */
+function SectionHead({
+  eyebrow,
+  title,
+  descript,
+  id,
+  align = "center",
+}: SectionHeadProps): React.ReactElement {
   return (
-    <div className="section-head text-center flex flex-col items-center gap-8 sm:gap-12 lg:gap-16">
-      <div className="hidden sm:block">
-        <Scroll />
-      </div>
-      <div className="textbox flex flex-col gap-3 sm:gap-4">
-        <h2 className="text-primary text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight sm:leading-[48px] md:leading-[60px] lg:leading-[72px] border-b-2 border-primary inline-block self-center indicator">
-          {title}
-          <span className="indicator-item status status-primary indicator-bottom"></span>
-          <span className="indicator-item status status-primary indicator-bottom -left-3 bg-primary text-transparent"></span>
-        </h2>
-        <p className="text-sm sm:text-base ibm-plex-mono px-4">{descript}</p>
-      </div>
+    <div className={`mb-10 flex flex-col gap-3 sm:mb-14 ${align === "center" ? "items-center text-center" : ""}`}>
+      {eyebrow && <p className="font-mono text-sm text-primary">{eyebrow}</p>}
+      <h2 id={id} className="text-3xl font-bold tracking-tight sm:text-4xl">
+        {title}
+      </h2>
+      {descript && <p className="max-w-2xl text-base-content/70 sm:text-lg">{descript}</p>}
     </div>
   );
 }

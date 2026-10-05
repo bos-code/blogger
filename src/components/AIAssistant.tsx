@@ -51,6 +51,7 @@ export default function AIAssistant({
         type="button"
         className="btn btn-ghost btn-sm gap-1.5"
         onClick={() => setOpen(true)}
+        aria-label="AI suggestions"
       >
         <SparklesIcon className="h-4 w-4" />
         <span className="hidden sm:inline">AI</span>

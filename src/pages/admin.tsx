@@ -8,7 +8,11 @@ import Categories from "../dashboardUi/catigories";
 import Post from "../dashboardUi/Post";
 import ProfileSetting from "../dashboardUi/ProfileSetting";
 import Users from "../dashboardUi/users";
-import SuperAdminPanel from "../dashboardUi/SuperAdminPanel";
+import Messages from "../dashboardUi/Messages";
+import SavedPosts from "../dashboardUi/SavedPosts";
+import Subscribers from "../dashboardUi/Subscribers";
+import ProjectsManager from "../dashboardUi/ProjectsManager";
+import { useMessages } from "../hooks/useMessages";
 import Avatar from "../components/ui/Avatar";
 import { useRole } from "../hooks/useRole";
 import {
@@ -16,7 +20,10 @@ import {
   Bars3Icon,
   XMarkIcon,
   ArrowRightOnRectangleIcon,
-  ShieldCheckIcon,
+  BookmarkIcon,
+  EnvelopeIcon,
+  BriefcaseIcon,
+  NewspaperIcon,
   DocumentTextIcon,
   UsersIcon,
   TagIcon,
@@ -33,6 +40,7 @@ interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   visible: boolean;
+  badge?: number;
 }
 
 export default function Dashboard(): React.ReactElement {
@@ -41,7 +49,6 @@ export default function Dashboard(): React.ReactElement {
   const signOut = useAuthStore((state) => state.signOut);
   const {
     isAdmin,
-    isSuperAdmin,
     canManagePosts,
     canManageUsers,
     canManageCategories,
@@ -54,38 +61,24 @@ export default function Dashboard(): React.ReactElement {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const { data: messages = [] } = useMessages();
+  const unreadMessages = messages.filter((message) => !message.read).length;
+
   const navItems: NavItem[] = [
     { screen: "home", label: "Overview", icon: HomeIcon, visible: true },
     {
       screen: "posts",
-      label: canManagePosts ? "Manage Posts" : "My Posts",
+      label: canManagePosts ? "Posts" : "My posts",
       icon: DocumentTextIcon,
       visible: canManagePosts || canCreate,
     },
-    {
-      screen: "users",
-      label: "Users",
-      icon: UsersIcon,
-      visible: canManageUsers,
-    },
-    {
-      screen: "categories",
-      label: "Categories",
-      icon: TagIcon,
-      visible: canManageCategories,
-    },
-    {
-      screen: "super_admin",
-      label: "Super Admin",
-      icon: ShieldCheckIcon,
-      visible: isSuperAdmin,
-    },
-    {
-      screen: "profile",
-      label: "Profile & Settings",
-      icon: UserCircleIcon,
-      visible: true,
-    },
+    { screen: "saved", label: "Saved posts", icon: BookmarkIcon, visible: true },
+    { screen: "messages", label: "Messages", icon: EnvelopeIcon, visible: isAdmin, badge: unreadMessages },
+    { screen: "subscribers", label: "Subscribers", icon: NewspaperIcon, visible: isAdmin },
+    { screen: "projects", label: "Projects", icon: BriefcaseIcon, visible: isAdmin },
+    { screen: "categories", label: "Categories", icon: TagIcon, visible: canManageCategories },
+    { screen: "users", label: "Users", icon: UsersIcon, visible: canManageUsers },
+    { screen: "profile", label: "Profile & settings", icon: UserCircleIcon, visible: true },
   ];
   const visibleItems = navItems.filter((item) => item.visible);
   const activeScreen = visibleItems.some(
@@ -154,7 +147,7 @@ export default function Dashboard(): React.ReactElement {
       )}
 
       <ul className="flex flex-col gap-1">
-        {visibleItems.map(({ screen, label, icon: Icon }) => {
+        {visibleItems.map(({ screen, label, icon: Icon, badge }) => {
           const isActive = activeScreen === screen;
           return (
             <li key={screen}>
@@ -169,7 +162,12 @@ export default function Dashboard(): React.ReactElement {
                 }`}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                {label}
+                <span className="flex-1 text-left">{label}</span>
+                {badge ? (
+                  <span className="badge badge-primary badge-sm" aria-label={`${badge} unread`}>
+                    {badge}
+                  </span>
+                ) : null}
               </button>
             </li>
           );
@@ -219,7 +217,10 @@ export default function Dashboard(): React.ReactElement {
             {activeScreen === "posts" && <Post />}
             {activeScreen === "users" && <Users />}
             {activeScreen === "categories" && <Categories />}
-            {activeScreen === "super_admin" && <SuperAdminPanel />}
+            {activeScreen === "saved" && <SavedPosts />}
+            {activeScreen === "messages" && <Messages />}
+            {activeScreen === "subscribers" && <Subscribers />}
+            {activeScreen === "projects" && <ProjectsManager />}
             {activeScreen === "profile" && <ProfileSetting />}
           </main>
         </div>

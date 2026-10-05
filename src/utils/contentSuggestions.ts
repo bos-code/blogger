@@ -1,7 +1,7 @@
 import { htmlToText, truncateText } from "./posts.ts";
 
 const STOP_WORDS = new Set(
-  "about above after again against all also always among and another any are because been before being below between both but can could did does doing down during each even every few first from further had has have having here how however into its itself just like made make many more most much must need never only other our over really same should since some such than that their them then there these they this those through too under until upon using very was way well were what when where which while who why will with within without would you your".split(
+  "the and for not you can but its use get got one two new now see way say yet also just thing things something anything everything actually really quite still maybe often about above after again against all also always among and another any are because been before being below between both but can could did does doing down during each even every few first from further had has have having here how however into its itself just like made make many more most much must need never only other our over really same should since some such than that their them then there these they this those through too under until upon using very was way well were what when where which while who why will with within without would you your".split(
     " "
   )
 );
@@ -28,7 +28,7 @@ export const suggestTags = (title: string, html: string, count = 6): string[] =>
   const frequency = new Map<string, number>();
   for (const word of words) {
     const clean = word.replace(/[.-]+$/, "");
-    if (clean.length < 3 || STOP_WORDS.has(clean)) continue;
+    if (clean.length < 4 || STOP_WORDS.has(clean)) continue;
     frequency.set(clean, (frequency.get(clean) ?? 0) + 1);
   }
   return [...frequency.entries()]

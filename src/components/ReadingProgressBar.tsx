@@ -1,35 +1,33 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 
+/** Thin bar at the top of the viewport showing how far the page is scrolled. */
 export default function ReadingProgressBar(): React.ReactElement {
-  const [progress, setProgress] = useState<number>(0);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const updateProgress = (): void => {
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const scrollableHeight = documentHeight - windowHeight;
-      const scrollProgress = scrollableHeight > 0 ? (scrollTop / scrollableHeight) * 100 : 0;
-      setProgress(Math.min(100, Math.max(0, scrollProgress)));
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollable > 0 ? Math.min(1, Math.max(0, window.scrollY / scrollable)) : 0;
+      if (barRef.current) barRef.current.style.transform = `scaleX(${progress})`;
     };
-
-    window.addEventListener("scroll", updateProgress);
-    updateProgress();
-
-    return () => window.removeEventListener("scroll", updateProgress);
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-base-300">
-      <motion.div
-        className="h-full bg-primary"
-        style={{ width: `${progress}%` }}
-        transition={{ duration: 0.1 }}
-      />
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[55] h-0.5" aria-hidden="true">
+      <div ref={barRef} className="h-full origin-left bg-primary" style={{ transform: "scaleX(0)" }} />
     </div>
   );
 }
-
-
-

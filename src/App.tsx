@@ -22,6 +22,10 @@ const BlogPostDetail = lazy(() => import("./pages/BlogPostDetail"));
 const Admin = lazy(() => import("./pages/admin"));
 const CreatePost = lazy(() => import("./dashboardUi/CreateNewPost"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const AuthorPage = lazy(() => import("./pages/AuthorPage"));
+const LegalPage = lazy(() => import("./pages/LegalPage"));
+const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 
 function App(): React.ReactElement {
   const initAuth = useAuthStore((state) => state.initAuth);
@@ -62,9 +66,15 @@ function App(): React.ReactElement {
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/complete-signin" element={<CompleteSignIn />} />
-          <Route path="/blogpage" element={<Blog />} />
+          <Route path="/blogpage" element={<Navigate to="/blog" replace />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id/:slug?" element={<BlogPostDetail />} />
+          <Route path="/author/:authorId" element={<AuthorPage />} />
+          <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/subscribe/confirm" element={<SubscriptionPage action="confirm" />} />
+          <Route path="/unsubscribe" element={<SubscriptionPage action="unsubscribe" />} />
+          <Route path="/privacy" element={<LegalPage page="privacy" />} />
+          <Route path="/terms" element={<LegalPage page="terms" />} />
           <Route path="/create-post" element={<Navigate to="/edit" replace />} />
           <Route
             path="/edit/:postId?"

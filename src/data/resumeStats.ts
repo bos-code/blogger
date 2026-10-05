@@ -9,7 +9,7 @@ const resumeStats = {
   },
   stat2: {
     value: 2,
-    label: "Developmental\nTools",
+    label: "Development\nTools",
     suffix: "",
   },
   stat3: {

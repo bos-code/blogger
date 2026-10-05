@@ -42,7 +42,7 @@ export default function WriterOverview(): React.ReactElement {
             title="Catch up on the latest posts"
             description="Your account can like and comment on articles. Ask an administrator if you'd like to write for the blog."
             action={
-              <Link to="/blogpage" className="btn btn-primary">
+              <Link to="/blog" className="btn btn-primary">
                 Browse the blog
               </Link>
             }

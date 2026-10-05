@@ -153,7 +153,6 @@ export interface UIState {
     | "users"
     | "categories"
     | "profile"
-    | "super_admin"
     | "saved"
     | "messages"
     | "analytics"

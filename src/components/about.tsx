@@ -1,72 +1,55 @@
-import { Span } from "./Span";
-import Scroll from "../assets/Scroll";
-import comp from "../assets/about-comp.webp";
-import background from "../assets/whoop-bg.webp";
+import aboutImage from "../assets/about-comp.webp";
+import SectionHead from "./sectionHead";
+
+const HIGHLIGHTS = [
+  { title: "Interfaces first", text: "Responsive, accessible layouts that hold up from 320px phones to wide desktops." },
+  { title: "Clean, typed code", text: "React and TypeScript with small, readable components that are easy to change." },
+  { title: "Always learning", text: "I write about what I learn — and like having my assumptions challenged." },
+];
 
 function AboutMe(): React.ReactElement {
   return (
-    <section
-      className="section-about bg-cover bg-center bg-base-200"
-      style={{ backgroundImage: `url(${background})` }}
-    >
-      <div className="all bg-base-200/90 p-4 sm:p-8 md:p-12 lg:p-16 xl:p-20 flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center h-full">
-        <div className="scroll-container hidden sm:block">
-          <Scroll />
-        </div>
-        <div className="content-container grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 pl-0 lg:pl-10 w-full">
-          <div className="text-container flex flex-col gap-8 sm:gap-12 lg:gap-16 col-span-1 lg:col-span-3">
-            <div className="about badge px-4 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-3 lg:py-4 border-4 ubuntu-medium h-auto rounded-tl-[20px] sm:rounded-tl-[30px] lg:rounded-tl-[40px] rounded-br-[20px] sm:rounded-br-[30px] lg:rounded-br-[40px] border-primary badge-outline bg-base-100 text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-center lg:text-left">
-              About Me
+    <section id="about" aria-labelledby="about-heading" className="bg-base-200/60 py-20 sm:py-24">
+      <div className="page-container">
+        <SectionHead id="about-heading" eyebrow="About" title="A little about me" />
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <img
+            src={aboutImage}
+            alt="A developer's desk with a laptop showing code"
+            loading="lazy"
+            decoding="async"
+            className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lg"
+          />
+          <div>
+            <div className="flex flex-col gap-4 text-lg leading-relaxed text-base-content/80">
+              <p>
+                Hello! I&apos;m <span className="font-semibold text-base-content">John Dera</span>, a
+                front-end developer who builds for the web with{" "}
+                <span className="text-primary">HTML</span>, <span className="text-primary">CSS</span>,{" "}
+                <span className="text-primary">JavaScript</span> and{" "}
+                <span className="text-primary">React</span>.
+              </p>
+              <p>
+                I&apos;m a motivated, optimistic developer focused on writing clear, robust code that
+                works — and on never stopping learning.
+              </p>
+              <p>
+                When I&apos;m not coding, I&apos;m <span className="text-primary">writing blog posts</span>,
+                reading, or picking up a hands-on project like <span className="text-primary">photography</span>.
+              </p>
             </div>
-            <div className="content">
-              <div className="flex flex-col gap-3 sm:gap-4 bg-base-100 rounded-[20px] sm:rounded-[30px] lg:rounded-[40px] px-4 sm:px-6 md:px-8 lg:px-10 py-4 sm:py-5 lg:py-6 justify-center text-sm sm:text-base ibm-plex-mono">
-                <span className="htag ibm-plex text-xs sm:text-sm">{"<p>"}</span>
-                <span className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                  <Span>Hello!</Span>
-                </span>
-                <p>
-                  {" "}
-                  My name is JohnDera and I specialize in web developement that
-                  utilizes <Span>HTML</Span>,<Span> CSS</Span>,<Span> JS</Span>,
-                  and <Span>REACT</Span> etc
-                </p>
-                <p>
-                  {" "}
-                  I am a highly motivated individual and eternal optimist
-                  dedicated to writing clear, concise, robust code that works.
-                  Striving to never stop learning and improving.
-                </p>
-                <p>
-                  {" "}
-                  When I'm not coding, I am<Span> writing blogs</Span>, reading,
-                  or picking up some new hands-on art project like
-                  <Span> photography</Span>.
-                </p>{" "}
-                <p>
-                  {" "}
-                  I like to have my perspective and belief systems challenged so
-                  that I see the world through new eyes.
-                </p>
-                <span className="htag ibm-plex text-xs sm:text-sm">{"</p>"}</span>
-              </div>
-            </div>
-          </div>
-          <div className="image-container col-span-1 lg:col-span-2">
-            <Image />
+            <ul className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+              {HIGHLIGHTS.map((item) => (
+                <li key={item.title} className="surface p-4">
+                  <h3 className="font-semibold">{item.title}</h3>
+                  <p className="mt-1 text-sm text-base-content/70">{item.text}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-function Image(): React.ReactElement {
-  return (
-    <img
-      src={comp}
-      alt="about me"
-      className="rounded-[20px] sm:rounded-[30px] lg:rounded-[40px] w-full h-auto sm:h-full object-cover"
-    />
   );
 }
 

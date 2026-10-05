@@ -1,205 +1,184 @@
-import { motion } from "framer-motion";
-import type { BlogPost, DateValue } from "../types";
 import { Link } from "react-router-dom";
-import { HeartIcon } from "@heroicons/react/24/outline";
+import { HeartIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import { useLikePost } from "../hooks/usePosts";
 import { useAuthStore } from "../stores/authStore";
-import { toDate } from "../utils/date";
+import { formatDate } from "../utils/date";
+import { getExcerpt, getLikeCount, getReadingTime, postPath } from "../utils/posts";
+import { showToast } from "../utils/sweetalert";
+import Avatar from "./ui/Avatar";
+import type { BlogPost } from "../types";
 
 interface BlogPostCardProps {
   post: BlogPost;
-  index: number;
+  variant?: "default" | "featured" | "compact";
+  /** Kept for backwards compatibility with older callers. */
+  index?: number;
 }
 
-export default function BlogPostCard({ post, index }: BlogPostCardProps): React.ReactElement {
+/** Like button shared by cards and the article page. */
+export function LikeButton({
+  post,
+  size = "sm",
+}: {
+  post: BlogPost;
+  size?: "sm" | "md";
+}): React.ReactElement {
   const user = useAuthStore((state) => state.user);
+  const emailVerified = useAuthStore((state) => state.emailVerified);
   const likePost = useLikePost();
-  
-  // Calculate like count from likedBy array or fallback to likes field
-  const likedBy = post.likedBy || [];
-  const likeCount = likedBy.length || post.likes || 0;
-  const isLiked = user?.uid ? likedBy.includes(user.uid) : false;
+  const likedBy = post.likedBy ?? [];
+  const likeCount = getLikeCount(post);
+  const isLiked = Boolean(user?.uid && likedBy.includes(user.uid));
 
-  const handleLike = (e: React.MouseEvent): void => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!user?.uid) {
-      return; // Could show a toast here to prompt login
+  const handleLike = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!user) {
+      void showToast("info", "Sign in to like posts");
+      return;
     }
-
-    likePost.mutate({
-      postId: post.id,
-      currentLikedBy: likedBy,
-    });
-  };
-  const calculateReadingTime = (content: string): number => {
-    const text = content.replace(/<[^>]*>/g, ""); // Remove HTML tags
-    const words = text.split(/\s+/).filter((word) => word.length > 0);
-    const wordsPerMinute = 200;
-    return Math.ceil(words.length / wordsPerMinute) || 1;
-  };
-
-  const readingTime = post.readingTime || calculateReadingTime(post.content);
-  const excerpt = post.excerpt || post.content.replace(/<[^>]*>/g, "").substring(0, 150) + "...";
-
-  // Format date for metadata display
-  const formatMetadataDate = (
-    timestamp: DateValue | undefined
-  ): string => {
-    const date = toDate(timestamp);
-    if (!date) return "Unknown date";
-
-    return new Intl.DateTimeFormat("en-US", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(date);
-  };
-
-  // Get author initials for avatar fallback
-  const getAuthorInitials = (name: string | null): string => {
-    if (!name || name.trim().length === 0) return "?";
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (!emailVerified) {
+      void showToast("info", "Verify your email to like posts");
+      return;
     }
-    return name[0].toUpperCase();
+    likePost.mutate({ postId: post.id, currentLikedBy: likedBy });
   };
 
-  // Get author avatar URL or use fallback
-  const authorAvatar = post.authorAvatar || null;
-  const authorName = post.authorName || "Anonymous";
-  const authorInitials = getAuthorInitials(post.authorName);
+  const iconSize = size === "md" ? "h-5 w-5" : "h-4 w-4";
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1, ease: "easeOut" }}
-      whileHover={{ y: -2 }}
-      className="group flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6 lg:gap-8 transition-all duration-300"
+    <button
+      type="button"
+      onClick={handleLike}
+      disabled={likePost.isPending}
+      aria-pressed={isLiked}
+      aria-label={`${isLiked ? "Unlike" : "Like"} "${post.title}" (${likeCount} likes)`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm transition-colors ${
+        isLiked
+          ? "bg-error/10 text-error hover:bg-error/20"
+          : "text-base-content/65 hover:bg-base-200 hover:text-base-content"
+      }`}
     >
-      {/* Author Profile Image/Initials - Side Image */}
-      <motion.div
-        whileHover={{ scale: 1.05 }}
-        className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow duration-300 border-2 border-primary/20 group-hover:border-primary/40"
-      >
-        {authorAvatar ? (
-          <img
-            src={authorAvatar}
-            alt={authorName}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback to initials if image fails to load
-              const target = e.target as HTMLImageElement;
-              target.style.display = "none";
-              const parent = target.parentElement;
-              if (parent) {
-                parent.innerHTML = `<div class="w-full h-full bg-primary text-primary-content flex items-center justify-center font-bold text-lg sm:text-xl md:text-2xl">${authorInitials}</div>`;
-              }
-            }}
-          />
-        ) : (
-          <div className="w-full h-full bg-primary text-primary-content flex items-center justify-center font-bold text-lg sm:text-xl md:text-2xl">
-            {authorInitials}
-          </div>
-        )}
-      </motion.div>
+      {isLiked ? <HeartIconSolid className={iconSize} /> : <HeartIcon className={iconSize} />}
+      <span className="tabular-nums">{likeCount}</span>
+    </button>
+  );
+}
 
-      {/* Cover Image */}
-      {post.coverImage && (
-        <motion.figure
-          whileHover={{ scale: 1.02 }}
-          className="relative w-full sm:w-56 md:w-64 lg:w-72 xl:w-80 h-40 xs:h-48 sm:h-56 md:h-64 flex-shrink-0 overflow-hidden rounded-lg sm:rounded-xl shadow-lg group-hover:shadow-xl transition-shadow duration-300"
-        >
+export default function BlogPostCard({
+  post,
+  variant = "default",
+}: BlogPostCardProps): React.ReactElement {
+  const href = postPath(post);
+  const readingTime = getReadingTime(post);
+  const date = formatDate(post.scheduledFor ?? post.createdAt);
+  const isFeatured = variant === "featured";
+
+  if (variant === "compact") {
+    return (
+      <article className="group flex gap-4">
+        {post.coverImage && (
+          <Link to={href} className="shrink-0" tabIndex={-1} aria-hidden="true">
+            <img
+              src={post.coverImage}
+              alt=""
+              loading="lazy"
+              className="h-20 w-28 rounded-lg object-cover"
+            />
+          </Link>
+        )}
+        <div className="min-w-0">
+          <h3 className="line-clamp-2 font-semibold leading-snug group-hover:text-primary">
+            <Link to={href}>{post.title}</Link>
+          </h3>
+          <p className="mt-1 text-xs text-base-content/60">
+            {date} · {readingTime} min read
+          </p>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className={`surface group relative flex h-full flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg ${
+        isFeatured ? "md:flex-row" : ""
+      }`}
+    >
+      <Link
+        to={href}
+        tabIndex={-1}
+        aria-hidden="true"
+        className={`block shrink-0 overflow-hidden bg-base-200 ${
+          isFeatured ? "aspect-[16/9] md:aspect-auto md:w-1/2" : "aspect-[16/9]"
+        }`}
+      >
+        {post.coverImage ? (
           <img
             src={post.coverImage}
-            alt={post.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-        </motion.figure>
-      )}
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/25 via-base-200 to-secondary/20">
+            <span className="font-mono text-3xl font-bold text-primary/70">{"</>"}</span>
+          </div>
+        )}
+      </Link>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Title */}
-        <motion.h2
-          whileHover={{ x: 4 }}
-          className="text-xl xs:text-2xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 md:mb-4 text-primary leading-tight group-hover:text-primary/80 transition-colors duration-300"
+      <div className={`flex flex-1 flex-col p-5 ${isFeatured ? "md:p-8" : ""}`}>
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          {isFeatured && <span className="badge badge-primary badge-sm">Featured</span>}
+          {post.category && (
+            <Link
+              to={`/blog?category=${encodeURIComponent(post.category)}`}
+              className="font-semibold uppercase tracking-wide text-primary hover:underline"
+            >
+              {post.category}
+            </Link>
+          )}
+        </div>
+
+        <h3
+          className={`font-bold leading-snug text-base-content ${
+            isFeatured ? "text-2xl md:text-3xl" : "text-lg"
+          }`}
         >
-          <Link to={`/blog/${post.id}`} className="hover:underline inline-block">
+          <Link to={href} className="hover:text-primary focus-visible:text-primary">
             {post.title}
           </Link>
-        </motion.h2>
+        </h3>
 
-        {/* Excerpt */}
-        <p className="text-base-content/80 text-xs xs:text-sm sm:text-base md:text-lg leading-relaxed mb-3 sm:mb-4 md:mb-6 line-clamp-2 sm:line-clamp-3">
-          {excerpt}
+        <p
+          className={`mt-2 text-base-content/70 ${
+            isFeatured ? "line-clamp-4 md:text-lg" : "line-clamp-3 text-sm"
+          }`}
+        >
+          {getExcerpt(post)}
         </p>
 
-        {/* Read More Link and Like Button */}
-        <div className="mb-3 sm:mb-4 md:mb-6 flex items-center justify-between gap-3 sm:gap-4">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-5">
           <Link
-            to={`/blog/${post.id}`}
-            className="text-primary hover:text-primary/80 font-medium text-xs xs:text-sm sm:text-base inline-flex items-center gap-1 group/link transition-colors duration-300"
+            to={`/author/${post.authorId}`}
+            className="flex min-w-0 items-center gap-2 text-sm hover:text-primary"
           >
-            Read More
-            <motion.span
-              whileHover={{ x: 4 }}
-              className="inline-block transition-transform duration-300"
-            >
-              {" >>"}
-            </motion.span>
+            <Avatar name={post.authorName} src={post.authorAvatar} size="sm" />
+            <span className="min-w-0">
+              <span className="block truncate font-medium">{post.authorName || "Anonymous"}</span>
+              <span className="flex items-center gap-1 text-xs text-base-content/60">
+                {date && <time>{date}</time>}
+                {date && <span aria-hidden="true">·</span>}
+                <ClockIcon className="h-3 w-3" aria-hidden="true" />
+                {readingTime} min
+              </span>
+            </span>
           </Link>
-          
-          {/* Like Button */}
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: isLiked ? 0 : 5 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleLike}
-            disabled={likePost.isPending || !user?.uid}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-300 ${
-              isLiked 
-                ? "bg-error/10 text-error hover:bg-error/20 shadow-sm" 
-                : "bg-base-200 text-base-content/70 hover:bg-base-300 hover:text-base-content"
-            } ${likePost.isPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-            aria-label={isLiked ? "Unlike post" : "Like post"}
-          >
-            <motion.div
-              animate={isLiked ? { scale: [1, 1.2, 1] } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              {isLiked ? (
-                <HeartIconSolid className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <HeartIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </motion.div>
-            {likeCount > 0 && (
-              <span className="text-xs sm:text-sm font-medium">{likeCount}</span>
-            )}
-          </motion.button>
-        </div>
-
-        {/* Metadata */}
-        <div className="flex flex-wrap items-center gap-2 xs:gap-3 sm:gap-4 text-[10px] xs:text-xs sm:text-sm text-base-content/70 mt-auto">
-          {post.category && (
-            <span className="font-medium text-base-content px-2 py-0.5 rounded bg-base-200">{post.category}</span>
-          )}
-          <span className="text-base-content/60">Text</span>
-          <span className="font-medium">{post.authorName || "Anonymous"}</span>
-          {post.createdAt && (
-            <>
-              <span className="text-base-content/60">Date</span>
-              <span>{formatMetadataDate(post.createdAt)}</span>
-            </>
-          )}
-          <span className="text-base-content/60">Read</span>
-          <span>{readingTime} Min</span>
+          <LikeButton post={post} />
         </div>
       </div>
-    </motion.article>
+    </article>
   );
 }

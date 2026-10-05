@@ -601,6 +601,7 @@ export default function CreatePost(): React.ReactElement {
                 className={`btn btn-sm join-item ${mode === "edit" ? "btn-active" : "btn-ghost"}`}
                 onClick={() => setMode("edit")}
                 aria-pressed={mode === "edit"}
+                aria-label="Write"
               >
                 <PencilIcon className="h-4 w-4" />
                 <span className="hidden md:inline">Write</span>
@@ -610,6 +611,7 @@ export default function CreatePost(): React.ReactElement {
                 className={`btn btn-sm join-item ${mode === "preview" ? "btn-active" : "btn-ghost"}`}
                 onClick={() => setMode("preview")}
                 aria-pressed={mode === "preview"}
+                aria-label="Preview"
               >
                 <EyeIcon className="h-4 w-4" />
                 <span className="hidden md:inline">Preview</span>

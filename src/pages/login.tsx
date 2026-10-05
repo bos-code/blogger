@@ -1,541 +1,218 @@
-import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, Link, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
 import {
   signIn,
   resetPassword,
   signInWithGoogle,
   signInWithApple,
   sendEmailLink,
+  useAuthStore,
 } from "../stores/authStore";
-import { useAuthStore } from "../stores/authStore";
-import { motion } from "framer-motion";
-import { showError, showSuccess } from "../utils/sweetalert";
-import PremiumSpinner from "../components/PremiumSpinner";
+import AuthLayout from "../components/auth/AuthLayout";
+import PasswordInput from "../components/auth/PasswordInput";
+import SocialButtons from "../components/auth/SocialButtons";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { getAuthErrorMessage } from "../utils/authErrors";
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  EnvelopeIcon,
-  LockClosedIcon,
-  ArrowPathIcon,
-  LinkIcon,
-} from "@heroicons/react/24/outline";
+import { showSuccess } from "../utils/sweetalert";
+
+type Mode = "password" | "reset" | "link";
 
 export default function Login(): React.ReactElement {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo =
-    (location.state as { from?: { pathname?: string } } | null)?.from
-      ?.pathname || "/admin";
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || "/admin";
   const clearAuthError = useAuthStore((state) => state.clearAuthError);
   const logStatus = useAuthStore((state) => state.logStatus);
 
+  const [mode, setMode] = useState<Mode>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [isSendingReset, setIsSendingReset] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isAppleLoading, setIsAppleLoading] = useState(false);
-  const [showEmailLink, setShowEmailLink] = useState(false);
-  const [isSendingEmailLink, setIsSendingEmailLink] = useState(false);
-  const [emailLinkSent, setEmailLinkSent] = useState(false);
+  const [busy, setBusy] = useState<"password" | "reset" | "link" | "google" | "apple" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<{ kind: "reset" | "link"; email: string } | null>(null);
 
-  // Clear auth error when component mounts
+  useDocumentMeta({ title: "Log in", noIndex: true });
+
   useEffect(() => {
     clearAuthError();
   }, [clearAuthError]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
+  if (logStatus) return <Navigate to={redirectTo} replace />;
 
-    if (!email.trim() || !password.trim()) {
-      showError("Validation Error", "Please fill in all fields.");
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError(null);
+    setSentTo(null);
+  };
+
+  const requireEmail = (): string | null => {
+    const value = email.trim();
+    if (!value) {
+      setError("Please enter your email address.");
+      return null;
+    }
+    return value;
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    const value = requireEmail();
+    if (!value) return;
+
+    if (mode === "password") {
+      if (!password) return setError("Please enter your password.");
+      setBusy("password");
+      try {
+        await signIn(value, password);
+        showSuccess("Welcome back!");
+        navigate(redirectTo, { replace: true });
+      } catch (signInError) {
+        setError(getAuthErrorMessage(signInError, "Failed to sign in. Please try again."));
+      } finally {
+        setBusy(null);
+      }
       return;
     }
 
-    setIsLoading(true);
+    setBusy(mode);
     try {
-      await signIn(email.trim(), password);
-      showSuccess("Welcome Back!", "You have been logged in successfully.");
-      navigate(redirectTo, { replace: true });
-    } catch (error: unknown) {
-      showError(
-        "Login Failed",
-        getAuthErrorMessage(error, "Failed to sign in. Please try again.")
-      );
+      if (mode === "reset") await resetPassword(value);
+      else await sendEmailLink(value);
+      setSentTo({ kind: mode, email: value });
+    } catch (sendError) {
+      setError(getAuthErrorMessage(sendError, "That didn't work. Please try again."));
     } finally {
-      setIsLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleForgotPassword = async (
-    e: FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
-
-    if (!email.trim()) {
-      showError("Validation Error", "Please enter your email address.");
-      return;
-    }
-
-    setIsSendingReset(true);
+  const handleProvider = async (provider: "google" | "apple") => {
+    setError(null);
+    setBusy(provider);
     try {
-      await resetPassword(email.trim());
-      showSuccess(
-        "Password Reset Email Sent",
-        `We've sent a password reset link to ${email.trim()}. Please check your email and follow the instructions to reset your password.`
-      );
-      setShowForgotPassword(false);
-    } catch (error: unknown) {
-      showError(
-        "Password Reset Failed",
-        getAuthErrorMessage(
-          error,
-          "Failed to send password reset email. Please try again."
-        )
-      );
-    } finally {
-      setIsSendingReset(false);
-    }
-  };
-
-  const handleGoogleSignIn = async (): Promise<void> => {
-    setIsGoogleLoading(true);
-    try {
-      const signedIn = await signInWithGoogle();
+      const signedIn = provider === "google" ? await signInWithGoogle() : await signInWithApple();
       if (!signedIn) return;
-      showSuccess(
-        "Welcome!",
-        "You have been signed in with Google successfully."
-      );
+      showSuccess("Welcome!");
       navigate(redirectTo, { replace: true });
-    } catch (error: unknown) {
-      showError(
-        "Google Sign In Failed",
-        getAuthErrorMessage(error, "Failed to sign in with Google.")
-      );
+    } catch (providerError) {
+      setError(getAuthErrorMessage(providerError, "Sign-in failed. Please try again."));
     } finally {
-      setIsGoogleLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleAppleSignIn = async (): Promise<void> => {
-    setIsAppleLoading(true);
-    try {
-      const signedIn = await signInWithApple();
-      if (!signedIn) return;
-      showSuccess(
-        "Welcome!",
-        "You have been signed in with Apple successfully."
-      );
-      navigate(redirectTo, { replace: true });
-    } catch (error: unknown) {
-      showError(
-        "Apple Sign In Failed",
-        getAuthErrorMessage(error, "Failed to sign in with Apple.")
-      );
-    } finally {
-      setIsAppleLoading(false);
-    }
+  const titles: Record<Mode, { title: string; subtitle: string }> = {
+    password: { title: "Welcome back", subtitle: "Log in to comment, like posts and manage your writing." },
+    reset: { title: "Reset your password", subtitle: "We'll email you a link to choose a new password." },
+    link: { title: "Email me a sign-in link", subtitle: "No password needed — we'll send a one-time link." },
   };
-
-  const handleEmailLinkSignIn = async (
-    e: FormEvent<HTMLFormElement>
-  ): Promise<void> => {
-    e.preventDefault();
-
-    if (!email.trim()) {
-      showError("Validation Error", "Please enter your email address.");
-      return;
-    }
-
-    setIsSendingEmailLink(true);
-    try {
-      await sendEmailLink(email.trim());
-      setEmailLinkSent(true);
-      showSuccess(
-        "Sign-In Link Sent!",
-        `We've sent a sign-in link to ${email.trim()}. Please check your email and click the link to sign in.`
-      );
-    } catch (error: unknown) {
-      showError(
-        "Failed to Send Link",
-        getAuthErrorMessage(error, "Failed to send sign-in link. Please try again.")
-      );
-    } finally {
-      setIsSendingEmailLink(false);
-    }
-  };
-
-  // Redirect if already logged in
-  if (logStatus) {
-    return <Navigate to={redirectTo} replace />;
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="card bg-base-100 shadow-2xl w-full max-w-md"
-      >
-        <div className="card-body p-8">
-          {/* Header */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-base-content mb-2">
-              Welcome Back
-            </h1>
-            <p className="text-base-content/70">Sign in to your account</p>
-          </div>
-
-          {/* Forgot Password Form */}
-          {showForgotPassword ? (
-            <div className="space-y-4">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-semibold text-base-content mb-2">
-                  Reset Password
-                </h2>
-                <p className="text-sm text-base-content/70">
-                  Enter your email address and we'll send you a link to reset
-                  your password.
-                </p>
-              </div>
-
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium flex items-center gap-2">
-                      <EnvelopeIcon className="w-4 h-4" />
-                      Email
-                    </span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    className="input input-bordered w-full"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSendingReset}
-                    required
-                    autoComplete="email"
-                  />
-                </div>
-
-                <div className="form-control mt-6">
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-full"
-                    disabled={isSendingReset}
-                  >
-                    {isSendingReset ? (
-                      <>
-                        <PremiumSpinner size="sm" variant="primary" />
-                        <span>Sending...</span>
-                      </>
-                    ) : (
-                      <>
-                        <ArrowPathIcon className="w-5 h-5" />
-                        Send Reset Link
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="form-control">
-                  <button
-                    type="button"
-                    className="btn btn-ghost w-full"
-                    onClick={() => {
-                      setShowForgotPassword(false);
-                      setEmail("");
-                    }}
-                    disabled={isSendingReset}
-                  >
-                    Back to Login
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            /* Login Form */
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email Input */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <EnvelopeIcon className="w-4 h-4" />
-                    Email
-                  </span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="input input-bordered w-full"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              {/* Password Input */}
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <LockClosedIcon className="w-4 h-4" />
-                    Password
-                  </span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    className="input input-bordered w-full pr-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 hover:text-base-content"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeSlashIcon className="w-5 h-5" />
-                    ) : (
-                      <EyeIcon className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Forgot Password Link */}
-                <div className="label">
-                  <Link
-                    to="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowForgotPassword(true);
-                    }}
-                    className="label-text-alt link link-primary text-xs"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="form-control mt-6">
-                <button
-                  type="submit"
-                  className="btn btn-primary w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <PremiumSpinner size="sm" variant="primary" />
-                      <span>Signing in...</span>
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Email Link Sign In - Only show on login form */}
-          {!showForgotPassword && !emailLinkSent && (
-            <>
-              <div className="divider my-6">OR</div>
-
-              {/* Email Link Sign In Button */}
-              <button
-                type="button"
-                className="btn btn-outline w-full gap-2"
-                onClick={() => setShowEmailLink(true)}
-                disabled={isGoogleLoading || isAppleLoading || isLoading}
-              >
-                <LinkIcon className="w-5 h-5" />
-                Sign in with Email Link
-              </button>
-            </>
-          )}
-
-          {/* Email Link Form */}
-          {showEmailLink && !emailLinkSent && (
-            <form onSubmit={handleEmailLinkSignIn} className="space-y-4 mt-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium flex items-center gap-2">
-                    <EnvelopeIcon className="w-4 h-4" />
-                    Email Address
-                  </span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="input input-bordered w-full"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSendingEmailLink}
-                  required
-                  autoComplete="email"
-                />
-                <label className="label">
-                  <span className="label-text-alt text-base-content/60">
-                    We'll send you a secure sign-in link (no password needed)
-                  </span>
-                </label>
-              </div>
-
-              <div className="form-control mt-6">
-                <button
-                  type="submit"
-                  className="btn btn-primary w-full"
-                  disabled={isSendingEmailLink}
-                >
-                  {isSendingEmailLink ? (
-                    <>
-                      <PremiumSpinner size="sm" variant="primary" />
-                      <span>Sending link...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LinkIcon className="w-5 h-5" />
-                      Send Sign-In Link
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="form-control">
-                <button
-                  type="button"
-                  className="btn btn-ghost w-full"
-                  onClick={() => {
-                    setShowEmailLink(false);
-                    setEmail("");
-                  }}
-                  disabled={isSendingEmailLink}
-                >
-                  Back to Login
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Email Link Sent Confirmation */}
-          {emailLinkSent && (
-            <div className="alert alert-success mt-4">
-              <EnvelopeIcon className="w-6 h-6" />
-              <div>
-                <h3 className="font-bold">Check Your Email!</h3>
-                <div className="text-sm">
-                  We've sent a sign-in link to {email}. Click the link in your
-                  email to complete sign-in.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Social Sign In - Only show on login form */}
-          {!showForgotPassword && !showEmailLink && !emailLinkSent && (
-            <>
-              <div className="divider my-6">OR</div>
-
-              {/* Google Sign In */}
-              <button
-                type="button"
-                className="btn btn-outline w-full gap-2"
-                onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading || isAppleLoading || isLoading}
-              >
-                {isGoogleLoading ? (
-                  <>
-                    <PremiumSpinner size="sm" variant="primary" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      />
-                    </svg>
-                    Continue with Google
-                  </>
-                )}
-              </button>
-
-              {/* Apple Sign In */}
-              <button
-                type="button"
-                className="btn btn-outline w-full gap-2 bg-base-content text-base-100 hover:bg-base-content/90"
-                onClick={handleAppleSignIn}
-                disabled={isGoogleLoading || isAppleLoading || isLoading}
-              >
-                {isAppleLoading ? (
-                  <>
-                    <PremiumSpinner size="sm" variant="primary" />
-                    <span>Signing in...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                    >
-                      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                    </svg>
-                    Continue with Apple
-                  </>
-                )}
-              </button>
-            </>
-          )}
-
-          {/* Sign Up Link */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-base-content/70">
-              Don't have an account?{" "}
-              <Link to="/signup" className="link link-primary font-medium">
-                Sign up
-              </Link>
-            </p>
-          </div>
-
-          {/* Back to Home */}
-          <div className="text-center mt-4">
-            <Link
-              to="/"
-              className="link link-hover text-sm text-base-content/60"
-            >
-              ← Back to home
-            </Link>
-          </div>
+    <AuthLayout
+      title={titles[mode].title}
+      subtitle={titles[mode].subtitle}
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link to="/signup" className="link link-primary font-medium">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      {sentTo ? (
+        <div role="status" className="flex flex-col items-center gap-3 text-center">
+          <span className="rounded-full bg-success/15 p-3 text-success">
+            <EnvelopeIcon className="h-7 w-7" />
+          </span>
+          <p className="font-semibold">Check your inbox</p>
+          <p className="text-sm text-base-content/70">
+            {sentTo.kind === "reset"
+              ? `If an account exists for ${sentTo.email}, you'll get a password reset link shortly.`
+              : `We sent a sign-in link to ${sentTo.email}. Open it on this device to finish signing in.`}
+          </p>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => switchMode("password")}>
+            Back to log in
+          </button>
         </div>
-      </motion.div>
-    </div>
+      ) : (
+        <>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+            <div>
+              <label htmlFor="login-email" className="field-label">
+                Email
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                className="input w-full"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={busy !== null}
+                required
+              />
+            </div>
+
+            {mode === "password" && (
+              <div>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="login-password" className="field-label">
+                    Password
+                  </label>
+                  <button type="button" className="link link-primary mb-1.5 text-xs" onClick={() => switchMode("reset")}>
+                    Forgot password?
+                  </button>
+                </div>
+                <PasswordInput
+                  id="login-password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={busy !== null}
+                  required
+                />
+              </div>
+            )}
+
+            {error && (
+              <p role="alert" className="rounded-lg bg-error/10 px-3 py-2 text-sm text-error">
+                {error}
+              </p>
+            )}
+
+            <button type="submit" className="btn btn-primary w-full" disabled={busy !== null}>
+              {busy === mode && <span className="loading loading-spinner loading-sm" />}
+              {mode === "password" ? "Log in" : mode === "reset" ? "Send reset link" : "Send sign-in link"}
+            </button>
+          </form>
+
+          {mode === "password" ? (
+            <>
+              <div className="divider my-6 text-xs text-base-content/55">OR</div>
+              <div className="flex flex-col gap-2">
+                <SocialButtons
+                  onGoogle={() => void handleProvider("google")}
+                  onApple={() => void handleProvider("apple")}
+                  loading={busy === "google" || busy === "apple" ? busy : null}
+                  disabled={busy !== null}
+                />
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => switchMode("link")}>
+                  Email me a sign-in link instead
+                </button>
+              </div>
+            </>
+          ) : (
+            <button type="button" className="btn btn-ghost btn-sm mt-3 w-full" onClick={() => switchMode("password")}>
+              Back to log in
+            </button>
+          )}
+        </>
+      )}
+    </AuthLayout>
   );
 }

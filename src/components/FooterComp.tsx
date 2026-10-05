@@ -1,92 +1,86 @@
-import React from "react";
-import Discord from "../assets/discord";
+import { Link } from "react-router-dom";
+import { RssIcon } from "@heroicons/react/24/outline";
 import Github from "../assets/github";
-import IconInstagram from "../assets/icon-instagram";
 import LinkedIn from "../assets/linkedin";
-import Twitter from "../assets/twitter";
+import { site } from "../data/site";
+
+const LINKS = [
+  { to: "/#about", label: "About" },
+  { to: "/#work", label: "Work" },
+  { to: "/blog", label: "Blog" },
+  { to: "/#contact", label: "Contact" },
+];
 
 function FooterComp(): React.ReactElement {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="footer mt-auto sm:footer-horizontal bg-base-200 border-t-1 border-base-300 flex flex-col sm:flex-row flex-wrap justify-center sm:justify-between items-center gap-4 sm:gap-6 px-4 sm:px-8 md:px-10 lg:px-12 xl:px-20 2xl:px-32 py-6 sm:py-4 text-base ubuntu-light text-center sm:text-left">
-      <aside className="grid-flow-col items-center  text-base  ubuntu-light ">
-        <p>Copyright © {new Date().getFullYear()} - All right reserved</p>
-      </aside>
-      <div className="privacy">
-        <ul className="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
-          <li>
-            <a href="#" className="">
-              Privacy Policy
+    <footer className="mt-auto border-t border-base-300 bg-base-200/60">
+      <div className="page-container grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="lg:col-span-2">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
+            <span className="font-mono text-xl font-bold text-primary">{"</>"}</span>
+            <span className="font-mono capitalize">john dera</span>
+          </Link>
+          <p className="mt-3 max-w-sm text-sm text-base-content/70">
+            Front-end developer building fast, accessible interfaces — and writing about it.
+          </p>
+          <div className="mt-4 flex gap-2">
+            <a href={site.socials.github} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm btn-square border border-base-300" aria-label="GitHub">
+              <Github className="h-4 w-4" />
             </a>
-          </li>
-          <li>
-            <a href="#" className="">
-              Terms & Conditions
+            <a href={site.socials.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm btn-square border border-base-300" aria-label="LinkedIn">
+              <LinkedIn className="h-4 w-4" />
             </a>
-          </li>
-        </ul>
+            <a href="/rss.xml" className="btn btn-ghost btn-sm btn-square border border-base-300" aria-label="RSS feed">
+              <RssIcon className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+
+        <nav aria-label="Footer">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-base-content/55">Site</h2>
+          <ul className="mt-3 flex flex-col gap-2 text-sm">
+            {LINKS.map((link) => (
+              <li key={link.to}>
+                <Link to={link.to} className="hover:text-primary">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-base-content/55">More</h2>
+          <ul className="mt-3 flex flex-col gap-2 text-sm">
+            <li>
+              <a href={`mailto:${site.email}`} className="hover:text-primary">
+                Email me
+              </a>
+            </li>
+            <li>
+              <a href={site.resumeUrl} download className="hover:text-primary">
+                Download CV
+              </a>
+            </li>
+            <li>
+              <Link to="/privacy" className="hover:text-primary">
+                Privacy
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className="hover:text-primary">
+                Terms
+              </Link>
+            </li>
+          </ul>
+        </div>
       </div>
-      <div className="media">
-        <ul className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8">
-          <li className="">
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
-              aria-label="GitHub"
-            >
-              <Github />
-            </a>
-          </li>
-          <li className="">
-            <a
-              href="https://linkedin.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
-              aria-label="LinkedIn"
-            >
-              <LinkedIn />
-            </a>
-          </li>
-          <li className="">
-            <a
-              href="https://twitter.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
-              aria-label="Twitter"
-            >
-              <Twitter />
-            </a>
-          </li>
-          <li className="">
-            <a
-              href="#"
-              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
-              aria-label="Instagram"
-            >
-              <IconInstagram />
-            </a>
-          </li>
-          <li className="">
-            <a
-              href="#"
-              className="p-2 inline-block bg-secondary rounded-full hover:bg-primary transition-colors duration-300"
-              aria-label="Discord"
-            >
-              <Discord />
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div className="developer">
-        <h4 className="text-base  ubuntu-light">
-          Developed by{" "}
-          <span className=" underline-offset-4 text-secondary underline">
-            Chidera Okonkwo
-          </span>
-        </h4>
+      <div className="border-t border-base-300">
+        <p className="page-container py-4 text-center text-xs text-base-content/60">
+          © {year} {site.fullName}. All rights reserved.
+        </p>
       </div>
     </footer>
   );

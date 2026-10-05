@@ -1,7 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 // Firebase configuration
 // Replace these with your actual Firebase config values
@@ -18,12 +18,15 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "your-app-id",
 };
 
+const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true";
+
 const hasValidConfig =
+  useEmulators ||
   firebaseConfig.apiKey !== "your-api-key" &&
   firebaseConfig.authDomain !== "your-auth-domain" &&
   firebaseConfig.projectId !== "your-project-id";
 
-if (!hasValidConfig) {
+if (!hasValidConfig && import.meta.env.DEV) {
   console.warn(
     "⚠️ Firebase config not set. Add your credentials to a .env file.\n" +
       "Firebase-backed features will remain unavailable until then.\n" +
@@ -38,6 +41,14 @@ const app = getApps()[0] ?? initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
+
+// Local development and end-to-end tests run against the Firebase emulators.
+if (useEmulators) {
+  const host = import.meta.env.VITE_FIREBASE_EMULATOR_HOST || "127.0.0.1";
+  connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+  connectFirestoreEmulator(db, host, 8080);
+  connectStorageEmulator(storage, host, 9199);
+}
 
 export { db, auth, storage };
 export default app;

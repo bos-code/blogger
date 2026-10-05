@@ -1,75 +1,57 @@
-import SectionHead from "./sectionHead";
-import { usePosts } from "../hooks/usePosts";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import BlogPostCard from "./BlogPostCard";
-import PremiumSpinner from "./PremiumSpinner";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
-import type { BlogPost } from "../types";
+import SectionHead from "./sectionHead";
+import BlogPostCard from "./BlogPostCard";
+import BlogPostSkeleton from "./BlogPostSkeleton";
+import { usePosts } from "../hooks/usePosts";
 import { isPostPublic, toTimestamp } from "../utils/date";
 
 function SectionBlog(): React.ReactElement {
-  const { data: posts = [], isLoading } = usePosts();
+  const { data: posts = [], isLoading, error } = usePosts();
 
-  // Filter approved posts and sort by date (newest first)
-  const approvedPosts = posts
-    .filter(isPostPublic)
-    .sort((a: BlogPost, b: BlogPost) => {
-      const aTime = toTimestamp(a.createdAt);
-      const bTime = toTimestamp(b.createdAt);
-      return bTime - aTime;
-    })
-    .slice(0, 3); // Show only latest 3 posts
+  const published = posts
+    .filter((post) => isPostPublic(post))
+    .sort((a, b) => toTimestamp(b.scheduledFor ?? b.createdAt) - toTimestamp(a.scheduledFor ?? a.createdAt));
+  const featured = published.find((post) => post.featured);
+  const latest = published.filter((post) => post.id !== featured?.id).slice(0, 3);
 
   return (
-    <section
-      id="blog"
-      data-section
-      data-section-title="Blog"
-      className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24"
-    >
-      <SectionHead
-        title={"Blogs"}
-        descript={
-          "My thoughts on technology and business, welcome to subscribe"
-        }
-      />
+    <section id="blog" aria-labelledby="blog-heading" className="py-20 sm:py-24">
+      <div className="page-container">
+        <SectionHead
+          id="blog-heading"
+          eyebrow="Blog"
+          title="Latest writing"
+          descript="Notes on front-end development and things I'm learning."
+        />
 
-      {/* Latest Blog Posts */}
-      <div className="mt-8 sm:mt-12 md:mt-16">
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <PremiumSpinner size="md" text="Loading latest posts..." />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((index) => (
+              <BlogPostSkeleton key={index} />
+            ))}
           </div>
-        ) : approvedPosts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-base-content/70 text-lg">
-              No blog posts available yet. Check back soon!
-            </p>
-          </div>
+        ) : error || published.length === 0 ? (
+          <p className="text-center text-base-content/65">
+            {error ? "Posts couldn't be loaded right now." : "No posts yet — check back soon."}
+          </p>
         ) : (
           <>
-            <div className="space-y-6 sm:space-y-8 md:space-y-10">
-              {approvedPosts.map((post: BlogPost, index: number) => (
-                <BlogPostCard key={post.id} post={post} index={index} />
+            {featured && (
+              <div className="mb-6">
+                <BlogPostCard post={featured} variant="featured" />
+              </div>
+            )}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latest.map((post) => (
+                <BlogPostCard key={post.id} post={post} />
               ))}
             </div>
-
-            {/* See More Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="flex justify-center mt-8 sm:mt-12 md:mt-16"
-            >
-              <Link
-                to="/blogpage"
-                className="btn btn-primary btn-lg gap-2 group"
-              >
-                <span>See More Blogs</span>
-                <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+            <div className="mt-10 flex justify-center">
+              <Link to="/blog" className="btn btn-ghost gap-2 border border-base-300">
+                Read all posts <ArrowRightIcon className="h-4 w-4" />
               </Link>
-            </motion.div>
+            </div>
           </>
         )}
       </div>

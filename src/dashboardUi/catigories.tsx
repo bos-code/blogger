@@ -8,6 +8,7 @@ import {
 } from "../hooks/useCategories";
 import { motion } from "framer-motion";
 import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
+import PageHeader from "../components/ui/PageHeader";
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -160,30 +161,21 @@ export default function Categories(): React.ReactElement {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-base-content">Manage Categories</h1>
-          <p className="text-base-content/70 mt-1">
-            {filteredCategories.length} categories
-          </p>
-        </div>
-      </motion.div>
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title="Categories"
+        description={`${categories.length} categories · writers pick from this list in the editor`}
+      />
 
       {/* Add Category */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card bg-base-100 shadow-lg"
+        className="surface"
       >
         <div className="card-body p-4">
           <div className="flex flex-col sm:flex-row gap-4">
-            <label className="input input-bordered flex items-center gap-2 flex-1">
+            <label className="input flex items-center gap-2 flex-1">
               <TagIcon className="w-4 h-4" />
               <input
                 type="text"
@@ -218,10 +210,10 @@ export default function Categories(): React.ReactElement {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="card bg-base-100 shadow-lg"
+        className="surface"
       >
         <div className="card-body p-4">
-          <label className="input input-bordered flex items-center gap-2">
+          <label className="input flex items-center gap-2">
             <MagnifyingGlassIcon className="w-4 h-4" />
             <input
               type="text"
@@ -240,7 +232,7 @@ export default function Categories(): React.ReactElement {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="card bg-base-100 shadow-xl"
+        className="surface"
       >
         <div className="card-body">
           {filteredCategories.length === 0 ? (
@@ -260,7 +252,7 @@ export default function Categories(): React.ReactElement {
                     key={category}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="card bg-base-200 shadow-md hover:shadow-lg transition-shadow"
+                    className="rounded-xl border border-base-300 bg-base-200/50"
                   >
                     <div className="card-body p-4">
                       <div className="flex items-center justify-between mb-2">

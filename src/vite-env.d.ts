@@ -11,4 +11,7 @@ interface ImportMetaEnv {
   readonly VITE_HUGGINGFACE_MODEL?: string;
   /** Base URL of the serverless API (Vercel functions). Defaults to same origin. */
   readonly VITE_API_BASE_URL?: string;
+  /** "true" connects to the local Firebase emulators (development and tests). */
+  readonly VITE_USE_FIREBASE_EMULATORS?: string;
+  readonly VITE_FIREBASE_EMULATOR_HOST?: string;
 }

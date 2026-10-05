@@ -480,3 +480,19 @@
 .tiptap-editor .ProseMirror-gapcursor::after {
   border-top-color: var(--color-base-content);
 }
+.article-content :where(td, th) > p {
+  margin: 0;
+}
+.article-content pre .code-copy-button {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.article-content pre:hover .code-copy-button,
+.article-content pre .code-copy-button:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .article-content pre .code-copy-button {
+    opacity: 1;
+  }
+}

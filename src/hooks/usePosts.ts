@@ -6,7 +6,9 @@ import {
 } from "@tanstack/react-query";
 import {
   collection,
+  getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   addDoc,
@@ -56,7 +58,7 @@ interface UpdatePostResult {
 }
 
 interface LikeMutationContext {
-  previousPostQueries: Array<[QueryKey, BlogPost[] | undefined]>;
+  previousPostQueries: Array<[QueryKey, BlogPost[] | BlogPost | null | undefined]>;
 }
 
 type PostReadScope = "all" | "writer" | "public";
@@ -142,6 +144,41 @@ export const usePosts = () => {
       // Retry up to 2 times for network errors
       return failureCount < 2;
     },
+  });
+};
+
+/**
+ * One post by id. Uses the post list cache when available and otherwise
+ * reads the document directly (approved posts are publicly readable).
+ */
+export const usePost = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const displayStatus = useAuthStore((state) => state.displayStatus);
+
+  return useQuery<BlogPost | null>({
+    queryKey: [...queryKeys.posts.detail(id ?? ""), user?.uid ?? "anonymous"],
+    queryFn: async () => {
+      try {
+        const snapshot = await getDoc(doc(db, "posts", id!));
+        return snapshot.exists()
+          ? ({ id: snapshot.id, ...snapshot.data() } as BlogPost)
+          : null;
+      } catch (error) {
+        // Private posts are unreadable to other users: treat as not found.
+        if ((error as { code?: string }).code === "permission-denied") return null;
+        throw error;
+      }
+    },
+    initialData: () =>
+      queryClient
+        .getQueriesData<BlogPost[]>({ queryKey: queryKeys.posts.all })
+        .flatMap(([, posts]) => (Array.isArray(posts) ? posts : []))
+        .find((post) => post.id === id),
+    initialDataUpdatedAt: () =>
+      queryClient.getQueryState(queryKeys.posts.all)?.dataUpdatedAt,
+    enabled: Boolean(id) && displayStatus !== "loading",
+    staleTime: 30 * 1000,
   });
 };
 
@@ -377,12 +414,23 @@ export const useIncrementPostView = () => {
         views: increment(1),
         updatedAt: serverTimestamp(),
       });
+      // Daily totals for the analytics dashboard (best-effort).
+      const day = new Date().toISOString().slice(0, 10);
+      try {
+        await setDoc(
+          doc(db, "dailyStats", day),
+          { date: day, views: increment(1), posts: { [postId]: increment(1) } },
+          { merge: true }
+        );
+      } catch {
+        // Analytics must never affect reading.
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
     onError: (error) => {
-      console.error("Failed to increment post view:", error);
+      if (import.meta.env.DEV) console.error("Failed to increment post view:", error);
     },
   });
 };
@@ -452,7 +500,9 @@ export const useLikePost = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.posts.all });
 
       // Snapshot the previous value for rollback
-      const previousPostQueries = queryClient.getQueriesData<BlogPost[]>({
+      const previousPostQueries = queryClient.getQueriesData<
+        BlogPost[] | BlogPost | null
+      >({
         queryKey: queryKeys.posts.all,
       });
 
@@ -468,21 +518,16 @@ export const useLikePost = () => {
         ? currentLikedBy.filter((id) => id !== userId)
         : [...currentLikedBy, userId];
 
-      // Optimistically update the cache
-      queryClient.setQueriesData<BlogPost[]>(
+      // Optimistically update both post lists and single-post entries.
+      const applyLike = (post: BlogPost): BlogPost =>
+        post.id === postId
+          ? { ...post, likedBy: newLikedBy, likes: newLikedBy.length }
+          : post;
+      queryClient.setQueriesData<BlogPost[] | BlogPost | null>(
         { queryKey: queryKeys.posts.all },
-        (oldPosts) => {
-          if (!oldPosts) return oldPosts;
-
-          return oldPosts.map((post) =>
-            post.id === postId
-              ? {
-                  ...post,
-                  likedBy: newLikedBy,
-                  likes: newLikedBy.length,
-                }
-              : post
-          );
+        (cached) => {
+          if (!cached) return cached;
+          return Array.isArray(cached) ? cached.map(applyLike) : applyLike(cached);
         }
       );
 

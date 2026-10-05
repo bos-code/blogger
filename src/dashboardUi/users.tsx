@@ -1,302 +1,193 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { MagnifyingGlassIcon, UsersIcon } from "@heroicons/react/24/outline";
 import { useUsers, useUpdateUser } from "../hooks/useUsers";
 import { useAuthStore } from "../stores/authStore";
-import { motion } from "framer-motion";
-import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
-import {
-  MagnifyingGlassIcon,
-  ShieldCheckIcon,
-  PencilIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
-import { showSuccess, showError } from "../utils/sweetalert";
+import PremiumSpinner from "../components/PremiumSpinner";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import Avatar from "../components/ui/Avatar";
+import { showConfirm, showError, showSuccess } from "../utils/sweetalert";
 import type { UserRole } from "../types";
 
+const ROLE_INFO: Record<UserRole, { label: string; badge: string; description: string }> = {
+  super_admin: { label: "Super admin", badge: "badge-error", description: "Everything, including managing admins" },
+  admin: { label: "Admin", badge: "badge-warning", description: "Moderate posts, manage users and categories" },
+  writer: { label: "Writer", badge: "badge-info", description: "Write posts and submit them for review" },
+  user: { label: "User", badge: "badge-ghost", description: "Like, comment and save posts" },
+  reader: { label: "Reader", badge: "badge-ghost", description: "Read and like posts (no comments)" },
+};
+
 export default function Users(): React.ReactElement {
-  const { data: users = [], isLoading } = useUsers();
+  const { data: users = [], isLoading, error } = useUsers();
   const updateUser = useUpdateUser();
   const currentUser = useAuthStore((state) => state.user);
   const currentRole = useAuthStore((state) => state.role);
   const isSuperAdmin = currentRole === "super_admin";
   const [searchQuery, setSearchQuery] = useState("");
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [newRole, setNewRole] = useState<UserRole>("user");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // Filter users
-  const filteredUsers = users.filter((user) => {
-    const name = (user.name || "").toLowerCase();
-    const email = (user.email || "").toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return name.includes(query) || email.includes(query);
-  });
+  const assignableRoles: UserRole[] = isSuperAdmin
+    ? ["reader", "user", "writer", "admin", "super_admin"]
+    : ["reader", "user", "writer"];
 
-  const handleRoleChange = (userId: string, currentRole: string): void => {
-    setEditingUserId(userId);
-    setNewRole(currentRole as UserRole);
-  };
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return users
+      .filter(
+        (user) =>
+          (roleFilter === "all" || (user.role ?? "user") === roleFilter) &&
+          (!q || (user.name ?? "").toLowerCase().includes(q) || (user.email ?? "").toLowerCase().includes(q))
+      )
+      .sort((a, b) => (a.name ?? a.email ?? "").localeCompare(b.name ?? b.email ?? ""));
+  }, [users, searchQuery, roleFilter]);
 
-  const handleSaveRole = async (userId: string): Promise<void> => {
-    if (userId === currentUser?.uid) {
-      showError("Cannot Change Own Role", "You cannot change your own role.");
-      setEditingUserId(null);
-      return;
-    }
-
-    try {
-      await updateUser.mutateAsync({
-        uid: userId,
-        data: { role: newRole },
-      });
-      showSuccess("Role Updated", `User role has been updated to ${newRole}.`);
-      setEditingUserId(null);
-    } catch {
-      showError(
-        "Update Failed",
-        "Failed to update user role. Please try again."
-      );
-    }
-  };
-
-  const handleCancelEdit = (): void => {
-    setEditingUserId(null);
-    setNewRole("user");
-  };
-
-  const getRoleBadgeColor = (role: string): string => {
-    switch (role) {
-      case "super_admin":
-        return "badge-error";
-      case "admin":
-        return "badge-error";
-      case "writer":
-        return "badge-warning";
-      case "reader":
-        return "badge-info";
-      default:
-        return "badge-secondary";
-    }
+  const changeRole = (userId: string, name: string, from: UserRole, to: UserRole) => {
+    if (from === to) return;
+    const warning =
+      to === "super_admin"
+        ? " Super admins can't be demoted from this screen."
+        : to === "admin"
+          ? " Admins can moderate all posts and manage users."
+          : "";
+    showConfirm("Change role?", `Make ${name} a ${ROLE_INFO[to].label.toLowerCase()}?${warning}`, {
+      confirmText: "Change role",
+      confirmColor: to === "super_admin" || to === "admin" ? "warning" : "primary",
+      onConfirm: async () => {
+        setUpdatingId(userId);
+        try {
+          await updateUser.mutateAsync({ uid: userId, data: { role: to } });
+          showSuccess("Role updated", `${name} is now a ${ROLE_INFO[to].label.toLowerCase()}.`);
+        } catch {
+          showError("Update failed", "You may not have permission to make this change.");
+        } finally {
+          setUpdatingId(null);
+        }
+      },
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex min-h-[40vh] items-center justify-center">
         <PremiumSpinner size="lg" variant="primary" text="Loading users..." />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-base-content">Manage Users</h1>
-          <p className="text-base-content/70 mt-1">
-            {filteredUsers.length} of {users.length} users
-          </p>
-        </div>
-      </motion.div>
+    <div>
+      <PageHeader title="Users" description={`${filteredUsers.length} of ${users.length} users`} />
 
-      {/* Search */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card bg-base-100 shadow-lg"
-      >
-        <div className="card-body p-4">
-          <label className="input input-bordered flex items-center gap-2">
-            <MagnifyingGlassIcon className="w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search users by name or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="grow"
-            />
-          </label>
+      {error && (
+        <div role="alert" className="alert alert-error mb-4">
+          Couldn't load users.
         </div>
-      </motion.div>
+      )}
 
-      {/* Users Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card bg-base-100 shadow-xl"
-      >
-        <div className="card-body p-0">
-          {filteredUsers.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-base-content/70 text-lg">
-                {searchQuery ? "No users match your search" : "No users found"}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user) => {
-                    const isCurrentUser = user.id === currentUser?.uid;
-                    const isEditing = editingUserId === user.id;
-                    const hasProtectedRole =
-                      user.role === "admin" || user.role === "super_admin";
-                    const canEditRole =
-                      !isCurrentUser && (isSuperAdmin || !hasProtectedRole);
+      <div className="surface mb-4 flex flex-col gap-3 p-3 sm:flex-row sm:p-4">
+        <label className="input flex-1">
+          <MagnifyingGlassIcon className="h-4 w-4 opacity-60" aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search by name or email"
+            aria-label="Search users"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="grow"
+          />
+        </label>
+        <label htmlFor="role-filter" className="sr-only">
+          Filter by role
+        </label>
+        <select
+          id="role-filter"
+          className="select sm:w-48"
+          value={roleFilter}
+          onChange={(event) => setRoleFilter(event.target.value as UserRole | "all")}
+        >
+          <option value="all">All roles</option>
+          {(Object.keys(ROLE_INFO) as UserRole[]).map((role) => (
+            <option key={role} value={role}>
+              {ROLE_INFO[role].label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-                    return (
-                      <tr key={user.id} className="hover">
-                        <td>
-                          <div className="flex items-center gap-3">
-                            {user.photoURL ? (
-                              <img
-                                src={user.photoURL}
-                                alt={user.name || "User"}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                                <UserIcon className="w-6 h-6" />
-                              </div>
-                            )}
-                            <div>
-                              <div className="font-semibold">
-                                {user.name || "Anonymous"}
-                                {isCurrentUser && (
-                                  <span className="badge badge-sm badge-primary ml-2">
-                                    You
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-sm text-base-content/70">
-                                ID: {user.id.slice(0, 8)}...
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="text-sm">
-                            {user.email || "No email"}
-                          </div>
-                        </td>
-                        <td>
-                          {isEditing ? (
-                            <div className="flex items-center gap-2">
-                              <select
-                                className="select select-bordered select-sm"
-                                value={newRole}
-                                onChange={(e) =>
-                                  setNewRole(e.target.value as UserRole)
-                                }
-                              >
-                                <option value="user">User</option>
-                                <option value="writer">Writer</option>
-                                {isSuperAdmin && (
-                                  <option value="admin">Admin</option>
-                                )}
-                                <option value="reader">Reader</option>
-                              </select>
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleSaveRole(user.id)}
-                                disabled={updateUser.isPending}
-                              >
-                                {updateUser.isPending ? (
-                                  <CompactSpinner size="sm" variant="primary" />
-                                ) : (
-                                  "Save"
-                                )}
-                              </button>
-                              <button
-                                className="btn btn-sm btn-ghost"
-                                onClick={handleCancelEdit}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <span
-                              className={`badge ${getRoleBadgeColor(
-                                user.role || "user"
-                              )}`}
-                            >
-                              {user.role || "user"}
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {!isEditing && canEditRole && (
-                            <button
-                              className="btn btn-sm btn-primary gap-2"
-                              onClick={() =>
-                                handleRoleChange(user.id, user.role || "user")
-                              }
-                              title="Change Role"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                              <span>Edit Role</span>
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </motion.div>
+      <div className="surface overflow-hidden">
+        {filteredUsers.length === 0 ? (
+          <EmptyState icon={UsersIcon} title="No users found" description="Try a different search or role." />
+        ) : (
+          <ul className="divide-y divide-base-300">
+            {filteredUsers.map((user) => {
+              const role = (user.role ?? "user") as UserRole;
+              const isCurrentUser = user.id === currentUser?.uid;
+              const isProtected = role === "admin" || role === "super_admin";
+              const canEdit = !isCurrentUser && role !== "super_admin" && (isSuperAdmin || !isProtected);
+              const name = user.name || user.email || "this user";
 
-      {/* Role Legend */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="card bg-base-100 shadow-lg"
-      >
-        <div className="card-body p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <ShieldCheckIcon className="w-5 h-5" />
-            Role Permissions
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="badge badge-error mr-2">Admin</span>
-              <p className="text-base-content/70 mt-1">
-                Full access to all features
-              </p>
+              return (
+                <li key={user.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <Avatar name={user.name || user.email} src={user.photoURL} size="md" />
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {user.name || "Unnamed"}
+                        {isCurrentUser && <span className="badge badge-primary badge-sm ml-2">You</span>}
+                      </p>
+                      <p className="truncate text-sm text-base-content/60">{user.email || "No email"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:w-56">
+                    {canEdit ? (
+                      <>
+                        <label htmlFor={`role-${user.id}`} className="sr-only">
+                          Role for {name}
+                        </label>
+                        <select
+                          id={`role-${user.id}`}
+                          className="select select-sm w-full"
+                          value={role}
+                          disabled={updatingId === user.id}
+                          onChange={(event) => changeRole(user.id, name, role, event.target.value as UserRole)}
+                        >
+                          {assignableRoles.map((option) => (
+                            <option key={option} value={option}>
+                              {ROLE_INFO[option].label}
+                            </option>
+                          ))}
+                        </select>
+                        {updatingId === user.id && <span className="loading loading-spinner loading-xs" />}
+                      </>
+                    ) : (
+                      <span className={`badge ${ROLE_INFO[role].badge}`} title={isCurrentUser ? "You can't change your own role" : "Protected role"}>
+                        {ROLE_INFO[role].label}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <section className="surface mt-6 p-5" aria-labelledby="roles-heading">
+        <h2 id="roles-heading" className="mb-3 font-semibold">
+          What each role can do
+        </h2>
+        <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-5">
+          {(Object.keys(ROLE_INFO) as UserRole[]).map((role) => (
+            <div key={role}>
+              <dt>
+                <span className={`badge badge-sm ${ROLE_INFO[role].badge}`}>{ROLE_INFO[role].label}</span>
+              </dt>
+              <dd className="mt-1 text-base-content/70">{ROLE_INFO[role].description}</dd>
             </div>
-            <div>
-              <span className="badge badge-warning mr-2">Writer</span>
-              <p className="text-base-content/70 mt-1">
-                Can create and edit posts
-              </p>
-            </div>
-            <div>
-              <span className="badge badge-secondary mr-2">User</span>
-              <p className="text-base-content/70 mt-1">
-                Standard user permissions
-              </p>
-            </div>
-            <div>
-              <span className="badge badge-info mr-2">Reader</span>
-              <p className="text-base-content/70 mt-1">Read-only access</p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+          ))}
+        </dl>
+      </section>
     </div>
   );
 }

@@ -1,19 +1,28 @@
-import codeFace from "../assets/code-face.webp";
-import ProjectMockup from "./projectMockup";
+import ProjectCard from "./ProjectCard";
 import SectionHead from "./sectionHead";
+import { useProjects } from "../hooks/useProjects";
+import { FALLBACK_PROJECTS } from "../data/projects";
 
 function Work(): React.ReactElement {
+  const { data } = useProjects();
+  const projects = data?.projects ?? FALLBACK_PROJECTS;
+
   return (
-    <section
-      className="work bg-contain bg-repeat"
-      style={{ backgroundImage: `url(${codeFace})` }}
-    >
-      <div className="bg-base-200/85 p-4 sm:p-8 md:p-16 lg:p-24 xl:p-32 gap-8 sm:gap-12 lg:gap-16 text-center flex flex-col items-center justify-center">
+    <section id="work" aria-labelledby="work-heading" className="bg-base-200/60 py-20 sm:py-24">
+      <div className="page-container">
         <SectionHead
-          title={"Works"}
-          descript={"I had the pleasure of working with these awesome projects"}
+          id="work-heading"
+          eyebrow="Work"
+          title="Selected projects"
+          descript="A few things I've designed and built."
         />
-        <ProjectMockup />
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((project) => (
+            <li key={project.id}>
+              <ProjectCard project={project} />
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
