@@ -32,9 +32,31 @@ test("writer drafts with autosave and submits; admin publishes", async ({ page, 
   await expect(page.locator(".tiptap-editor h2")).toHaveText("A section heading");
 
   // Preview renders the article.
-  await page.getByRole("button", { name: "Preview" }).click();
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.locator(".article-content h2")).toHaveText("A section heading");
-  await page.getByRole("button", { name: "Write" }).click();
+  await page.getByRole("button", { name: "Write", exact: true }).click();
+
+  // Shareable preview link works for someone without an account.
+  if (!(await page.getByRole("heading", { name: "Post settings" }).isVisible())) {
+    await page.getByRole("button", { name: "Post settings" }).click();
+  }
+  await page.getByRole("button", { name: "Create preview link" }).click();
+  const previewUrl = await page.getByRole("textbox", { name: "Preview link" }).inputValue();
+  expect(previewUrl).toMatch(/\/preview\/[A-Za-z0-9]+\?token=/);
+  const anonymous = await browser.newContext({ locale: "en-US" });
+  const visitor = await anonymous.newPage();
+  await visitor.goto(previewUrl);
+  await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(title);
+  await expect(visitor.getByText(/Draft preview/)).toBeVisible();
+  await anonymous.close();
+  const panelClose = page.getByRole("complementary", { name: "Post settings" }).getByRole("button", { name: "Close settings" });
+  if (await panelClose.isVisible()) await panelClose.click();
+
+  // Media library tab is available in the image dialog.
+  await page.getByRole("button", { name: "Image", exact: true }).first().click();
+  await page.getByRole("tab", { name: "Library" }).click();
+  await expect(page.getByText(/Images you upload appear here|Use /).first()).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
 
   await page.getByRole("button", { name: "Submit for review" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Submit for review" }).click();

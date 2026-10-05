@@ -3,9 +3,9 @@ export const site = {
   name: "John Dera",
   shortName: "Dera",
   fullName: "Chidera Okonkwo",
-  role: "Front-end developer",
+  role: "Frontend engineer",
   email: "chidera9713@gmail.com",
-  location: "Nigeria",
+  location: "Lagos, Nigeria",
   availability: "Full-time / Freelance",
   resumeUrl: "/John-Dera-Resume.pdf",
   socials: {

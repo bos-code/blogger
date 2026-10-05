@@ -19,7 +19,7 @@ process.env.SITE_URL = "https://example.test";
 // Inside the repo so bundled handlers resolve node_modules.
 const outdir = join(process.cwd(), "node_modules/.cache/api-test");
 mkdirSync(outdir, { recursive: true });
-const handlers = ["rss", "sitemap", "share", "robots", "subscribe", "subscribe-confirm", "unsubscribe", "notify-subscribers", "contact-alert"];
+const handlers = ["preview", "rss", "sitemap", "share", "robots", "subscribe", "subscribe-confirm", "unsubscribe", "notify-subscribers", "contact-alert"];
 await build({
   entryPoints: handlers.map((name) => `api/${name}.ts`),
   outdir,
@@ -140,6 +140,22 @@ await check("contact-alert only fires once for fresh messages", async () => {
   assert.equal(second.skipped, true);
   const old = await (await POST(post("contact-alert", { messageId: "m1" }))).json();
   assert.equal(old.skipped, true);
+});
+
+await check("preview requires the right token", async () => {
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const { getApps } = await import("firebase-admin/app");
+  const db = getFirestore(getApps()[0]);
+  const token = "a".repeat(32);
+  await db.collection("posts").doc("writer-draft").update({ previewToken: token });
+  const { GET } = await load("preview");
+  const ok = await GET(new Request(`https://example.test/api/preview?id=writer-draft&token=${token}`));
+  assert.equal(ok.status, 200);
+  assert.equal((await ok.json()).title, "Draft: notes on TypeScript generics");
+  const wrong = await GET(new Request(`https://example.test/api/preview?id=writer-draft&token=${"b".repeat(32)}`));
+  assert.equal(wrong.status, 404);
+  const none = await GET(new Request("https://example.test/api/preview?id=modern-css&token=" + token));
+  assert.equal(none.status, 404);
 });
 
 console.log(results.join("\n"));

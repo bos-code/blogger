@@ -80,7 +80,7 @@ export default function Hero(): React.ReactElement {
             {...fadeUp(0.1)}
             className="mx-auto mt-6 max-w-xl text-lg text-base-content/75 lg:mx-0"
           >
-            Front-end developer working with React and TypeScript — turning designs into
+            Frontend engineer working with React, Next.js and React Native — turning designs into
             responsive, maintainable products, and writing about what I learn along the way.
           </motion.p>
 

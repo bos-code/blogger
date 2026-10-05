@@ -9,6 +9,9 @@ import type { EditorFields } from "./postApi";
 import type { PostStatus } from "../types";
 
 interface Props {
+  previewToken?: string | null;
+  onCreatePreviewLink?: () => Promise<void>;
+  onRevokePreviewLink?: () => Promise<void>;
   fields: EditorFields;
   onChange: (patch: Partial<EditorFields>) => void;
   categories: string[];
@@ -41,6 +44,9 @@ const Counter = ({ value, max }: { value: string; max: number }) => (
 );
 
 export default function PostSettingsPanel({
+  previewToken,
+  onCreatePreviewLink,
+  onRevokePreviewLink,
   fields,
   onChange,
   categories,
@@ -51,6 +57,9 @@ export default function PostSettingsPanel({
   uploadImage,
 }: Props): React.ReactElement {
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const previewUrl =
+    postId && previewToken ? `${window.location.origin}/preview/${postId}?token=${previewToken}` : "";
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
 
@@ -110,6 +119,55 @@ export default function PostSettingsPanel({
           </p>
         </div>
       </Section>
+
+      {status !== "approved" && onCreatePreviewLink && (
+        <Section title="Share a preview">
+          {!postId ? (
+            <p className="text-xs text-base-content/60">Save the post first to create a preview link.</p>
+          ) : previewUrl ? (
+            <>
+              <div className="flex gap-2">
+                <label htmlFor="preview-link" className="sr-only">Preview link</label>
+                <input id="preview-link" readOnly value={previewUrl} className="input input-sm flex-1" onFocus={(event) => event.target.select()} />
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => void navigator.clipboard.writeText(previewUrl)}
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-base-content/60">Anyone with this link can read the draft. It always shows the latest saved version.</p>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs self-start text-error"
+                disabled={previewBusy}
+                onClick={async () => {
+                  setPreviewBusy(true);
+                  await onRevokePreviewLink?.();
+                  setPreviewBusy(false);
+                }}
+              >
+                Revoke link
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm self-start border border-base-300"
+              disabled={previewBusy}
+              onClick={async () => {
+                setPreviewBusy(true);
+                await onCreatePreviewLink();
+                setPreviewBusy(false);
+              }}
+            >
+              {previewBusy && <span className="loading loading-spinner loading-xs" />}
+              Create preview link
+            </button>
+          )}
+        </Section>
+      )}
 
       <Section title="Organise">
         <div>

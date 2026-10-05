@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createQueryClient } from "./utils/queryClient";
 import "./stores/themeStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Analytics } from "@vercel/analytics/react";
 import App from "./App.tsx";
 import "./App.css";
 
@@ -19,6 +20,17 @@ const ReactQueryDevtools = import.meta.env.DEV
   : null;
 
 const queryClient = createQueryClient();
+
+// Optional error monitoring: only loaded when a Sentry DSN is configured.
+if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
+  void import("@sentry/react").then((Sentry) =>
+    Sentry.init({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      environment: import.meta.env.MODE,
+      tracesSampleRate: 0,
+    })
+  );
+}
 
 // Get the root element
 const rootElement = document.getElementById("root");
@@ -35,6 +47,7 @@ createRoot(rootElement).render(
         <BrowserRouter>
           <App />
         </BrowserRouter>
+        {import.meta.env.PROD && <Analytics />}
         {ReactQueryDevtools ? (
           <Suspense fallback={null}>
             <ReactQueryDevtools initialIsOpen={false} />

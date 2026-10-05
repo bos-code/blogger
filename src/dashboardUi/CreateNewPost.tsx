@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebaseconfig";
 import {
   ArrowLeftIcon,
   ArrowsPointingInIcon,
@@ -132,6 +134,7 @@ export default function CreatePost(): React.ReactElement {
   const [savedSnapshot, setSavedSnapshot] = useState(() => serialize(EMPTY_FIELDS));
   const [status, setStatus] = useState<PostStatus | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [previewToken, setPreviewToken] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "forbidden" | "error">(
     routeId ? "loading" : "ready"
   );
@@ -249,6 +252,7 @@ export default function CreatePost(): React.ReactElement {
         setPostId(post.id);
         setStatus(post.status ?? "draft");
         setRejectionReason(post.rejectionReason ?? null);
+        setPreviewToken((post as BlogPost & { previewToken?: string }).previewToken ?? null);
         setFields(loadedFields);
         setSavedSnapshot(serialize(loadedFields));
         editor.commands.setContent(loadedFields.content || "", { emitUpdate: false });
@@ -489,6 +493,20 @@ export default function CreatePost(): React.ReactElement {
       writeBackup(postIdRef.current, fieldsRef.current);
     }
     navigate("/admin");
+  };
+
+  const setPreviewLink = async (create: boolean) => {
+    if (!postId) return;
+    const token = create
+      ? Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("")
+      : null;
+    try {
+      await updateDoc(doc(db, "posts", postId), { previewToken: token });
+      setPreviewToken(token);
+      showToast("success", create ? "Preview link created" : "Preview link revoked");
+    } catch {
+      showError("Couldn't update the preview link", "Please try again.");
+    }
   };
 
   const restoreRevision = (revision: PostRevision) => {
@@ -839,6 +857,9 @@ export default function CreatePost(): React.ReactElement {
                 </button>
               </div>
               <PostSettingsPanel
+                previewToken={previewToken}
+                onCreatePreviewLink={() => setPreviewLink(true)}
+                onRevokePreviewLink={() => setPreviewLink(false)}
                 fields={fields}
                 onChange={updateFields}
                 categories={categories}

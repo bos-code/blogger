@@ -14,4 +14,6 @@ interface ImportMetaEnv {
   /** "true" connects to the local Firebase emulators (development and tests). */
   readonly VITE_USE_FIREBASE_EMULATORS?: string;
   readonly VITE_FIREBASE_EMULATOR_HOST?: string;
+  /** Optional Sentry DSN for production error monitoring. */
+  readonly VITE_SENTRY_DSN?: string;
 }

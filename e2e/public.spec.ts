@@ -16,6 +16,25 @@ test.describe("public site", () => {
     expect(errors).toEqual([]);
   });
 
+  test("experience timeline, RSS feed and newsletter signup", async ({ page }) => {
+    await page.goto("/#experience");
+    await expect(page.getByRole("heading", { name: "Where I've been" })).toBeVisible();
+    await expect(page.getByText("Lagos State University (LASU)")).toBeVisible();
+
+    const rss = await page.request.get("/rss.xml");
+    expect(rss.status()).toBe(200);
+    expect(await rss.text()).toContain("When do you actually need useEffect?");
+
+    await page.goto("/blog");
+    const email = page.getByLabel("Email address").first();
+    await email.fill("not-an-email");
+    await page.getByRole("button", { name: "Subscribe" }).first().click();
+    await expect(page.getByText("Enter a valid email address.")).toBeVisible();
+    await email.fill(`e2e-${Date.now()}@example.com`);
+    await page.getByRole("button", { name: "Subscribe" }).first().click();
+    await expect(page.getByText("Check your inbox to confirm your subscription.")).toBeVisible();
+  });
+
   test("contact form validates and sends", async ({ page }) => {
     await page.goto("/#contact");
     await page.getByRole("button", { name: /send message/i }).click();

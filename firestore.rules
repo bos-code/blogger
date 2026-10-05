@@ -142,6 +142,7 @@ service cloud.firestore {
             'series',
             'seriesOrder',
             'lastEditedBy',
+            'previewToken',
             'updatedAt'
           ]);
       }

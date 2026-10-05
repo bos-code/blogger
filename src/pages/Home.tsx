@@ -3,6 +3,7 @@ import Work from "../components/Sectionwork";
 import AboutMe from "../components/about";
 import SectionBlog from "../components/sectionBlog";
 import Stack from "../components/sectionStack";
+import Experience from "../components/Experience";
 import Hero from "../components/Hero";
 import SectionNav from "../components/SectionNav";
 import { useDocumentMeta } from "../hooks/useDocumentMeta";
@@ -28,6 +29,7 @@ export default function Home(): React.ReactElement {
       <Hero />
       <AboutMe />
       <Stack />
+      <Experience />
       <Work />
       <SectionBlog />
       <SectionContact />

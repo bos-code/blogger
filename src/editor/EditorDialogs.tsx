@@ -3,6 +3,8 @@ import type { Editor } from "@tiptap/react";
 import { NodeSelection } from "@tiptap/pm/state";
 import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 import Modal from "../components/ui/Modal";
+import { useAuthStore } from "../stores/authStore";
+import { listUserImages, deleteStoredImage, type StoredImage } from "../services/storageService";
 import { toEmbedUrl } from "./Embed";
 import type { EditorDialog } from "./slashItems";
 
@@ -131,7 +133,20 @@ function ImageDialog({
     selection instanceof NodeSelection && selection.node.type.name === "image"
       ? (selection.node.attrs as { src: string; alt?: string; caption?: string })
       : null;
-  const [tab, setTab] = useState<"upload" | "url">("upload");
+  const [tab, setTab] = useState<"upload" | "library" | "url">("upload");
+  const userId = useAuthStore((state) => state.user?.uid);
+  const [library, setLibrary] = useState<StoredImage[] | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tab !== "library" || library !== null || !userId) return;
+    listUserImages(userId)
+      .then(setLibrary)
+      .catch(() => {
+        setLibrary([]);
+        setLibraryError("Your images couldn't be loaded.");
+      });
+  }, [tab, library, userId]);
   const [url, setUrl] = useState(editing?.src ?? "");
   const [alt, setAlt] = useState(editing?.alt ?? "");
   const [caption, setCaption] = useState(editing?.caption ?? "");
@@ -182,6 +197,9 @@ function ImageDialog({
             <button type="button" role="tab" aria-selected={tab === "upload"} className={`tab ${tab === "upload" ? "tab-active" : ""}`} onClick={() => setTab("upload")}>
               Upload
             </button>
+            <button type="button" role="tab" aria-selected={tab === "library"} className={`tab ${tab === "library" ? "tab-active" : ""}`} onClick={() => setTab("library")}>
+              Library
+            </button>
             <button type="button" role="tab" aria-selected={tab === "url"} className={`tab ${tab === "url" ? "tab-active" : ""}`} onClick={() => setTab("url")}>
               From URL
             </button>
@@ -217,6 +235,56 @@ function ImageDialog({
                 </span>
                 <span className="text-xs text-base-content/60">PNG, JPG, GIF or WebP · up to 5 MB</span>
               </button>
+            </div>
+          ) : tab === "library" ? (
+            <div>
+              {library === null ? (
+                <div className="flex justify-center py-8">
+                  <span className="loading loading-spinner" aria-label="Loading your images" />
+                </div>
+              ) : library.length === 0 ? (
+                <p className="py-6 text-center text-sm text-base-content/60">
+                  {libraryError ?? "Images you upload appear here so you can reuse them."}
+                </p>
+              ) : (
+                <ul className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+                  {library.map((image) => (
+                    <li key={image.fullPath} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUrl(image.url);
+                          if (!alt) setAlt(image.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "));
+                        }}
+                        aria-pressed={url === image.url}
+                        aria-label={`Use ${image.name}`}
+                        className={`block aspect-square w-full overflow-hidden rounded-lg border-2 ${
+                          url === image.url ? "border-primary" : "border-transparent hover:border-base-300"
+                        }`}
+                      >
+                        <img src={image.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-circle absolute right-1 top-1 bg-base-100/90 text-error opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        aria-label={`Delete ${image.name} from your library`}
+                        onClick={async () => {
+                          if (!window.confirm("Delete this image? Posts that use it will show a broken image.")) return;
+                          try {
+                            await deleteStoredImage(image.fullPath);
+                            setLibrary((current) => current?.filter((item) => item.fullPath !== image.fullPath) ?? null);
+                            if (url === image.url) setUrl("");
+                          } catch {
+                            setLibraryError("That image couldn't be deleted.");
+                          }
+                        }}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : (
             <div>

@@ -2,18 +2,18 @@ import SectionHead from "./sectionHead";
 
 const SKILL_GROUPS = [
   {
-    title: "Languages",
-    skills: ["HTML", "CSS", "JavaScript", "TypeScript"],
+    title: "Frontend",
+    skills: ["React", "Next.js", "React Native (Expo)", "TypeScript", "JavaScript (ES6+)", "HTML5", "CSS3"],
   },
   {
-    title: "Frameworks & UI",
-    skills: ["React", "Next.js", "Tailwind CSS", "DaisyUI", "Framer Motion"],
+    title: "Styling & animation",
+    skills: ["Tailwind CSS", "DaisyUI", "shadcn/ui", "Material UI", "Chakra UI", "Framer Motion", "GSAP"],
   },
   {
-    title: "Data & tooling",
-    skills: ["Firebase", "TanStack Query", "Zustand", "Vite", "Git & GitHub", "Vercel"],
+    title: "Data, state & tools",
+    skills: ["Firebase", "REST APIs", "TanStack Query", "Zustand", "React Router", "Git & GitHub", "Vite", "Vercel", "Figma"],
   },
-];
+]
 
 function Stack(): React.ReactElement {
   return (

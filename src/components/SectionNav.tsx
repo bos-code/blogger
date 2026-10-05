@@ -6,12 +6,14 @@ import {
   BriefcaseIcon,
   DocumentTextIcon,
   EnvelopeIcon,
+  AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 
 const SECTIONS: Array<{ id: string; label: string; icon: ComponentType<{ className?: string }> }> = [
   { id: "hero", label: "Home", icon: HomeIcon },
   { id: "about", label: "About", icon: UserIcon },
   { id: "stack", label: "Skills", icon: CodeBracketIcon },
+  { id: "experience", label: "Experience", icon: AcademicCapIcon },
   { id: "work", label: "Work", icon: BriefcaseIcon },
   { id: "blog", label: "Blog", icon: DocumentTextIcon },
   { id: "contact", label: "Contact", icon: EnvelopeIcon },

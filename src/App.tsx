@@ -25,6 +25,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AuthorPage = lazy(() => import("./pages/AuthorPage"));
 const LegalPage = lazy(() => import("./pages/LegalPage"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
+const PreviewPage = lazy(() => import("./pages/PreviewPage"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
 
 function App(): React.ReactElement {
@@ -71,6 +72,7 @@ function App(): React.ReactElement {
           <Route path="/blog/:id/:slug?" element={<BlogPostDetail />} />
           <Route path="/author/:authorId" element={<AuthorPage />} />
           <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/preview/:id" element={<PreviewPage />} />
           <Route path="/subscribe/confirm" element={<SubscriptionPage action="confirm" />} />
           <Route path="/unsubscribe" element={<SubscriptionPage action="unsubscribe" />} />
           <Route path="/privacy" element={<LegalPage page="privacy" />} />
