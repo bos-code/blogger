@@ -20,11 +20,11 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "../firebaseconfig";
 import type { AuthState, User, UserRole } from "../types";
+import { getAuthErrorMessage, isPopupCancellation } from "../utils/authErrors";
 
 // AuthStore interface extends AuthState
 type AuthStore = AuthState & {
@@ -63,7 +63,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   signOut: async () => {
-    if (!auth) return;
     try {
       await firebaseSignOut(auth);
       set({
@@ -72,6 +71,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         logStatus: false,
         authError: null,
         displayStatus: "ready",
+        emailVerified: false,
       });
     } catch (error) {
       get().setAuthError((error as Error).message);
@@ -79,72 +79,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   initAuth: () => {
-    if (!auth) {
-      console.warn(
-        "Firebase Auth not available. Authentication features disabled."
-      );
-      set({ displayStatus: "ready" });
-      return () => {}; // Return no-op function
-    }
-
     try {
       const unsubscribe = onAuthStateChanged(
         auth,
         async (firebaseUser: FirebaseUser | null) => {
           if (firebaseUser) {
-            // Update email verification status
-            get().setEmailVerified(firebaseUser.emailVerified);
-
-            try {
-              // Get user document from Firestore
-              if (!db) throw new Error("Firestore not available");
-              const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const user: User = {
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email,
-                  name: firebaseUser.displayName || userData.name || null,
-                  photoURL: firebaseUser.photoURL || userData.photoURL || null,
-                  nickname: userData.nickname || null,
-                };
-                const role = (userData.role as UserRole) || "user";
-                get().setUser(user, role);
-              } else {
-                // Create user document if it doesn't exist
-                const newUser: User = {
-                  uid: firebaseUser.uid,
-                  email: firebaseUser.email,
-                  name: firebaseUser.displayName || null,
-                  photoURL: firebaseUser.photoURL || null,
-                };
-
-                await setDoc(doc(db, "users", firebaseUser.uid), {
-                  ...newUser,
-                  role: "user",
-                  emailVerified: firebaseUser.emailVerified,
-                  createdAt: serverTimestamp(),
-                });
-
-                get().setUser(newUser, "user");
-              }
-            } catch (error) {
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
-              console.error("Error fetching user data:", errorMessage);
-              // Set user from Firebase Auth even if Firestore fails
-              const user: User = {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                name: firebaseUser.displayName || null,
-                photoURL: firebaseUser.photoURL || null,
-              };
-              get().setUser(user, "user");
-              console.warn(
-                "Using Firebase Auth data only. Firestore access failed."
-              );
+            // Route guards wait while the profile and role are loaded so a
+            // fresh sign-in or hard refresh is not treated as signed out.
+            if (get().user?.uid !== firebaseUser.uid) {
+              set({ displayStatus: "loading" });
             }
+            await loadUserProfile(firebaseUser);
           } else {
             set({
               user: null,
@@ -191,25 +136,97 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 }));
 
+
+const profileFromAuth = (firebaseUser: FirebaseUser): User => ({
+  uid: firebaseUser.uid,
+  email: firebaseUser.email,
+  name: firebaseUser.displayName || null,
+  photoURL: firebaseUser.photoURL || null,
+});
+
+/**
+ * Loads the Firestore profile and role for a signed-in Firebase user and
+ * publishes it to the store. Unverified accounts cannot read their profile
+ * under the security rules, so they fall back to Auth data with the "user"
+ * role until they verify.
+ */
+const loadUserProfile = async (firebaseUser: FirebaseUser): Promise<void> => {
+  const { setUser, setEmailVerified } = useAuthStore.getState();
+  setEmailVerified(firebaseUser.emailVerified);
+
+  try {
+    const userRef = doc(db, "users", firebaseUser.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      setUser(
+        {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || userData.name || null,
+          photoURL: firebaseUser.photoURL || userData.photoURL || null,
+          nickname: userData.nickname || null,
+        },
+        (userData.role as UserRole) || "user"
+      );
+      return;
+    }
+
+    const newUser = profileFromAuth(firebaseUser);
+    await setDoc(userRef, {
+      ...newUser,
+      role: "user",
+      emailVerified: firebaseUser.emailVerified,
+      createdAt: serverTimestamp(),
+    });
+    setUser(newUser, "user");
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("Using Firebase Auth profile; Firestore profile unavailable:", error);
+    }
+    setUser(profileFromAuth(firebaseUser), "user");
+  }
+};
+
+/**
+ * Creates the Firestore profile for a first-time OAuth or email-link sign-in.
+ * Existing profiles are left untouched: the security rules only let owners
+ * change their display fields, so rewriting other fields would fail.
+ */
+const ensureUserDocument = async (firebaseUser: FirebaseUser): Promise<void> => {
+  const userRef = doc(db, "users", firebaseUser.uid);
+  try {
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) return;
+  } catch {
+    // Unverified accounts cannot read their profile; creating it is still allowed.
+  }
+
+  try {
+    await setDoc(userRef, {
+      ...profileFromAuth(firebaseUser),
+      role: "user",
+      emailVerified: firebaseUser.emailVerified,
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    // The auth listener may have created the profile first; sign-in still succeeded.
+    if (import.meta.env.DEV) {
+      console.warn("Could not create user profile:", error);
+    }
+  }
+};
+
 // Helper functions for authentication
 export const signIn = async (
   email: string,
   password: string
 ): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  const { setAuthError } = useAuthStore.getState();
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    useAuthStore.getState().setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
@@ -219,17 +236,7 @@ export const signUp = async (
   password: string,
   name: string
 ): Promise<void> => {
-  if (!auth || !db) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  const { setAuthError } = useAuthStore.getState();
   try {
-    if (!auth) throw new Error("Firebase Auth not available");
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -239,8 +246,11 @@ export const signUp = async (
     // Update Firebase Auth profile
     await updateProfile(userCredential.user, { displayName: name });
 
-    // Send email verification immediately after signup
-    await sendEmailVerification(userCredential.user);
+    // The auth listener may already have published the profile without a name.
+    const { user, role, setUser } = useAuthStore.getState();
+    if (user?.uid === userCredential.user.uid) {
+      setUser({ ...user, name }, role ?? "user");
+    }
 
     // Create user document in Firestore
     await setDoc(doc(db, "users", userCredential.user.uid), {
@@ -252,130 +262,96 @@ export const signUp = async (
       emailVerified: false, // Will be updated when user verifies
       createdAt: serverTimestamp(),
     });
+
+    // Send email verification immediately after signup
+    await sendEmailVerification(userCredential.user);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    useAuthStore.getState().setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
 
 // Forgot password - send password reset email
 export const resetPassword = async (email: string): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  const { setAuthError } = useAuthStore.getState();
   try {
     await sendPasswordResetEmail(auth, email);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    useAuthStore.getState().setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
 
 // Send email verification
 export const sendVerificationEmail = async (): Promise<void> => {
-  if (!auth || !auth.currentUser) {
+  const { setAuthError } = useAuthStore.getState();
+  if (!auth.currentUser) {
     const error = new Error("No user is currently signed in.");
-    useAuthStore.getState().setAuthError(error.message);
+    setAuthError(error.message);
     throw error;
   }
 
-  const { setAuthError } = useAuthStore.getState();
   try {
     await sendEmailVerification(auth.currentUser);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
 
-// Reload user to check email verification status
-export const reloadAuthUser = async (): Promise<void> => {
-  if (!auth || !auth.currentUser) {
-    return;
-  }
+/**
+ * Reloads the signed-in user and reports whether their email is verified.
+ * Once verified, the ID token is refreshed so security rules see the new
+ * email_verified claim, and the Firestore profile/role is (re)loaded.
+ */
+export const reloadAuthUser = async (): Promise<boolean> => {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return false;
 
   try {
-    await auth.currentUser.reload();
-    const firebaseUser = auth.currentUser;
-    if (firebaseUser) {
-      useAuthStore.getState().setEmailVerified(firebaseUser.emailVerified);
+    await firebaseUser.reload();
+    const refreshedUser = auth.currentUser ?? firebaseUser;
+    if (refreshedUser.emailVerified) {
+      await refreshedUser.getIdToken(true);
+      await loadUserProfile(refreshedUser);
+    } else {
+      useAuthStore.getState().setEmailVerified(false);
     }
+    return refreshedUser.emailVerified;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Error reloading user:", errorMessage);
+    if (import.meta.env.DEV) {
+      console.error("Error reloading user:", error);
+    }
+    return useAuthStore.getState().emailVerified;
+  }
+};
+
+/**
+ * Shared popup sign-in for OAuth providers.
+ * @returns true when the user signed in, false when they closed the popup.
+ */
+const signInWithProvider = async (
+  provider: GoogleAuthProvider | OAuthProvider
+): Promise<boolean> => {
+  const { setAuthError } = useAuthStore.getState();
+
+  try {
+    const result = await signInWithPopup(auth, provider);
+    await ensureUserDocument(result.user);
+    useAuthStore.getState().setEmailVerified(result.user.emailVerified);
+    return true;
+  } catch (error) {
+    if (isPopupCancellation(error)) {
+      return false;
+    }
+
+    setAuthError(getAuthErrorMessage(error));
+    throw error;
   }
 };
 
 // Sign in with Google
-export const signInWithGoogle = async (): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  if (!db) {
-    const error = new Error("Firestore is not configured.");
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  const { setAuthError } = useAuthStore.getState();
-  const provider = new GoogleAuthProvider();
-
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Check if user document exists, create if not
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || null,
-        photoURL: user.photoURL || null,
-        role: "user",
-        emailVerified: user.emailVerified,
-        createdAt: serverTimestamp(),
-      });
-    } else {
-      // Update email verification status
-      await updateDoc(doc(db, "users", user.uid), {
-        emailVerified: user.emailVerified,
-      });
-    }
-
-    // Update email verification in store
-    useAuthStore.getState().setEmailVerified(user.emailVerified);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // Handle user cancellation gracefully
-    if (
-      errorMessage.includes("auth/popup-closed-by-user") ||
-      errorMessage.includes("auth/cancelled-popup-request")
-    ) {
-      // User closed the popup, don't show error
-      return;
-    }
-
-    setAuthError(errorMessage);
-    throw error;
-  }
-};
+export const signInWithGoogle = async (): Promise<boolean> =>
+  signInWithProvider(new GoogleAuthProvider());
 
 /**
  * Send email link (Magic Link) for passwordless sign-in
@@ -383,20 +359,9 @@ export const signInWithGoogle = async (): Promise<void> => {
  * @returns Promise that resolves when email is sent
  */
 export const sendEmailLink = async (email: string): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
   const { setAuthError } = useAuthStore.getState();
 
   try {
-    // Store email in localStorage for same-device completion
-    localStorage.setItem("emailForSignIn", email);
-
     // Configure action code settings
     const actionCodeSettings: ActionCodeSettings = {
       url: `${window.location.origin}/complete-signin`,
@@ -404,9 +369,15 @@ export const sendEmailLink = async (email: string): Promise<void> => {
     };
 
     await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+
+    // Store email for same-device completion once the link was actually sent.
+    try {
+      localStorage.setItem("emailForSignIn", email);
+    } catch {
+      // Cross-device completion still works by asking for the email.
+    }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
@@ -416,7 +387,6 @@ export const sendEmailLink = async (email: string): Promise<void> => {
  * @returns true if URL contains email link
  */
 export const checkEmailLink = (): boolean => {
-  if (!auth) return false;
   try {
     return isSignInWithEmailLink(auth, window.location.href);
   } catch {
@@ -432,25 +402,17 @@ export const checkEmailLink = (): boolean => {
 export const completeEmailLinkSignIn = async (
   email?: string
 ): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  if (!db) {
-    const error = new Error("Firestore is not configured.");
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
   const { setAuthError } = useAuthStore.getState();
 
   try {
     // Get email from localStorage (same device) or parameter (cross device)
-    const emailToUse = email || localStorage.getItem("emailForSignIn");
+    let storedEmail: string | null = null;
+    try {
+      storedEmail = localStorage.getItem("emailForSignIn");
+    } catch {
+      storedEmail = null;
+    }
+    const emailToUse = email || storedEmail;
 
     if (!emailToUse) {
       throw new Error(
@@ -465,106 +427,26 @@ export const completeEmailLinkSignIn = async (
       window.location.href
     );
 
-    // Clear stored email
-    localStorage.removeItem("emailForSignIn");
+    try {
+      localStorage.removeItem("emailForSignIn");
+    } catch {
+      // Nothing to clean up when storage is unavailable.
+    }
 
     // Refresh auth token to ensure security rules evaluate correctly
-    if (userCredential.user) {
-      await userCredential.user.getIdToken(true);
-    }
-
-    // Check if user document exists, create if not
-    const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-
-    if (!userDoc.exists()) {
-      // Create user document for new users
-      await setDoc(doc(db, "users", userCredential.user.uid), {
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        name: userCredential.user.displayName || null,
-        photoURL: userCredential.user.photoURL || null,
-        role: "user",
-        emailVerified: userCredential.user.emailVerified, // Email link automatically verifies email
-        createdAt: serverTimestamp(),
-      });
-    } else {
-      // Update email verification status (email link automatically verifies)
-      await updateDoc(doc(db, "users", userCredential.user.uid), {
-        emailVerified: userCredential.user.emailVerified,
-      });
-    }
-
-    // Update email verification in store
+    await userCredential.user.getIdToken(true);
+    await ensureUserDocument(userCredential.user);
     useAuthStore.getState().setEmailVerified(userCredential.user.emailVerified);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    setAuthError(errorMessage);
+    setAuthError(getAuthErrorMessage(error));
     throw error;
   }
 };
 
 // Sign in with Apple
-export const signInWithApple = async (): Promise<void> => {
-  if (!auth) {
-    const error = new Error(
-      "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions."
-    );
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  if (!db) {
-    const error = new Error("Firestore is not configured.");
-    useAuthStore.getState().setAuthError(error.message);
-    throw error;
-  }
-
-  const { setAuthError } = useAuthStore.getState();
+export const signInWithApple = async (): Promise<boolean> => {
   const provider = new OAuthProvider("apple.com");
-
-  // Request additional scopes
   provider.addScope("email");
   provider.addScope("name");
-
-  try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // Check if user document exists, create if not
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-
-    if (!userDoc.exists()) {
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        name: user.displayName || null,
-        photoURL: user.photoURL || null,
-        role: "user",
-        emailVerified: user.emailVerified,
-        createdAt: serverTimestamp(),
-      });
-    } else {
-      // Update email verification status
-      await updateDoc(doc(db, "users", user.uid), {
-        emailVerified: user.emailVerified,
-      });
-    }
-
-    // Update email verification in store
-    useAuthStore.getState().setEmailVerified(user.emailVerified);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // Handle user cancellation gracefully
-    if (
-      errorMessage.includes("auth/popup-closed-by-user") ||
-      errorMessage.includes("auth/cancelled-popup-request")
-    ) {
-      // User closed the popup, don't show error
-      return;
-    }
-
-    setAuthError(errorMessage);
-    throw error;
-  }
+  return signInWithProvider(provider);
 };

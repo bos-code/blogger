@@ -1,5 +1,7 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useRole } from "../hooks/useRole";
+import { useAuthStore } from "../stores/authStore";
+import PremiumSpinner from "./PremiumSpinner";
 import type { UserRole } from "../types";
 
 interface ProtectedRouteProps {
@@ -12,7 +14,9 @@ interface ProtectedRouteProps {
 
 /**
  * Protected Route Component
- * Controls access to routes based on authentication, email verification, and role
+ * Controls access to routes based on authentication, email verification, and role.
+ * While Firebase restores the session (hard refresh, direct navigation) it
+ * shows a spinner instead of redirecting a signed-in user to the login page.
  */
 export default function ProtectedRoute({
   children,
@@ -21,12 +25,21 @@ export default function ProtectedRoute({
   requireEmailVerified = true,
   fallbackPath = "/login",
 }: ProtectedRouteProps): React.ReactElement {
-  const { isAuthenticated, isEmailVerified, role, canViewDashboard, isAdmin } =
-    useRole();
+  const location = useLocation();
+  const displayStatus = useAuthStore((state) => state.displayStatus);
+  const { isAuthenticated, isEmailVerified, role } = useRole();
+
+  if (displayStatus === "loading") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <PremiumSpinner size="lg" variant="primary" text="Checking your session..." />
+      </div>
+    );
+  }
 
   // Check authentication
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to={fallbackPath} replace />;
+    return <Navigate to={fallbackPath} replace state={{ from: location }} />;
   }
 
   // Check email verification
@@ -38,20 +51,6 @@ export default function ProtectedRoute({
   if (requiredRole) {
     const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     if (!role || !roles.includes(role)) {
-      return <Navigate to="/" replace />;
-    }
-  }
-
-  // Special check for dashboard access
-  // Admin always has full access regardless of email verification
-  // Other users need email verification to access dashboard
-  if (fallbackPath === "/admin" || fallbackPath?.includes("/admin")) {
-    // Admin bypasses email verification requirement
-    if (isAdmin) {
-      return children;
-    }
-    // Non-admin users need email verification
-    if (!canViewDashboard) {
       return <Navigate to="/" replace />;
     }
   }

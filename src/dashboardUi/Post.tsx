@@ -1,14 +1,5 @@
-import { useState } from "react";
-import {
-  usePosts,
-  useApprovePost,
-  useDeletePost,
-  useUpdatePost,
-} from "../hooks/usePosts";
-import { useAuthStore } from "../stores/authStore";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   MagnifyingGlassIcon,
   PencilIcon,
@@ -16,369 +7,497 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   EyeIcon,
-  FunnelIcon,
+  StarIcon,
+  DocumentTextIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
-import { showConfirm, showSuccess, showError } from "../utils/sweetalert";
-import type { BlogPost, DateValue } from "../types";
-import { toDate } from "../utils/date";
+import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
+import {
+  usePosts,
+  useApprovePost,
+  useDeletePost,
+  useRejectPost,
+  useSetFeaturedPost,
+  useBulkPostAction,
+} from "../hooks/usePosts";
+import { useAuthStore } from "../stores/authStore";
+import PremiumSpinner from "../components/PremiumSpinner";
+import PageHeader from "../components/ui/PageHeader";
+import StatusBadge from "../components/ui/StatusBadge";
+import EmptyState from "../components/ui/EmptyState";
+import {
+  showConfirm,
+  showCustom,
+  showSuccess,
+  showError,
+  showDeleteConfirm,
+} from "../utils/sweetalert";
+import type { BlogPost, PostStatus } from "../types";
+import { formatDate, toTimestamp } from "../utils/date";
+import { getLikeCount, postPath } from "../utils/posts";
+
+type StatusFilter = "all" | PostStatus;
+
+const STATUS_FILTERS: Array<{ value: StatusFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "draft", label: "Drafts" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Published" },
+  { value: "rejected", label: "Rejected" },
+];
 
 export default function Post(): React.ReactElement {
-  const { data: posts = [], isLoading } = usePosts();
+  const { data: posts = [], isLoading, error } = usePosts();
   const approvePost = useApprovePost();
+  const rejectPost = useRejectPost();
   const deletePost = useDeletePost();
-  const updatePost = useUpdatePost();
+  const setFeatured = useSetFeaturedPost();
+  const bulkAction = useBulkPostAction();
   const currentUser = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
+  const isAdmin = role === "admin" || role === "super_admin";
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "approved" | "rejected"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Filter posts
-  const filteredPosts = posts.filter((post: BlogPost) => {
+  // Admins manage every post; writers manage only their own.
+  const managedPosts = useMemo(
+    () =>
+      (isAdmin
+        ? posts
+        : posts.filter((post) => post.authorId === currentUser?.uid)
+      )
+        .slice()
+        .sort(
+          (a, b) =>
+            toTimestamp(b.updatedAt ?? b.createdAt) -
+            toTimestamp(a.updatedAt ?? a.createdAt)
+        ),
+    [posts, isAdmin, currentUser?.uid]
+  );
+
+  const counts = useMemo(() => {
+    const result: Record<StatusFilter, number> = {
+      all: managedPosts.length,
+      draft: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    };
+    managedPosts.forEach((post) => {
+      result[post.status || "draft"] += 1;
+    });
+    return result;
+  }, [managedPosts]);
+
+  const filteredPosts = managedPosts.filter((post) => {
+    const q = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (post.authorName || "").toLowerCase().includes(searchQuery.toLowerCase());
-
+      !q ||
+      post.title.toLowerCase().includes(q) ||
+      (post.authorName || "").toLowerCase().includes(q) ||
+      (post.category || "").toLowerCase().includes(q);
     const matchesStatus =
-      statusFilter === "all" || post.status === statusFilter;
-
+      statusFilter === "all" || (post.status || "draft") === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleApprove = async (post: BlogPost): Promise<void> => {
-    if (role !== "admin" && role !== "super_admin") {
-      showError("Permission Denied", "Only admins can approve posts.");
-      return;
-    }
+  const canModify = (post: BlogPost) =>
+    isAdmin || currentUser?.uid === post.authorId;
 
-    showConfirm("Approve Post", `Approve "${post.title}"?`, {
-      confirmText: "Approve",
-      cancelText: "Cancel",
+  const handleApprove = (post: BlogPost): void => {
+    showConfirm("Publish post", `Publish "${post.title}" now?`, {
+      confirmText: "Publish",
       confirmColor: "success",
       onConfirm: async () => {
+        setBusyId(post.id);
         try {
-          await approvePost.mutateAsync(post.id);
-          showSuccess(
-            "Post Approved",
-            "The post has been approved successfully!"
-          );
+          await approvePost.mutateAsync(post);
+          showSuccess("Post published", `"${post.title}" is live.`);
         } catch {
-          showError("Failed", "Could not approve the post. Please try again.");
+          showError("Failed", "Could not publish the post. Please try again.");
+        } finally {
+          setBusyId(null);
         }
       },
     });
   };
 
   const handleReject = async (post: BlogPost): Promise<void> => {
-    if (role !== "admin" && role !== "super_admin") {
-      showError("Permission Denied", "Only admins can reject posts.");
-      return;
-    }
+    const result = await showCustom({
+      title: "Send back for changes",
+      input: "textarea",
+      inputLabel: `What should the writer change in "${post.title}"?`,
+      inputPlaceholder: "Optional — the writer will see this note",
+      inputAttributes: { maxlength: "500", "aria-label": "Reason for rejection" },
+      showCancelButton: true,
+      confirmButtonText: "Send back",
+    });
+    if (!result.isConfirmed) return;
 
-    showConfirm(
-      "Reject Post",
-      `Reject "${post.title}"? This action cannot be undone.`,
-      {
-        confirmText: "Reject",
-        cancelText: "Cancel",
-        confirmColor: "error",
-        onConfirm: async () => {
-          try {
-            await updatePost.mutateAsync({
-              id: post.id,
-              data: { status: "rejected" },
-            });
-            showSuccess("Post Rejected", "The post has been rejected.");
-          } catch {
-            showError("Failed", "Could not reject the post. Please try again.");
-          }
-        },
-      }
-    );
+    setBusyId(post.id);
+    try {
+      await rejectPost.mutateAsync({ post, reason: String(result.value ?? "") });
+      showSuccess("Sent back", "The writer has been notified.");
+    } catch {
+      showError("Failed", "Could not update the post. Please try again.");
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const handleDelete = async (post: BlogPost): Promise<void> => {
-    const canDelete =
-      role === "admin" ||
-      role === "super_admin" ||
-      currentUser?.uid === post.authorId;
-
-    if (!canDelete) {
-      showError(
-        "Permission Denied",
-        "You don't have permission to delete this post."
-      );
-      return;
-    }
-
-    showConfirm(
-      "Delete Post",
-      `Delete "${post.title}"? This action cannot be undone.`,
-      {
-        confirmText: "Delete",
-        cancelText: "Cancel",
-        confirmColor: "error",
-        onConfirm: async () => {
-          try {
-            await deletePost.mutateAsync(post.id);
-            showSuccess(
-              "Post Deleted",
-              "The post has been deleted successfully."
-            );
-          } catch {
-            showError("Failed", "Could not delete the post. Please try again.");
-          }
-        },
+  const handleDelete = (post: BlogPost): void => {
+    void showDeleteConfirm(post.title, async () => {
+      setBusyId(post.id);
+      try {
+        await deletePost.mutateAsync(post.id);
+        showSuccess("Post deleted");
+      } catch {
+        showError("Failed", "Could not delete the post. Please try again.");
+      } finally {
+        setBusyId(null);
       }
-    );
-  };
-
-  const handleEdit = (post: BlogPost): void => {
-    navigate("/create-post", {
-      state: {
-        id: post.id,
-        title: post.title,
-        rawText: post.content,
-        tags: post.tags || [],
-        category: post.category || "",
-        coverImage: post.coverImage || "",
-        excerpt: post.excerpt || "",
-        scheduledFor: post.scheduledFor || null,
-        status: post.status || "draft",
-      },
     });
   };
 
-  const handleView = (post: BlogPost): void => {
-    navigate(`/blog/${post.id}`);
+  const handleFeature = async (post: BlogPost): Promise<void> => {
+    setBusyId(post.id);
+    try {
+      await setFeatured.mutateAsync({ id: post.id, featured: !post.featured });
+      showSuccess(
+        post.featured ? "Removed from homepage" : "Featured on homepage"
+      );
+    } catch {
+      showError("Failed", "Could not update the featured post.");
+    } finally {
+      setBusyId(null);
+    }
   };
 
-  const formatDate = (timestamp: DateValue | undefined): string => {
-    const date = toDate(timestamp);
-    if (!date) return "Unknown";
+  const toggleSelected = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(date);
+  const allVisibleSelected =
+    filteredPosts.length > 0 && filteredPosts.every((post) => selected.has(post.id));
+
+  const toggleAllVisible = () =>
+    setSelected(
+      allVisibleSelected ? new Set() : new Set(filteredPosts.map((post) => post.id))
+    );
+
+  const runBulk = (action: "approve" | "draft" | "delete") => {
+    const ids = [...selected];
+    const labels = {
+      approve: "Publish",
+      draft: "Move to drafts",
+      delete: "Delete",
+    } as const;
+    showConfirm(
+      `${labels[action]} ${ids.length} post(s)?`,
+      action === "delete" ? "This cannot be undone." : undefined,
+      {
+        confirmText: labels[action],
+        confirmColor: action === "delete" ? "error" : "primary",
+        onConfirm: async () => {
+          try {
+            await bulkAction.mutateAsync({ ids, action });
+            setSelected(new Set());
+            showSuccess("Done", `${ids.length} post(s) updated.`);
+          } catch {
+            showError("Failed", "Some posts could not be updated.");
+          }
+        },
+      }
+    );
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex min-h-[40vh] items-center justify-center">
         <PremiumSpinner size="lg" variant="primary" text="Loading posts..." />
       </div>
     );
   }
 
+  const actionButtons = (post: BlogPost) => {
+    const busy = busyId === post.id;
+    return (
+      <div className="flex flex-wrap items-center gap-1">
+        <Link
+          to={postPath(post)}
+          className="btn btn-ghost btn-sm btn-square"
+          aria-label={`View "${post.title}"`}
+          title="View"
+        >
+          <EyeIcon className="h-4 w-4" />
+        </Link>
+        {canModify(post) && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-square"
+            onClick={() => navigate(`/edit/${post.id}`)}
+            aria-label={`Edit "${post.title}"`}
+            title="Edit"
+          >
+            <PencilIcon className="h-4 w-4" />
+          </button>
+        )}
+        {isAdmin && post.status === "pending" && (
+          <>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square text-success"
+              onClick={() => handleApprove(post)}
+              disabled={busy}
+              aria-label={`Publish "${post.title}"`}
+              title="Publish"
+            >
+              <CheckCircleIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square text-warning"
+              onClick={() => void handleReject(post)}
+              disabled={busy}
+              aria-label={`Send "${post.title}" back for changes`}
+              title="Send back"
+            >
+              <XCircleIcon className="h-5 w-5" />
+            </button>
+          </>
+        )}
+        {isAdmin && post.status === "approved" && (
+          <button
+            type="button"
+            className={`btn btn-ghost btn-sm btn-square ${post.featured ? "text-warning" : ""}`}
+            onClick={() => void handleFeature(post)}
+            disabled={busy}
+            aria-pressed={Boolean(post.featured)}
+            aria-label={post.featured ? "Remove from homepage" : "Feature on homepage"}
+            title={post.featured ? "Featured" : "Feature on homepage"}
+          >
+            {post.featured ? (
+              <StarSolidIcon className="h-5 w-5" />
+            ) : (
+              <StarIcon className="h-5 w-5" />
+            )}
+          </button>
+        )}
+        {canModify(post) && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-square text-error"
+            onClick={() => handleDelete(post)}
+            disabled={busy}
+            aria-label={`Delete "${post.title}"`}
+            title="Delete"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-base-content">Manage Posts</h1>
-          <p className="text-base-content/70 mt-1">
-            {filteredPosts.length} of {posts.length} posts
-          </p>
+    <div>
+      <PageHeader
+        title={isAdmin ? "Manage posts" : "My posts"}
+        description={`${filteredPosts.length} of ${managedPosts.length} posts`}
+        actions={
+          <button
+            type="button"
+            className="btn btn-primary gap-2"
+            onClick={() => navigate("/edit")}
+          >
+            <PlusIcon className="h-5 w-5" />
+            New post
+          </button>
+        }
+      />
+
+      {error && (
+        <div role="alert" className="alert alert-error mb-4">
+          Could not load posts. Please refresh and try again.
         </div>
-      </motion.div>
+      )}
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card bg-base-100 shadow-lg"
-      >
-        <div className="card-body p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <label className="input input-bordered flex items-center gap-2 flex-1">
-              <MagnifyingGlassIcon className="w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search posts by title or author..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="grow"
-              />
-            </label>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <FunnelIcon className="w-5 h-5 text-base-content/70" />
-              <select
-                className="select select-bordered"
-                value={statusFilter}
-                onChange={(e) =>
-                  setStatusFilter(
-                    e.target.value as
-                      | "all"
-                      | "pending"
-                      | "approved"
-                      | "rejected"
-                  )
-                }
-              >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-          </div>
+      <div className="surface mb-4 flex flex-col gap-3 p-3 sm:p-4">
+        <label className="input w-full">
+          <MagnifyingGlassIcon className="h-4 w-4 opacity-60" aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search by title, author or category"
+            aria-label="Search posts"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="grow"
+          />
+        </label>
+        <div role="tablist" aria-label="Filter by status" className="flex gap-1 overflow-x-auto">
+          {STATUS_FILTERS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === value}
+              onClick={() => setStatusFilter(value)}
+              className={`btn btn-sm shrink-0 rounded-full ${
+                statusFilter === value ? "btn-primary" : "btn-ghost"
+              }`}
+            >
+              {label}
+              <span className="badge badge-sm border-0 bg-base-content/10">{counts[value]}</span>
+            </button>
+          ))}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Posts Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card bg-base-100 shadow-xl"
-      >
-        <div className="card-body p-0">
-          {filteredPosts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-base-content/70 text-lg">
-                {searchQuery || statusFilter !== "all"
-                  ? "No posts match your filters"
-                  : "No posts found"}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+      {isAdmin && selected.size > 0 && (
+        <div className="surface mb-4 flex flex-wrap items-center gap-2 border-primary/40 bg-primary/5 p-3">
+          <span className="mr-auto text-sm font-medium">{selected.size} selected</span>
+          <button type="button" className="btn btn-sm btn-success" onClick={() => runBulk("approve")}>
+            Publish
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost border border-base-300" onClick={() => runBulk("draft")}>
+            Move to drafts
+          </button>
+          <button type="button" className="btn btn-sm btn-error" onClick={() => runBulk("delete")}>
+            Delete
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setSelected(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
+
+      <div className="surface overflow-hidden">
+        {filteredPosts.length === 0 ? (
+          <EmptyState
+            icon={DocumentTextIcon}
+            title={
+              searchQuery || statusFilter !== "all"
+                ? "No posts match your filters"
+                : "No posts yet"
+            }
+            description={
+              searchQuery || statusFilter !== "all"
+                ? "Try a different search or status."
+                : "Create your first post to see it here."
+            }
+          />
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto md:block">
               <table className="table">
                 <thead>
                   <tr>
+                    {isAdmin && (
+                      <th className="w-10">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm"
+                          checked={allVisibleSelected}
+                          onChange={toggleAllVisible}
+                          aria-label="Select all visible posts"
+                        />
+                      </th>
+                    )}
                     <th>Title</th>
-                    <th>Author</th>
+                    {isAdmin && <th>Author</th>}
                     <th>Status</th>
-                    <th>Category</th>
-                    <th>Date</th>
-                    <th>Views</th>
-                    <th>Actions</th>
+                    <th>Updated</th>
+                    <th className="text-right">Views</th>
+                    <th className="text-right">Likes</th>
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPosts.map((post: BlogPost) => {
-                    const canEdit =
-                      role === "admin" || currentUser?.uid === post.authorId;
-                    const canDelete =
-                      role === "admin" || currentUser?.uid === post.authorId;
-
-                    return (
-                      <tr key={post.id} className="hover">
+                  {filteredPosts.map((post) => (
+                    <tr key={post.id} className="hover:bg-base-200/60">
+                      {isAdmin && (
                         <td>
-                          <div className="font-semibold line-clamp-1 max-w-xs">
-                            {post.title}
-                          </div>
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm"
+                            checked={selected.has(post.id)}
+                            onChange={() => toggleSelected(post.id)}
+                            aria-label={`Select "${post.title}"`}
+                          />
                         </td>
-                        <td>{post.authorName || "Anonymous"}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              post.status === "approved"
-                                ? "badge-success"
-                                : post.status === "pending"
-                                  ? "badge-warning"
-                                  : post.status === "rejected"
-                                    ? "badge-error"
-                                    : "badge-secondary"
-                            }`}
-                          >
-                            {post.status || "draft"}
-                          </span>
-                        </td>
-                        <td>
-                          {post.category ? (
-                            <span className="badge badge-outline">
-                              {post.category}
-                            </span>
-                          ) : (
-                            <span className="text-base-content/50">—</span>
-                          )}
-                        </td>
-                        <td>{formatDate(post.createdAt)}</td>
-                        <td>{post.views || 0}</td>
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="btn btn-sm btn-ghost"
-                              onClick={() => handleView(post)}
-                              title="View Post"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-
-                            {canEdit && (
-                              <button
-                                className="btn btn-sm btn-primary"
-                                onClick={() => handleEdit(post)}
-                                title="Edit Post"
-                              >
-                                <PencilIcon className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {role === "admin" && post.status === "pending" && (
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleApprove(post)}
-                                disabled={approvePost.isPending}
-                                title="Approve Post"
-                              >
-                                {approvePost.isPending ? (
-                                  <CompactSpinner size="sm" variant="primary" />
-                                ) : (
-                                  <CheckCircleIcon className="w-4 h-4" />
-                                )}
-                              </button>
-                            )}
-
-                            {role === "admin" && post.status === "pending" && (
-                              <button
-                                className="btn btn-sm btn-warning"
-                                onClick={() => handleReject(post)}
-                                disabled={updatePost.isPending}
-                                title="Reject Post"
-                              >
-                                <XCircleIcon className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {canDelete && (
-                              <button
-                                className="btn btn-sm btn-error"
-                                onClick={() => handleDelete(post)}
-                                disabled={deletePost.isPending}
-                                title="Delete Post"
-                              >
-                                {deletePost.isPending ? (
-                                  <CompactSpinner size="sm" variant="primary" />
-                                ) : (
-                                  <TrashIcon className="w-4 h-4" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      )}
+                      <td className="max-w-xs">
+                        <p className="truncate font-medium">{post.title || "Untitled"}</p>
+                        <p className="truncate text-xs text-base-content/55">
+                          {post.category || "Uncategorised"}
+                          {post.featured && " · Featured"}
+                        </p>
+                        {post.status === "rejected" && post.rejectionReason && (
+                          <p className="mt-1 line-clamp-2 text-xs text-warning">
+                            Note: {post.rejectionReason}
+                          </p>
+                        )}
+                      </td>
+                      {isAdmin && <td className="whitespace-nowrap">{post.authorName || "Anonymous"}</td>}
+                      <td>
+                        <StatusBadge status={post.status} />
+                      </td>
+                      <td className="whitespace-nowrap text-sm text-base-content/70">
+                        {formatDate(post.updatedAt ?? post.createdAt) || "—"}
+                      </td>
+                      <td className="text-right tabular-nums">{post.views || 0}</td>
+                      <td className="text-right tabular-nums">{getLikeCount(post)}</td>
+                      <td>{actionButtons(post)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
-      </motion.div>
+
+            {/* Mobile cards */}
+            <ul className="divide-y divide-base-300 md:hidden">
+              {filteredPosts.map((post) => (
+                <li key={post.id} className="flex gap-3 p-4">
+                  {isAdmin && (
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm mt-1"
+                      checked={selected.has(post.id)}
+                      onChange={() => toggleSelected(post.id)}
+                      aria-label={`Select "${post.title}"`}
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium">{post.title || "Untitled"}</p>
+                      <StatusBadge status={post.status} />
+                    </div>
+                    <p className="mt-1 text-xs text-base-content/60">
+                      {isAdmin && `${post.authorName || "Anonymous"} · `}
+                      {formatDate(post.updatedAt ?? post.createdAt) || "—"} · {post.views || 0} views
+                    </p>
+                    {post.status === "rejected" && post.rejectionReason && (
+                      <p className="mt-1 text-xs text-warning">Note: {post.rejectionReason}</p>
+                    )}
+                    <div className="mt-2">{actionButtons(post)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </div>
   );
 }

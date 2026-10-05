@@ -13,6 +13,7 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
+import { getAuthErrorMessage } from "../utils/authErrors";
 
 export default function CompleteSignIn(): React.ReactElement {
   const navigate = useNavigate();
@@ -90,33 +91,10 @@ export default function CompleteSignIn(): React.ReactElement {
           navigate("/admin");
         }, 1500);
       } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to complete sign-in. Please try again.";
-        let userFriendlyMessage = errorMessage;
-
-        // Convert Firebase error codes to user-friendly messages
-        if (errorMessage.includes("auth/invalid-action-code")) {
-          userFriendlyMessage =
-            "This sign-in link has expired or is invalid. Please request a new one.";
-        } else if (errorMessage.includes("auth/expired-action-code")) {
-          userFriendlyMessage =
-            "This sign-in link has expired. Please request a new one.";
-        } else if (errorMessage.includes("auth/invalid-email")) {
-          userFriendlyMessage = "Invalid email address format.";
-        } else if (errorMessage.includes("auth/user-disabled")) {
-          userFriendlyMessage = "This account has been disabled.";
-        } else if (errorMessage.includes("auth/network-request-failed")) {
-          userFriendlyMessage = "Network error. Please check your connection.";
-        } else if (
-          errorMessage.includes("apiKey") ||
-          errorMessage.includes("Firebase") ||
-          errorMessage.includes("auth/invalid-api-key")
-        ) {
-          userFriendlyMessage =
-            "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
-        }
+        const userFriendlyMessage = getAuthErrorMessage(
+          error,
+          "Failed to complete sign-in. Please try again."
+        );
 
         showError("Sign In Failed", userFriendlyMessage);
       } finally {

@@ -1,244 +1,153 @@
-/* SweetAlert Background Blur Styles - Theme-Aware */
+/* SweetAlert2 styling on DaisyUI 5 theme tokens */
 
-/* Blur effect when modal is active */
-.swal-blur-active {
-  filter: blur(4px);
-  transition: filter 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
+/* Blur only the app behind an open dialog (the dialog itself lives in <body>). */
+.App.swal-blur-active {
+  filter: blur(3px);
+  transition: filter 0.2s ease;
 }
 
-/* Ensure modal container is not blurred */
-.swal-container {
-  filter: none !important;
-  pointer-events: auto !important;
-}
-
-/* SweetAlert Popup Styling - Theme Variables */
-.swal-popup {
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background-color: hsl(var(--b1)) !important;
-  color: hsl(var(--bc)) !important;
-  border: 1px solid hsl(var(--b3) / 0.5);
-}
-
-/* Override SweetAlert backdrop - Theme-aware */
-.swal2-backdrop-show {
-  background-color: hsl(var(--b2) / 0.6) !important;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
-
-/* Ensure modal content is above blurred background */
 .swal2-container {
   z-index: 9999 !important;
 }
 
-/* Custom animations */
+.swal2-container.swal2-backdrop-show {
+  background-color: color-mix(in oklab, var(--color-base-300) 55%, transparent) !important;
+}
+
+.swal2-popup.swal-popup {
+  background-color: var(--color-base-100) !important;
+  color: var(--color-base-content) !important;
+  border: 1px solid var(--color-base-300);
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
+  animation: swalFadeIn 0.2s ease-out;
+}
+
 @keyframes swalFadeIn {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(-10px);
+    transform: scale(0.96) translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: none;
   }
 }
 
-.swal-popup {
-  animation: swalFadeIn 0.3s ease-out;
-}
-
-/* Title and Content - Theme Variables */
 .swal2-title {
-  color: hsl(var(--bc)) !important;
+  color: var(--color-base-content) !important;
   font-weight: 700;
-  font-size: 1.5rem;
-  line-height: 1.5;
+  font-size: 1.375rem !important;
+  line-height: 1.4;
 }
 
-.swal2-content {
-  color: hsl(var(--bc) / 0.8) !important;
-  font-size: 1rem;
+.swal2-html-container {
+  color: color-mix(in oklab, var(--color-base-content) 80%, transparent) !important;
+  font-size: 1rem !important;
   line-height: 1.6;
 }
 
-/* Icon Colors - Theme-aware */
 .swal2-icon.swal2-success {
-  border-color: hsl(var(--su)) !important;
-  color: hsl(var(--su)) !important;
+  border-color: var(--color-success) !important;
+  color: var(--color-success) !important;
 }
-
+.swal2-icon.swal2-success [class^="swal2-success-line"] {
+  background-color: var(--color-success) !important;
+}
 .swal2-icon.swal2-success .swal2-success-ring {
-  border-color: hsl(var(--su) / 0.3) !important;
+  border-color: color-mix(in oklab, var(--color-success) 30%, transparent) !important;
 }
-
+.swal2-icon.swal2-success [class^="swal2-success-circular-line"],
+.swal2-icon.swal2-success .swal2-success-fix {
+  background-color: transparent !important;
+}
 .swal2-icon.swal2-error {
-  border-color: hsl(var(--er)) !important;
-  color: hsl(var(--er)) !important;
+  border-color: var(--color-error) !important;
+  color: var(--color-error) !important;
 }
-
+.swal2-icon.swal2-error [class^="swal2-x-mark-line"] {
+  background-color: var(--color-error) !important;
+}
 .swal2-icon.swal2-warning {
-  border-color: hsl(var(--wa)) !important;
-  color: hsl(var(--wa)) !important;
+  border-color: var(--color-warning) !important;
+  color: var(--color-warning) !important;
 }
-
 .swal2-icon.swal2-info {
-  border-color: hsl(var(--in)) !important;
-  color: hsl(var(--in)) !important;
+  border-color: var(--color-info) !important;
+  color: var(--color-info) !important;
 }
-
 .swal2-icon.swal2-question {
-  border-color: hsl(var(--p)) !important;
-  color: hsl(var(--p)) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
 }
 
-/* Buttons - Theme Variables */
-.swal2-confirm {
-  background-color: hsl(var(--p)) !important;
-  color: hsl(var(--pc)) !important;
-  border: none !important;
-  border-radius: 0.5rem !important;
-  padding: 0.5rem 1.5rem !important;
-  font-weight: 500 !important;
-  transition: all 0.2s ease !important;
+.swal2-actions {
+  gap: 0.75rem;
 }
 
-.swal2-confirm:hover {
-  background-color: hsl(var(--pf)) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px hsl(var(--p) / 0.4) !important;
-}
-
-.swal2-confirm:active {
-  transform: translateY(0);
-}
-
-.swal2-cancel {
-  background-color: hsl(var(--b2)) !important;
-  color: hsl(var(--bc)) !important;
-  border: 1px solid hsl(var(--b3)) !important;
-  border-radius: 0.5rem !important;
-  padding: 0.5rem 1.5rem !important;
-  font-weight: 500 !important;
-  transition: all 0.2s ease !important;
-}
-
-.swal2-cancel:hover {
-  background-color: hsl(var(--b3)) !important;
-  border-color: hsl(var(--b4)) !important;
-  transform: translateY(-1px);
-}
-
-.swal2-cancel:active {
-  transform: translateY(0);
-}
-
-/* Success button variant */
-.swal2-confirm.btn-success {
-  background-color: hsl(var(--su)) !important;
-  color: hsl(var(--suc)) !important;
-}
-
-.swal2-confirm.btn-success:hover {
-  background-color: hsl(var(--suf)) !important;
-}
-
-/* Error button variant */
-.swal2-confirm.btn-error {
-  background-color: hsl(var(--er)) !important;
-  color: hsl(var(--erc)) !important;
-}
-
-.swal2-confirm.btn-error:hover {
-  background-color: hsl(var(--erf)) !important;
-}
-
-/* Warning button variant */
-.swal2-confirm.btn-warning {
-  background-color: hsl(var(--wa)) !important;
-  color: hsl(var(--wac)) !important;
-}
-
-.swal2-confirm.btn-warning:hover {
-  background-color: hsl(var(--waf)) !important;
-}
-
-/* Info button variant */
-.swal2-confirm.btn-info {
-  background-color: hsl(var(--in)) !important;
-  color: hsl(var(--inc)) !important;
-}
-
-.swal2-confirm.btn-info:hover {
-  background-color: hsl(var(--inf)) !important;
-}
-
-/* Input fields - Theme-aware */
 .swal2-input,
-.swal2-textarea {
-  background-color: hsl(var(--b2)) !important;
-  color: hsl(var(--bc)) !important;
-  border: 1px solid hsl(var(--b3)) !important;
-  border-radius: 0.5rem !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 1rem !important;
-  transition: all 0.2s ease !important;
+.swal2-textarea,
+.swal2-select {
+  background-color: var(--color-base-200) !important;
+  color: var(--color-base-content) !important;
+  border: 1px solid var(--color-base-300) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: none !important;
 }
 
 .swal2-input:focus,
 .swal2-textarea:focus {
-  outline: none !important;
-  border-color: hsl(var(--p)) !important;
-  box-shadow: 0 0 0 3px hsl(var(--p) / 0.1) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent) !important;
 }
 
-/* Loading spinner - Theme-aware */
+.swal2-validation-message {
+  background: var(--color-base-200) !important;
+  color: var(--color-error) !important;
+}
+
 .swal2-loader {
-  border-color: hsl(var(--p) / 0.2) !important;
-  border-right-color: hsl(var(--p)) !important;
+  border-color: var(--color-primary) transparent var(--color-primary) transparent !important;
 }
 
-/* Close button - Theme-aware */
 .swal2-close {
-  color: hsl(var(--bc) / 0.6) !important;
-  transition: all 0.2s ease !important;
+  color: color-mix(in oklab, var(--color-base-content) 60%, transparent) !important;
 }
-
 .swal2-close:hover {
-  color: hsl(var(--bc)) !important;
-  transform: rotate(90deg);
+  color: var(--color-base-content) !important;
 }
 
-/* Footer - Theme-aware */
-.swal2-footer {
-  border-top: 1px solid hsl(var(--b3)) !important;
-  color: hsl(var(--bc) / 0.7) !important;
+.swal2-timer-progress-bar {
+  background: color-mix(in oklab, var(--color-primary) 70%, transparent) !important;
 }
 
-/* Responsive adjustments */
+/* Toasts */
+.swal2-popup.swal2-toast.swal-toast {
+  background-color: var(--color-base-100) !important;
+  color: var(--color-base-content) !important;
+  border: 1px solid var(--color-base-300);
+  border-radius: 0.875rem;
+  box-shadow: 0 12px 30px -10px rgb(0 0 0 / 0.4);
+}
+.swal2-popup.swal2-toast .swal2-title {
+  font-size: 0.95rem !important;
+  margin: 0 0.5rem !important;
+}
+.swal2-popup.swal2-toast .swal2-html-container {
+  font-size: 0.85rem !important;
+  margin: 0.25rem 0.5rem 0 !important;
+}
+
 @media (max-width: 640px) {
-  .swal-popup {
-    width: 90% !important;
-    margin: 0 auto !important;
-    padding: 1.5rem !important;
+  .swal2-popup.swal-popup {
+    width: calc(100% - 2rem) !important;
+    padding: 1.25rem !important;
   }
-  
-  .swal2-title {
-    font-size: 1.25rem !important;
+  .swal2-actions {
+    flex-direction: column-reverse;
+    width: 100%;
   }
-  
-  .swal2-content {
-    font-size: 0.9rem !important;
-  }
-  
-  .swal2-confirm,
-  .swal2-cancel {
-    width: 100% !important;
-    margin: 0.25rem 0 !important;
+  .swal2-actions .btn {
+    width: 100%;
   }
 }
-

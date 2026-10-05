@@ -1,15 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="johndark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="John Dera &mdash; front-end developer portfolio and blog. Projects, articles, and a role-aware CMS for drafting, reviewing, and publishing posts."
+      content="John Dera — front-end developer portfolio and blog. Projects, articles on React and the web, and ways to get in touch."
     />
     <meta name="theme-color" content="#292f36" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="John Dera" />
+    <meta property="og:title" content="John Dera | Front-End Developer" />
+    <meta
+      property="og:description"
+      content="Front-end developer portfolio and blog: projects, articles, and contact."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="alternate" type="application/rss+xml" title="John Dera — Blog" href="/rss.xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <title>John Dera | Front-End Developer</title>
+    <script>
+      // Apply the saved colour mode before first paint to avoid a theme flash.
+      (function () {
+        try {
+          var saved = JSON.parse(localStorage.getItem("theme-storage") || "{}");
+          var mode = (saved.state && saved.state.mode) || "dark";
+          if (mode === "system") {
+            mode = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          }
+          document.documentElement.setAttribute("data-theme", mode === "light" ? "johnlight" : "johndark");
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

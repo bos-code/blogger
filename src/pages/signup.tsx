@@ -1,10 +1,11 @@
 import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { signUp, signInWithGoogle, signInWithApple } from "../stores/authStore";
 import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
 import { showError, showSuccess } from "../utils/sweetalert";
 import PremiumSpinner from "../components/PremiumSpinner";
+import { getAuthErrorMessage } from "../utils/authErrors";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -15,7 +16,6 @@ import {
 
 export default function Signup(): React.ReactElement {
   const navigate = useNavigate();
-  const authError = useAuthStore((state) => state.authError);
   const clearAuthError = useAuthStore((state) => state.clearAuthError);
   const logStatus = useAuthStore((state) => state.logStatus);
 
@@ -66,36 +66,14 @@ export default function Signup(): React.ReactElement {
       await signUp(email.trim(), password, name.trim());
       showSuccess(
         "Account Created!",
-        "Your account has been created successfully. You are now logged in."
+        "We've sent a verification link to your email. Verify it to finish setting up your account."
       );
-      navigate("/admin");
+      navigate("/verify-email", { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message ||
-        "Failed to create account. Please try again.";
-      let userFriendlyMessage = errorMessage;
-
-      // Convert Firebase error codes to user-friendly messages
-      if (errorMessage.includes("auth/email-already-in-use")) {
-        userFriendlyMessage =
-          "An account with this email already exists. Please sign in instead.";
-      } else if (errorMessage.includes("auth/invalid-email")) {
-        userFriendlyMessage = "Invalid email address format.";
-      } else if (errorMessage.includes("auth/weak-password")) {
-        userFriendlyMessage =
-          "Password is too weak. Please use a stronger password.";
-      } else if (errorMessage.includes("auth/network-request-failed")) {
-        userFriendlyMessage = "Network error. Please check your connection.";
-      } else if (
-        errorMessage.includes("apiKey") ||
-        errorMessage.includes("Firebase") ||
-        errorMessage.includes("auth/invalid-api-key")
-      ) {
-        userFriendlyMessage =
-          "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
-      }
-
-      showError("Sign Up Failed", userFriendlyMessage);
+      showError(
+        "Sign Up Failed",
+        getAuthErrorMessage(error, "Failed to create account. Please try again.")
+      );
     } finally {
       setIsLoading(false);
     }
@@ -104,21 +82,15 @@ export default function Signup(): React.ReactElement {
   const handleGoogleSignIn = async (): Promise<void> => {
     setIsGoogleLoading(true);
     try {
-      await signInWithGoogle();
-      showSuccess(
-        "Account Created!",
-        "Your account has been created with Google successfully."
-      );
-      navigate("/admin");
+      const signedIn = await signInWithGoogle();
+      if (!signedIn) return;
+      showSuccess("Welcome!", "You're signed in with Google.");
+      navigate("/admin", { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to sign up with Google.";
-      if (
-        !errorMessage.includes("popup-closed") &&
-        !errorMessage.includes("cancelled")
-      ) {
-        showError("Google Sign Up Failed", errorMessage);
-      }
+      showError(
+        "Google Sign Up Failed",
+        getAuthErrorMessage(error, "Failed to sign up with Google.")
+      );
     } finally {
       setIsGoogleLoading(false);
     }
@@ -127,21 +99,15 @@ export default function Signup(): React.ReactElement {
   const handleAppleSignIn = async (): Promise<void> => {
     setIsAppleLoading(true);
     try {
-      await signInWithApple();
-      showSuccess(
-        "Account Created!",
-        "Your account has been created with Apple successfully."
-      );
-      navigate("/admin");
+      const signedIn = await signInWithApple();
+      if (!signedIn) return;
+      showSuccess("Welcome!", "You're signed in with Apple.");
+      navigate("/admin", { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to sign up with Apple.";
-      if (
-        !errorMessage.includes("popup-closed") &&
-        !errorMessage.includes("cancelled")
-      ) {
-        showError("Apple Sign Up Failed", errorMessage);
-      }
+      showError(
+        "Apple Sign Up Failed",
+        getAuthErrorMessage(error, "Failed to sign up with Apple.")
+      );
     } finally {
       setIsAppleLoading(false);
     }
@@ -149,8 +115,7 @@ export default function Signup(): React.ReactElement {
 
   // Redirect if already logged in
   if (logStatus) {
-    navigate("/admin");
-    return <div>Redirecting...</div>;
+    return <Navigate to="/admin" replace />;
   }
 
   return (
@@ -169,26 +134,6 @@ export default function Signup(): React.ReactElement {
             </h1>
             <p className="text-base-content/70">Sign up to get started</p>
           </div>
-
-          {/* Error Display */}
-          {authError && (
-            <div className="alert alert-error mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-sm">{authError}</span>
-            </div>
-          )}
 
           {/* Signup Form */}
           <form onSubmit={handleSubmit} className="space-y-4">

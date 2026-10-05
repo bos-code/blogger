@@ -12,21 +12,22 @@ export default function VerifyEmail(): React.ReactElement {
   const user = useAuthStore((state) => state.user);
   const emailVerified = useAuthStore((state) => state.emailVerified);
   const logStatus = useAuthStore((state) => state.logStatus);
+  const displayStatus = useAuthStore((state) => state.displayStatus);
 
   const [isSending, setIsSending] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!logStatus || !user) {
-      navigate("/login");
+    if (displayStatus !== "loading" && (!logStatus || !user)) {
+      navigate("/login", { replace: true });
     }
-  }, [logStatus, user, navigate]);
+  }, [displayStatus, logStatus, user, navigate]);
 
   // Redirect if already verified
   useEffect(() => {
     if (emailVerified && logStatus) {
-      navigate("/admin");
+      navigate("/admin", { replace: true });
     }
   }, [emailVerified, logStatus, navigate]);
 
@@ -50,15 +51,13 @@ export default function VerifyEmail(): React.ReactElement {
   const handleCheckVerification = async (): Promise<void> => {
     setIsChecking(true);
     try {
-      await reloadAuthUser();
-      if (emailVerified) {
+      const verified = await reloadAuthUser();
+      if (verified) {
         showSuccess(
           "Email Verified!",
           "Your email has been verified successfully."
         );
-        setTimeout(() => {
-          navigate("/admin");
-        }, 1500);
+        navigate("/admin", { replace: true });
       } else {
         showError(
           "Not Verified Yet",

@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate, useLocation } from "react-router-dom";
 import {
   signIn,
   resetPassword,
@@ -11,6 +11,7 @@ import { useAuthStore } from "../stores/authStore";
 import { motion } from "framer-motion";
 import { showError, showSuccess } from "../utils/sweetalert";
 import PremiumSpinner from "../components/PremiumSpinner";
+import { getAuthErrorMessage } from "../utils/authErrors";
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -22,7 +23,10 @@ import {
 
 export default function Login(): React.ReactElement {
   const navigate = useNavigate();
-  const authError = useAuthStore((state) => state.authError);
+  const location = useLocation();
+  const redirectTo =
+    (location.state as { from?: { pathname?: string } } | null)?.from
+      ?.pathname || "/admin";
   const clearAuthError = useAuthStore((state) => state.clearAuthError);
   const logStatus = useAuthStore((state) => state.logStatus);
 
@@ -55,34 +59,12 @@ export default function Login(): React.ReactElement {
     try {
       await signIn(email.trim(), password);
       showSuccess("Welcome Back!", "You have been logged in successfully.");
-      navigate("/admin");
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to sign in. Please try again.";
-      let userFriendlyMessage = errorMessage;
-
-      // Convert Firebase error codes to user-friendly messages
-      if (errorMessage.includes("auth/user-not-found")) {
-        userFriendlyMessage = "No account found with this email address.";
-      } else if (errorMessage.includes("auth/wrong-password")) {
-        userFriendlyMessage = "Incorrect password. Please try again.";
-      } else if (errorMessage.includes("auth/invalid-email")) {
-        userFriendlyMessage = "Invalid email address format.";
-      } else if (errorMessage.includes("auth/too-many-requests")) {
-        userFriendlyMessage =
-          "Too many failed attempts. Please try again later.";
-      } else if (errorMessage.includes("auth/network-request-failed")) {
-        userFriendlyMessage = "Network error. Please check your connection.";
-      } else if (
-        errorMessage.includes("apiKey") ||
-        errorMessage.includes("Firebase") ||
-        errorMessage.includes("auth/invalid-api-key")
-      ) {
-        userFriendlyMessage =
-          "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
-      }
-
-      showError("Login Failed", userFriendlyMessage);
+      showError(
+        "Login Failed",
+        getAuthErrorMessage(error, "Failed to sign in. Please try again.")
+      );
     } finally {
       setIsLoading(false);
     }
@@ -107,30 +89,13 @@ export default function Login(): React.ReactElement {
       );
       setShowForgotPassword(false);
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message ||
-        "Failed to send password reset email. Please try again.";
-      let userFriendlyMessage = errorMessage;
-
-      // Convert Firebase error codes to user-friendly messages
-      if (errorMessage.includes("auth/user-not-found")) {
-        userFriendlyMessage = "No account found with this email address.";
-      } else if (errorMessage.includes("auth/invalid-email")) {
-        userFriendlyMessage = "Invalid email address format.";
-      } else if (errorMessage.includes("auth/too-many-requests")) {
-        userFriendlyMessage = "Too many requests. Please try again later.";
-      } else if (errorMessage.includes("auth/network-request-failed")) {
-        userFriendlyMessage = "Network error. Please check your connection.";
-      } else if (
-        errorMessage.includes("apiKey") ||
-        errorMessage.includes("Firebase") ||
-        errorMessage.includes("auth/invalid-api-key")
-      ) {
-        userFriendlyMessage =
-          "Firebase is not configured. Please set up your Firebase credentials in a .env file. See FIREBASE_SETUP.md for instructions.";
-      }
-
-      showError("Password Reset Failed", userFriendlyMessage);
+      showError(
+        "Password Reset Failed",
+        getAuthErrorMessage(
+          error,
+          "Failed to send password reset email. Please try again."
+        )
+      );
     } finally {
       setIsSendingReset(false);
     }
@@ -139,21 +104,18 @@ export default function Login(): React.ReactElement {
   const handleGoogleSignIn = async (): Promise<void> => {
     setIsGoogleLoading(true);
     try {
-      await signInWithGoogle();
+      const signedIn = await signInWithGoogle();
+      if (!signedIn) return;
       showSuccess(
         "Welcome!",
         "You have been signed in with Google successfully."
       );
-      navigate("/admin");
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to sign in with Google.";
-      if (
-        !errorMessage.includes("popup-closed") &&
-        !errorMessage.includes("cancelled")
-      ) {
-        showError("Google Sign In Failed", errorMessage);
-      }
+      showError(
+        "Google Sign In Failed",
+        getAuthErrorMessage(error, "Failed to sign in with Google.")
+      );
     } finally {
       setIsGoogleLoading(false);
     }
@@ -162,21 +124,18 @@ export default function Login(): React.ReactElement {
   const handleAppleSignIn = async (): Promise<void> => {
     setIsAppleLoading(true);
     try {
-      await signInWithApple();
+      const signedIn = await signInWithApple();
+      if (!signedIn) return;
       showSuccess(
         "Welcome!",
         "You have been signed in with Apple successfully."
       );
-      navigate("/admin");
+      navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to sign in with Apple.";
-      if (
-        !errorMessage.includes("popup-closed") &&
-        !errorMessage.includes("cancelled")
-      ) {
-        showError("Apple Sign In Failed", errorMessage);
-      }
+      showError(
+        "Apple Sign In Failed",
+        getAuthErrorMessage(error, "Failed to sign in with Apple.")
+      );
     } finally {
       setIsAppleLoading(false);
     }
@@ -201,20 +160,10 @@ export default function Login(): React.ReactElement {
         `We've sent a sign-in link to ${email.trim()}. Please check your email and click the link to sign in.`
       );
     } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message ||
-        "Failed to send sign-in link. Please try again.";
-      let userFriendlyMessage = errorMessage;
-
-      if (errorMessage.includes("auth/invalid-email")) {
-        userFriendlyMessage = "Invalid email address format.";
-      } else if (errorMessage.includes("auth/too-many-requests")) {
-        userFriendlyMessage = "Too many requests. Please try again later.";
-      } else if (errorMessage.includes("auth/network-request-failed")) {
-        userFriendlyMessage = "Network error. Please check your connection.";
-      }
-
-      showError("Failed to Send Link", userFriendlyMessage);
+      showError(
+        "Failed to Send Link",
+        getAuthErrorMessage(error, "Failed to send sign-in link. Please try again.")
+      );
     } finally {
       setIsSendingEmailLink(false);
     }
@@ -222,8 +171,7 @@ export default function Login(): React.ReactElement {
 
   // Redirect if already logged in
   if (logStatus) {
-    navigate("/admin");
-    return <div>Redirecting...</div>;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return (
@@ -242,26 +190,6 @@ export default function Login(): React.ReactElement {
             </h1>
             <p className="text-base-content/70">Sign in to your account</p>
           </div>
-
-          {/* Error Display */}
-          {authError && (
-            <div className="alert alert-error mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="stroke-current shrink-0 h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-sm">{authError}</span>
-            </div>
-          )}
 
           {/* Forgot Password Form */}
           {showForgotPassword ? (
