@@ -28,7 +28,6 @@ export default defineConfig({
           ) {
             return "motion";
           }
-          if (modulePath.includes("/gsap@")) return "gsap";
           if (
             modulePath.includes("/@tiptap+") ||
             modulePath.includes("/prosemirror-") ||

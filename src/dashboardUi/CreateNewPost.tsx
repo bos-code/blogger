@@ -46,6 +46,7 @@ import { useAuthStore } from "../stores/authStore";
 import { useUIStore } from "../stores/uiStore";
 import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { uploadImageToStorage } from "../services/storageService";
+import { triggerPostEmails } from "../services/emailHooks";
 import { showError, showSuccess, showToast } from "../utils/sweetalert";
 import { formatRelativeTime, toDateTimeLocalValue } from "../utils/date";
 import { addHeadingIds, calculateReadingTime, countWords, htmlToText } from "../utils/posts";
@@ -320,6 +321,14 @@ export default function CreatePost(): React.ReactElement {
             userId: authUser.uid,
             force,
           });
+          if (targetStatus !== status || explicit) {
+            void triggerPostEmails({
+              postId: id,
+              status: targetStatus,
+              isAdmin,
+              scheduledFor: data.scheduledFor,
+            });
+          }
           if (targetStatus !== status) {
             await notifyStatusChange(
               { id, title: data.title, authorName: getAuthorDisplayName(authUser) },

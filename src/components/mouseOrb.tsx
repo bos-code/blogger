@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
 
 const canUseOrb = (): boolean =>
   typeof window !== "undefined" &&
@@ -19,11 +18,13 @@ const MouseOrb = (): React.ReactElement | null => {
     const position = { x: -100, y: -100 };
     let frame = 0;
     let visible = false;
+    let scale = 1;
 
     const animate = () => {
       position.x += (mouse.x - position.x) * 0.25;
       position.y += (mouse.y - position.y) * 0.25;
-      gsap.set(orb, { x: position.x, y: position.y });
+      orb.style.transform = `translate3d(${position.x}px, ${position.y}px, 0) scale(${scale})`;
+      scale += (1 - scale) * 0.2;
       frame = requestAnimationFrame(animate);
     };
 
@@ -42,7 +43,7 @@ const MouseOrb = (): React.ReactElement | null => {
       orb.style.opacity = "0";
     };
     const onClick = () => {
-      gsap.fromTo(orb, { scale: 1 }, { scale: 1.6, duration: 0.12, yoyo: true, repeat: 1, ease: "power2.out" });
+      scale = 1.6;
     };
 
     document.addEventListener("mousemove", onMove, { passive: true });

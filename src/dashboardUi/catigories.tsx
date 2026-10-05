@@ -7,7 +7,7 @@ import {
   useRenameCategory,
 } from "../hooks/useCategories";
 import { motion } from "framer-motion";
-import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
+import PremiumSpinner from "../components/PremiumSpinner";
 import PageHeader from "../components/ui/PageHeader";
 import {
   MagnifyingGlassIcon,
@@ -270,7 +270,7 @@ export default function Categories(): React.ReactElement {
                           disabled={isMutating}
                         >
                           {isMutating ? (
-                            <CompactSpinner size="sm" variant="primary" />
+                            <span className="loading loading-spinner loading-xs" />
                           ) : (
                             "Rename"
                           )}

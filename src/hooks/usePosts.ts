@@ -25,6 +25,7 @@ import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
 import { createNotification } from "./useNotifications";
+import { triggerPostEmails } from "../services/emailHooks";
 import { queryKeys } from "../utils/queryClient";
 import type { BlogPost, CreatePostInput, User } from "../types";
 
@@ -206,6 +207,12 @@ export const useCreatePost = () => {
       const ref = await addDoc(collection(db, "posts"), blog);
       const blogData = { id: ref.id, ...blog } as unknown as BlogPost;
       await notifyStatusChange(blogData, blogData.status, isAdmin);
+      void triggerPostEmails({
+        postId: ref.id,
+        status: blogData.status,
+        isAdmin,
+        scheduledFor: (data.scheduledFor as Date | null | undefined) ?? null,
+      });
       return blogData;
     },
     onSuccess: () => {
@@ -309,6 +316,7 @@ export const useApprovePost = () => {
         message: `New post: "${post.title}"`,
         blogId: post.id,
       });
+      void triggerPostEmails({ postId: post.id, status: "approved", isAdmin: true });
 
       return post.id;
     },
