@@ -1,0 +1,63 @@
+name: Deploy Firebase rules
+
+# Deploys firestore.rules, firestore.indexes.json and storage.rules when they
+# change on main, or on demand from the Actions tab.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   FIREBASE_PROJECT_ID       your Firebase project ID
+#   FIREBASE_SERVICE_ACCOUNT  service account JSON with the "Firebase Rules
+#                             Admin" and "Cloud Datastore Index Admin" roles
+#                             (or "Firebase Admin")
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+      - storage.rules
+      - firebase.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-firebase-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check secrets are configured
+        env:
+          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$PROJECT_ID" ] || [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Add the FIREBASE_PROJECT_ID and FIREBASE_SERVICE_ACCOUNT repository secrets."
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Deploy rules and indexes
+        run: >
+          npx --yes firebase-tools@13.35.1 deploy
+          --only firestore:rules,firestore:indexes,storage
+          --project "${{ secrets.FIREBASE_PROJECT_ID }}"
+          --non-interactive

@@ -62,7 +62,18 @@ Every newsletter email carries an unsubscribe link and one-click
 
 ## 3. Firebase rules
 
-Deploy the committed rules whenever they change:
+**Automatic (recommended):** add two repository secrets in GitHub → Settings
+→ Secrets and variables → Actions:
+
+- `FIREBASE_PROJECT_ID` — your Firebase project ID
+- `FIREBASE_SERVICE_ACCOUNT` — the service account JSON (the same one used
+  for Vercel works if it has the "Firebase Admin" role, or give it "Firebase
+  Rules Admin" + "Cloud Datastore Index Admin")
+
+The "Deploy Firebase rules" workflow then deploys whenever the rules change on
+`main`; run it once by hand from the Actions tab for the first deploy.
+
+**Manual:** deploy from your machine:
 
 ```bash
 pnpm dlx firebase-tools@13.35.1 deploy --only firestore:rules,firestore:indexes,storage
