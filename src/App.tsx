@@ -10,6 +10,7 @@ import "sweetalert2/dist/sweetalert2.min.css";
 import "./styles/sweetalert.css";
 import { useAuthStore } from "./stores/authStore";
 import PremiumSpinner from "./components/PremiumSpinner";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy-loaded pages
 const Home = lazy(() => import("./pages/Home"));
@@ -104,6 +105,7 @@ function App(): React.ReactElement {
 
       {!isEditor && <FooterComp />}
       <NotificationModal />
+      <Analytics />
     </div>
   );
 }
