@@ -101,6 +101,8 @@ const main = async () => {
   const admin = await createUser({ email: "admin@example.com", name: "Chidera Okonkwo", role: "super_admin" });
   const writer = await createUser({ email: "writer@example.com", name: "Ada Writer", role: "writer" });
   const reader = await createUser({ email: "reader@example.com", name: "Riley Reader", role: "user" });
+  // The site owner starts as a plain user; signing in promotes them to super_admin.
+  await createUser({ email: "chidera9713@gmail.com", name: "Chidera Owner", role: "user" });
 
   for (const [id, name] of [["react", "React"], ["css", "CSS"], ["career", "Career"]]) {
     await setDocument(`categories/${id}`, { name, createdAt: new Date() });

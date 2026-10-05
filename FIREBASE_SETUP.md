@@ -72,9 +72,15 @@ The command reads `firebase.json`, `firestore.rules`,
 
 ## 5. Bootstrap the first super administrator
 
-Role escalation is intentionally blocked from normal client code.
+Role escalation is intentionally blocked from normal client code, with one
+exception: the owner account `chidera9713@gmail.com` (`OWNER_EMAIL` in
+`src/data/site.ts`, mirrored in `firestore.rules`) is promoted to
+`super_admin` automatically the first time it signs in with a verified email.
+Change both places to hand ownership to another address.
 
-1. Start the app and create the owner's account.
+To promote any other account manually:
+
+1. Start the app and create the account.
 2. Verify the account's email address.
 3. Copy the account UID from Authentication.
 4. In Firestore, open `users/{uid}` and set `role` to `super_admin`.

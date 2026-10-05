@@ -33,6 +33,13 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // The site owner's verified account becomes super_admin automatically.
+    // Keep in sync with OWNER_EMAIL in src/data/site.ts.
+    function isSiteOwner() {
+      return isAuthenticated() &&
+        request.auth.token.email == 'chidera9713@gmail.com';
+    }
+
     function isValidRole(role) {
       return role in [
         'reader',
@@ -51,10 +58,17 @@ service cloud.firestore {
       allow read: if isAdmin() || isOwner(userId);
 
       allow create: if isSignedIn() &&
-        request.auth.uid == userId &&
-        request.resource.data.get('role', 'user') == 'user';
+        request.auth.uid == userId && (
+          request.resource.data.get('role', 'user') == 'user' ||
+          (isSiteOwner() && request.resource.data.get('role', 'user') == 'super_admin')
+        );
 
       allow update: if (
+        isOwner(userId) &&
+        isSiteOwner() &&
+        request.resource.data.get('role', 'user') == 'super_admin' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+      ) || (
         isSuperAdmin() &&
         isValidRole(request.resource.data.get('role', 'user')) &&
         (

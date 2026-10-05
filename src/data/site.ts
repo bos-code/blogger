@@ -1,4 +1,10 @@
 /** Owner details and links shared across the site. */
+/**
+ * The owner's account is promoted to super_admin automatically once its email
+ * is verified (also enforced in firestore.rules — keep both in sync).
+ */
+export const OWNER_EMAIL = "chidera9713@gmail.com";
+
 export const site = {
   name: "John Dera",
   shortName: "Dera",

@@ -21,7 +21,9 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
+import { OWNER_EMAIL } from "../data/site";
 import { auth, db } from "../firebaseconfig";
 import type { AuthState, User, UserRole } from "../types";
 import { getAuthErrorMessage, isPopupCancellation } from "../utils/authErrors";
@@ -158,8 +160,17 @@ const loadUserProfile = async (firebaseUser: FirebaseUser): Promise<void> => {
     const userRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userRef);
 
+    const isOwner =
+      firebaseUser.emailVerified &&
+      firebaseUser.email?.toLowerCase() === OWNER_EMAIL;
+
     if (userDoc.exists()) {
       const userData = userDoc.data();
+      let role = (userData.role as UserRole) || "user";
+      if (isOwner && role !== "super_admin") {
+        await updateDoc(userRef, { role: "super_admin", updatedAt: serverTimestamp() });
+        role = "super_admin";
+      }
       setUser(
         {
           uid: firebaseUser.uid,
@@ -168,19 +179,20 @@ const loadUserProfile = async (firebaseUser: FirebaseUser): Promise<void> => {
           photoURL: firebaseUser.photoURL || userData.photoURL || null,
           nickname: userData.nickname || null,
         },
-        (userData.role as UserRole) || "user"
+        role
       );
       return;
     }
 
     const newUser = profileFromAuth(firebaseUser);
+    const role: UserRole = isOwner ? "super_admin" : "user";
     await setDoc(userRef, {
       ...newUser,
-      role: "user",
+      role,
       emailVerified: firebaseUser.emailVerified,
       createdAt: serverTimestamp(),
     });
-    setUser(newUser, "user");
+    setUser(newUser, role);
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn("Using Firebase Auth profile; Firestore profile unavailable:", error);
