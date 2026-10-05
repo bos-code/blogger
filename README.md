@@ -1,184 +1,131 @@
-# John Dera Portfolio + CMS
+# John Dera — Portfolio, Blog & CMS
 
 [![CI](https://github.com/bos-code/blogger/actions/workflows/ci.yml/badge.svg)](https://github.com/bos-code/blogger/actions/workflows/ci.yml)
 
-A responsive software-engineering portfolio with a Firebase-backed publishing
-system. The public site presents projects and articles, while verified writers
-and administrators get a role-aware CMS for drafting, scheduling, reviewing,
-and publishing rich-text posts.
+A responsive developer portfolio with a full publishing system. Visitors browse
+projects and articles; writers draft in a Notion-style editor; administrators
+review, publish and run the site from a dashboard. It runs entirely on free
+tiers: Firebase (Spark) and Vercel (Hobby).
 
-## What is included
+## Features
 
-- Responsive portfolio homepage, project showcase, contact form, and public
-  blog.
-- Email/password, Google, Apple, and email-link authentication flows.
-- Email-verification and role guards for protected routes and operations.
-- TipTap editor with headings, links, images, YouTube embeds, code blocks,
-  syntax highlighting, previews, local autosave, excerpts, tags, categories,
-  cover images, and scheduled publishing.
-- Firebase Storage uploads with image-only validation, a 5 MB limit, and
-  per-author media paths.
-- Draft, pending, approved, and rejected post states with administrator
-  moderation.
-- Dashboard analytics, user and role management, categories, profile settings,
-  notifications, likes, comments, and view counts.
-- Sanitized rich-text rendering with DOMPurify.
-- Route-level lazy loading, optimized WebP assets, and stable vendor chunking.
-- ESLint, strict TypeScript checks, Node tests, and GitHub Actions CI.
+**Portfolio** — hero, about, skills, experience timeline, project grid with
+case-study pages (editable from the CMS), contact form, downloadable CV,
+light/dark themes.
 
-## Roles and permissions
+**Blog** — search, category/tag filters, featured post, series, related posts,
+table of contents, syntax-highlighted code with copy buttons, likes, bookmarks,
+threaded comments, author pages, RSS, sitemap, social-share previews.
 
-| Role | Main permissions |
+**Editor** — TipTap with a `/` block menu, floating format menus, tables,
+callouts, task lists, image upload (paste/drag/drop) with captions and alt text,
+a media library, YouTube/CodePen/CodeSandbox embeds, cover images, SEO fields,
+scheduling, autosave to Firestore with a local backup, version history,
+conflict detection, live preview (desktop/mobile), focus mode, shareable draft
+preview links, and optional AI title/excerpt suggestions.
+
+**Dashboard** — overview with a 30-day views chart and review queue; posts
+with bulk actions, featuring and reject-with-reason; users and roles;
+categories; projects; contact-message inbox; newsletter subscribers; saved
+posts; profile and appearance settings; in-app notifications.
+
+**Email (optional)** — double opt-in newsletter, new-post emails, and owner
+alerts for contact messages and posts awaiting review, sent with Nodemailer
+through Gmail. See [docs/EMAIL_AND_DEPLOYMENT.md](docs/EMAIL_AND_DEPLOYMENT.md).
+
+## Roles
+
+| Role | Can |
 | --- | --- |
-| Guest | View approved, currently published posts and submit the contact form |
-| `reader` | Guest access plus verified-account features such as likes |
-| `user` | Read, like, and comment on posts |
-| `writer` | Create and edit owned drafts, submit posts, and upload post images |
-| `admin` | Review all posts, publish or reject content, and manage standard users and categories |
-| `super_admin` | All administrator permissions plus protected administrator-role management |
+| Guest | Read published posts, subscribe, use the contact form |
+| `reader` | Like and save posts |
+| `user` | …and comment |
+| `writer` | …and write posts, submit them for review, upload images |
+| `admin` | …and review/publish any post, manage users, categories, projects, messages, subscribers |
+| `super_admin` | …and manage administrators |
 
-Authorization is enforced in both the UI and Firebase rules. UI guards are not
-treated as a security boundary.
+Permissions are enforced by `firestore.rules` and `storage.rules`; the UI
+mirrors them but is not the security boundary.
 
 ## Tech stack
 
-- React 19, TypeScript, Vite 7, and React Router
-- Tailwind CSS 4, DaisyUI, HeroUI, Framer Motion, GSAP, and Swiper
-- TanStack Query and Zustand
-- TipTap, Lowlight, and Highlight.js
-- Firebase Authentication, Cloud Firestore, and Cloud Storage
-- SweetAlert2 and DOMPurify
-- pnpm 11 and Node.js 24
+React 19, TypeScript, Vite 7, React Router 7, Tailwind CSS 4 + DaisyUI 5,
+TanStack Query, Zustand, TipTap 3, Framer Motion, Firebase (Auth, Firestore,
+Storage), Vercel functions (Nodemailer, Firebase Admin), Playwright.
 
-## Quick start
+## Getting started
 
-Prerequisites:
-
-- Node.js 24
-- pnpm 11.7.0 through Corepack
-- A Firebase web project
+Requirements: Node.js 24, pnpm 11.7 (via Corepack), Java 11+ for the emulators.
 
 ```bash
-git clone https://github.com/bos-code/blogger.git
-cd blogger
 corepack enable
 pnpm install --frozen-lockfile
-cp .env.example .env
+```
+
+### Option A — local emulators (no Firebase project needed)
+
+```bash
+pnpm emulators          # terminal 1: Auth, Firestore and Storage emulators
+pnpm seed:emulators     # terminal 2: demo users, posts, comments, analytics
+pnpm dev:emulators      # terminal 2: http://localhost:5173
+```
+
+Demo accounts (password `password123`): `admin@example.com` (super admin),
+`writer@example.com` (writer), `reader@example.com` (user). The `/api`
+functions run inside the dev server; emails are printed instead of sent.
+
+### Option B — your Firebase project
+
+```bash
+cp .env.example .env    # fill in the VITE_FIREBASE_* values
 pnpm dev
 ```
 
-Open `http://localhost:5173`.
-
-The portfolio shell can render without valid Firebase credentials, but
-authentication, posts, comments, contact messages, and uploads require a
-configured Firebase project.
-
-## Environment variables
-
-Fill the copied `.env` file with values from Firebase Console → Project
-settings → Your apps.
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `VITE_FIREBASE_API_KEY` | Yes | Firebase web API key |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Yes | Authentication domain |
-| `VITE_FIREBASE_PROJECT_ID` | Yes | Firestore project ID |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Yes | Cloud Storage bucket |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Yes | Firebase sender ID |
-| `VITE_FIREBASE_APP_ID` | Yes | Firebase web app ID |
-| `VITE_HUGGINGFACE_API_KEY` | No | Enables the optional writing assistant |
-
-Every `VITE_` value is embedded in browser code. Firebase web configuration is
-designed for this and is protected by Firebase rules. A Hugging Face token is
-different: use only a narrowly scoped development token here. For production,
-proxy AI requests through a server-side function and keep the token there.
-
-## Firebase setup
-
-1. Create a Firebase project and register a web app.
-2. Enable Email/Password authentication. Enable Google, Apple, or email-link
-   sign-in only if those flows will be used, and configure their provider
-   requirements.
-3. Create Cloud Firestore and Cloud Storage.
-4. Add local and production hosts to Authentication → Settings → Authorized
-   domains.
-5. Deploy the committed rules and index:
-
-```bash
-pnpm dlx firebase-tools@13.35.1 login
-pnpm dlx firebase-tools@13.35.1 use --add
-pnpm dlx firebase-tools@13.35.1 deploy --only firestore:rules,firestore:indexes,storage
-```
-
-6. Sign up the first owner, verify the email address, then set
-   `users/{uid}.role` to `super_admin` directly in the Firebase Console. Client
-   code cannot self-promote an account.
-
-The deployed configuration is sourced from:
-
-- `firestore.rules`
-- `firestore.indexes.json`
-- `storage.rules`
-- `firebase.json`
-
-See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for the longer Firebase checklist.
-
-## Data model
-
-| Collection or path | Purpose |
-| --- | --- |
-| `users/{uid}` | Profile and CMS role |
-| `posts/{postId}` | Article content, state, schedule, likes, and views |
-| `comments/{commentId}` | Post comments |
-| `categories/{categoryId}` | Administrator-managed categories |
-| `notifications/{notificationId}` | Account or global CMS notifications |
-| `messages/{messageId}` | Portfolio contact submissions |
-| `post-images/{uid}/{file}` | Publicly readable, author-owned post media in Storage |
-
-Approved posts are publicly readable. Private post states are restricted to
-their author and administrators. Scheduled posts stay hidden in the public UI
-until their publish time. Rich HTML is sanitized before preview and display.
+Then follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md): enable sign-in methods,
+deploy the rules and indexes, and promote your first account to
+`super_admin` in the Firebase Console.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm dev` | Start the Vite development server |
-| `pnpm build` | Create the production bundle in `dist/` |
-| `pnpm preview` | Preview the production bundle locally |
-| `pnpm lint` | Run ESLint |
-| `pnpm typecheck` | Run strict TypeScript checks |
-| `pnpm test` | Run the Node test suite |
-| `pnpm check` | Run lint, type-checking, tests, and build |
-
-Run `pnpm check` before pushing. The same command runs in
-`.github/workflows/ci.yml` for every push and pull request.
+| `pnpm dev` | Dev server (serves `/api` locally too) |
+| `pnpm dev:emulators` | Dev server wired to the local emulators |
+| `pnpm build` / `pnpm preview` | Production build / preview |
+| `pnpm lint` | ESLint |
+| `pnpm typecheck` | TypeScript (app, API, tests, config) |
+| `pnpm test` | Unit tests (Node test runner) |
+| `pnpm test:api` | API checks against running emulators |
+| `pnpm test:e2e` | Emulators + seed + API checks + Playwright (desktop & mobile) |
+| `pnpm check` | Lint, typecheck, unit tests and build (runs in CI) |
 
 ## Project structure
 
 ```text
+api/                 Vercel functions: RSS, sitemap, robots, share previews,
+                     draft previews, newsletter and email alerts
 src/
-├── components/       Shared portfolio, editor, and feedback UI
-├── dashboardUi/      Writer and administrator CMS screens
-├── hooks/            TanStack Query data and mutation hooks
-├── pages/            Route-level pages
-├── services/         AI and Firebase Storage services
-├── stores/           Authentication and UI state
-├── types/            Shared TypeScript contracts
-└── utils/            Date, role, alert, query, and sanitization helpers
-tests/                Node utility tests
-firestore.rules       Firestore authorization and validation
-storage.rules         Storage authorization and upload constraints
+├── components/      Site UI (article/, auth/, ui/ primitives)
+├── dashboardUi/     Dashboard screens and the post editor page
+├── editor/          TipTap extensions, menus, dialogs, settings, versions
+├── hooks/           Data hooks (TanStack Query + Firestore)
+├── pages/           Route-level pages
+├── services/        Storage uploads, API client, AI, email triggers
+├── stores/          Auth, theme, UI and notification state
+├── data/            Site details, projects, experience
+└── utils/           Pure helpers (dates, posts, auth errors, analytics…)
+e2e/                 Playwright end-to-end tests
+scripts/             Emulator seed data and API test runner
+tests/               Unit tests
+firestore.rules      Firestore authorization and validation
+storage.rules        Storage authorization and upload limits
+vercel.json          SPA fallback, feeds and share-preview routing
 ```
 
-## Production deployment
+## Deployment
 
-1. Run `pnpm check`.
-2. Configure the same environment variables in the hosting platform.
-3. Build with `pnpm build` and publish `dist/`.
-4. Configure an SPA fallback from unknown paths to `index.html` so routes such
-   as `/blog/:id` and `/admin` work on a hard refresh.
-5. Add the production domain to Firebase Authentication authorized domains.
-6. Deploy Firebase rules whenever their committed versions change.
+See [docs/EMAIL_AND_DEPLOYMENT.md](docs/EMAIL_AND_DEPLOYMENT.md) for Vercel,
+environment variables, Gmail setup and rules deployment, and
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues.
 
 This repository does not currently declare an open-source license.

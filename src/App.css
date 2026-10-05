@@ -1,85 +1,274 @@
-@import url("https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap");
-/* Import Tailwind CSS v4 */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Ubuntu:wght@300;400;500;700&display=swap");
 @import "tailwindcss";
 
-/* Configure Tailwind v4 theme with responsive breakpoints */
-@theme {
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-  --breakpoint-2xl: 1536px;
+@plugin "@tailwindcss/typography";
+@plugin "daisyui" {
+  themes: false;
 }
 
-/* DaisyUI Plugin */
-@plugin "daisyui";
+@custom-variant dark (&:where([data-theme=johndark], [data-theme=johndark] *));
 
-/* @import "./hero.ts" */
-
+/* Dark theme (brand default) */
 @plugin "daisyui/theme" {
-  name: "defaulttheme";
+  name: "johndark";
   default: true;
   prefersdark: true;
   color-scheme: "dark";
 
   --color-base-100: #292f36;
-  --color-base-200: #1a1e23;
-  --color-base-300: #43454d;
-  --color-base-content: #ffffff;
+  --color-base-200: #1f242a;
+  --color-base-300: #3a4048;
+  --color-base-content: #f5f7fa;
 
   --color-primary: #12f7d6;
-
+  --color-primary-content: #0d2420;
   --color-secondary: #98faec;
   --color-secondary-content: #1a1e23;
-
   --color-accent: #e54f26;
   --color-accent-content: #ffffff;
-
   --color-neutral: #0c73b8;
   --color-neutral-content: #ffffff;
 
-  --color-info: #28a9e0;
-  --color-info-content: #ffffff;
-
-  --color-success: #e7a020;
-  --color-success-content: #1a1e23;
-
-  --color-warning: #e7a020;
-  --color-warning-content: #292f36;
-
-  --color-error: #e54f26;
+  --color-info: #38b6ea;
+  --color-info-content: #0b1d26;
+  --color-success: #34d399;
+  --color-success-content: #062b1d;
+  --color-warning: #f2b130;
+  --color-warning-content: #2a1d03;
+  --color-error: #f26b4b;
   --color-error-content: #ffffff;
 
   --radius-selector: 0.5rem;
-  --radius-field: 1rem;
-  --radius-box: 0.25rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
-  --depth: 2;
-  --noise: 0.1;
-  --background: "./whoop-bg.png";
-  --font-sans: "Ubuntu", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Light theme */
+@plugin "daisyui/theme" {
+  name: "johnlight";
+  default: false;
+  prefersdark: false;
+  color-scheme: "light";
+
+  --color-base-100: #ffffff;
+  --color-base-200: #f3f5f7;
+  --color-base-300: #e1e5ea;
+  --color-base-content: #1d252d;
+
+  --color-primary: #0b8f7c;
+  --color-primary-content: #ffffff;
+  --color-secondary: #0f6e63;
+  --color-secondary-content: #ffffff;
+  --color-accent: #d9461f;
+  --color-accent-content: #ffffff;
+  --color-neutral: #0c73b8;
+  --color-neutral-content: #ffffff;
+
+  --color-info: #0a7fb3;
+  --color-info-content: #ffffff;
+  --color-success: #15803d;
+  --color-success-content: #ffffff;
+  --color-warning: #b7791f;
+  --color-warning-content: #ffffff;
+  --color-error: #c2410c;
+  --color-error-content: #ffffff;
+
+  --radius-selector: 0.5rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+@theme {
+  --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 @layer base {
-  body {
-    @apply min-h-screen bg-base-100 text-base-content  overflow-x-hidden;
-  }
-}
-@layer utilities {
-  .page-padding {
-    @apply mx-10;
+  html {
+    scroll-padding-top: 5.5rem;
   }
 
-  @media (min-width: 768px) {
-    .page-padding {
-      margin-left: 64px;
-      margin-right: 64px;
+  body {
+    @apply min-h-screen bg-base-100 font-sans text-base-content antialiased overflow-x-hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
+}
+
+@layer components {
+  /* Standard card surface used across the dashboard and blog. */
+  .surface {
+    @apply rounded-2xl border border-base-300 bg-base-100 shadow-sm;
+  }
+
+  .page-container {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply px-4 py-16 sm:px-8 sm:py-20 lg:px-16 lg:py-24;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-base-content/80;
+  }
+}
+
+@layer utilities {
+  .page-padding {
+    @apply mx-4 sm:mx-10 md:mx-16;
+  }
+}
+
+/* Rich-text article content */
+.article-content {
+  overflow-wrap: anywhere;
+}
+.article-content :where(img) {
+  border-radius: 0.75rem;
+  margin-inline: auto;
+}
+.article-content :where(figure) {
+  margin-block: 1.75em;
+}
+.article-content :where(figcaption) {
+  text-align: center;
+}
+.article-content :where(iframe) {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: 0.75rem;
+}
+.article-content :where(pre) {
+  border: 1px solid var(--color-base-300);
+  border-radius: 0.75rem;
+  background: var(--color-base-200) !important;
+  color: var(--color-base-content) !important;
+}
+.article-content :where(table) {
+  display: block;
+  overflow-x: auto;
+}
+.article-content :where(ul[data-type="taskList"]) {
+  list-style: none;
+  padding-left: 0.25rem;
+}
+.article-content :where(ul[data-type="taskList"] li) {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.article-content :where(ul[data-type="taskList"] li > label) {
+  margin-top: 0.3em;
+}
+.article-content :where(ul[data-type="taskList"] li > div > p) {
+  margin: 0;
+}
+
+/* Callout blocks (editor + article) */
+.callout {
+  display: flex;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--callout-color);
+  border-left-width: 4px;
+  background: color-mix(in oklab, var(--callout-color) 10%, transparent);
+  padding: 0.85rem 1rem;
+  margin-block: 1.25em;
+}
+.callout > :first-child {
+  margin-top: 0;
+}
+.callout > :last-child {
+  margin-bottom: 0;
+}
+.callout[data-variant="info"] {
+  --callout-color: var(--color-info);
+}
+.callout[data-variant="tip"] {
+  --callout-color: var(--color-success);
+}
+.callout[data-variant="warning"] {
+  --callout-color: var(--color-warning);
+}
+.callout[data-variant="danger"] {
+  --callout-color: var(--color-error);
+}
+
+/* Syntax highlighting (highlight.js classes from lowlight) */
+.hljs-comment,
+.hljs-quote {
+  color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: #c678dd;
+}
+[data-theme="johnlight"] .hljs-keyword,
+[data-theme="johnlight"] .hljs-selector-tag,
+[data-theme="johnlight"] .hljs-built_in,
+[data-theme="johnlight"] .hljs-name,
+[data-theme="johnlight"] .hljs-tag {
+  color: #7c3aed;
+}
+.hljs-string,
+.hljs-attr,
+.hljs-template-tag,
+.hljs-addition {
+  color: var(--color-success);
+}
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type {
+  color: var(--color-warning);
+}
+.hljs-title,
+.hljs-section,
+.hljs-function .hljs-title {
+  color: var(--color-info);
+}
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-deletion {
+  color: var(--color-error);
 }
 
 .ibm-plex {
@@ -102,12 +291,6 @@
   font-style: normal;
 }
 
-body {
-  font-family: "Ubuntu", sans-serif;
-  font-weight: 400;
-  font-style: normal;
-  min-height: 100vh;
-}
 
 .ubuntu-medium {
   font-family: "Ubuntu", sans-serif;
@@ -121,23 +304,11 @@ body {
   font-style: normal;
 }
 
-.page-heading {
-  font-family: "Ubuntu", sans-serif;
-  font-weight: 400;
-  font-style: normal;
-  color: var(--color-primary);
-
-  font-size: 64px;
-  line-height: 72px;
-  letter-spacing: 0%;
-  text-transform: capitalize;
-}
 .custom-btn {
   font-family: "Ubuntu", sans-serif;
   font-weight: 500;
   font-style: normal;
   transition: all 0.3s ease-in-out;
-  padding: approx 0.5rem 1rem;
   color: var(--color-base-content);
 
   &:hover {
@@ -221,86 +392,107 @@ body {
   @apply text-base xl:text-sm capitalize;
 }
 
-.navbar .active {
-  @apply border-r-2 text-primary border-l-2 border-t-2 text-xl  px-6 py-1 rounded-full;
+
+
+
+
+/* Figures, embeds and tables (editor + article) */
+.article-content figure.image-figure {
+  margin-inline: auto;
+}
+.article-content figure.image-figure[data-size="small"] {
+  max-width: 50%;
+}
+.article-content figure.image-figure[data-size="medium"] {
+  max-width: 75%;
+}
+@media (max-width: 640px) {
+  .article-content figure.image-figure[data-size] {
+    max-width: 100%;
+  }
+}
+.article-content figure.image-figure img {
+  width: 100%;
+  margin: 0;
+}
+.article-content .embed-frame {
+  margin-block: 1.75em;
+}
+.article-content .embed-frame iframe {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid var(--color-base-300);
+  border-radius: 0.75rem;
+}
+.article-content :where(div[data-youtube-video] iframe) {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+}
+.article-content table {
+  border-collapse: collapse;
+}
+.article-content :where(th, td) {
+  border: 1px solid var(--color-base-300);
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+.article-content :where(th) {
+  background: var(--color-base-200);
+}
+.article-content mark {
+  background: color-mix(in oklab, var(--color-warning) 35%, transparent);
+  color: inherit;
+  border-radius: 0.2em;
+  padding: 0 0.15em;
 }
 
-.glassy {
-  /* From https://css.glass */
-  background: rgba(18, 247, 214, 0.04);
-
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(2.1px);
-  -webkit-backdrop-filter: blur(2.1px);
-  box-shadow:
-    rgba(0, 0, 0, 0.17) 0px -23px 25px 0px inset,
-    rgba(0, 0, 0, 0.15) 0px -36px 30px 0px inset,
-    rgba(0, 0, 0, 0.1) 0px -79px 40px 0px inset,
-    rgba(0, 0, 0, 0.06) 0px 2px 1px,
-    rgba(0, 0, 0, 0.09) 0px 4px 2px,
-    rgba(0, 0, 0, 0.09) 0px 8px 4px,
-    rgba(0, 0, 0, 0.09) 0px 16px 8px,
-    rgba(0, 0, 0, 0.09) 0px 32px 16px;
+/* Editor-only affordances */
+.tiptap-editor p.is-empty::before,
+.tiptap-editor h1.is-empty::before,
+.tiptap-editor h2.is-empty::before,
+.tiptap-editor h3.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklab, var(--color-base-content) 35%, transparent);
 }
-
-.shadow-ce {
-  box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
+.tiptap-editor .ProseMirror-selectednode,
+.tiptap-editor figure.ProseMirror-selectednode img,
+.tiptap-editor .embed-frame.ProseMirror-selectednode iframe {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 0.75rem;
 }
-
-.dash .btn {
-  position: relative;
-  overflow: hidden;
-  transform-origin: left;
-  transition: all 500ms;
-  border-bottom: 0;
-  box-shadow: inset 20px 20px 30px #00000050;
-  background-color: #1b8d80; /* your base teal or dark bg */
-  color: white;
+.tiptap-editor .selectedCell {
+  background: color-mix(in oklab, var(--color-primary) 15%, transparent);
 }
-
-/* the slant overlay */
-.dash .btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    var(--accent, #23d1b7),
-    var(--primary, #1b8d80)
-  );
-  transform: translateX(-100%) skewX(-20deg);
-  transition: transform 0.6s ease;
-  z-index: 0;
+.tiptap-editor .embed-frame iframe,
+.tiptap-editor div[data-youtube-video] iframe {
+  pointer-events: none;
 }
-
-/* bring the overlay in from the left */
-.btn:hover::before {
-  transform: translateX(0) skewX(-20deg);
+.tiptap-editor ul[data-type="taskList"] li > label input {
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
 }
-
-/* make sure text stays above */
-.btn span,
-.btn i {
-  position: relative;
-  z-index: 1;
+.tiptap-editor .ProseMirror-gapcursor::after {
+  border-top-color: var(--color-base-content);
 }
-/* custom-scrollbar (paste in index.css or global.css) */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
+.article-content :where(td, th) > p {
+  margin: 0;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    var(--fallback-p, oklch(var(--p))),
-    var(--fallback-s, oklch(var(--s)))
-  );
-  border-radius: 8px;
+.article-content pre .code-copy-button {
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.article-content pre:hover .code-copy-button,
+.article-content pre .code-copy-button:focus-visible {
+  opacity: 1;
 }
-.custom-scrollbar {
-  scrollbar-color: var(--fallback-p, oklch(var(--p))) transparent;
-  scrollbar-width: thin;
-  scroll-behavior: smooth;
+@media (hover: none) {
+  .article-content pre .code-copy-button {
+    opacity: 1;
+  }
 }

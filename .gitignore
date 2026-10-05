@@ -27,3 +27,10 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Playwright
+test-results
+playwright-report
+
+# Firebase emulator logs
+*-debug.log

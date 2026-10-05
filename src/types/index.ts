@@ -7,6 +7,7 @@ export interface User {
   name: string | null;
   photoURL?: string | null;
   nickname?: string | null;
+  bio?: string | null;
 }
 
 export type UserRole = "super_admin" | "admin" | "writer" | "user" | "reader";
@@ -35,6 +36,13 @@ export interface BlogPost {
   readingTime?: number; // in minutes
   technicalStack?: string[];
   scheduledFor?: DateValue;
+  coverImageAlt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  series?: string | null;
+  seriesOrder?: number | null;
+  featured?: boolean;
+  rejectionReason?: string | null;
 }
 
 export type CreatePostInput = Pick<BlogPost, "title" | "content"> &
@@ -52,18 +60,73 @@ export type CreatePostInput = Pick<BlogPost, "title" | "content"> &
       | "readingTime"
       | "technicalStack"
       | "scheduledFor"
+      | "coverImageAlt"
+      | "seoTitle"
+      | "seoDescription"
+      | "series"
+      | "seriesOrder"
     >
   >;
+
+export interface PostRevision {
+  id: string;
+  title: string;
+  content: string;
+  savedBy: string;
+  savedByName: string | null;
+  createdAt?: DateValue;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string | null;
+  content: string;
+  parentId?: string | null;
+  createdAt?: DateValue;
+  updatedAt?: DateValue;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  description?: string;
+  imageUrl?: string | null;
+  liveUrl?: string | null;
+  repoUrl?: string | null;
+  tech?: string[];
+  role?: string | null;
+  order?: number;
+  createdAt?: DateValue;
+  updatedAt?: DateValue;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  read: boolean;
+  createdAt?: DateValue;
+}
 
 // Notification types
 export interface Notification {
   id: string;
+  /** A user's uid, "all" (every signed-in user) or "admins". */
   userId: string;
   type: string;
   message: string;
   blogId?: string;
+  link?: string;
   createdAt?: DateValue;
   read?: boolean;
+  /** For shared notifications: users who have read it. */
+  readBy?: string[];
 }
 
 // Auth Store types
@@ -84,12 +147,18 @@ export interface AuthState {
 
 // UI Store types
 export interface UIState {
-  dashboardScreen: "home" | "posts" | "users" | "settings" | "categories" | "profile" | "super_admin";
-  openModal: boolean;
-  selectedBlog: BlogPost | null;
+  dashboardScreen:
+    | "home"
+    | "posts"
+    | "users"
+    | "categories"
+    | "profile"
+    | "saved"
+    | "messages"
+    | "analytics"
+    | "projects"
+    | "subscribers";
   setDashboardScreen: (screen: UIState["dashboardScreen"]) => void;
-  openApprovalModal: (blog: BlogPost) => void;
-  closeModal: () => void;
 }
 
 // Notification Store types
@@ -105,26 +174,4 @@ export interface NotificationState {
   notification: NotificationData | null;
   showNotification: (notification: NotificationData | null) => void;
   hideNotification: () => void;
-}
-
-// AI Service types
-export interface AIGenerateOptions {
-  topic: string;
-  length?: "short" | "medium" | "long";
-}
-
-export interface SEOSuggestions {
-  keywords: string[];
-  metaDescription: string;
-  suggestions: string[];
-}
-
-export interface GrammarCheck {
-  errors: Array<{
-    message: string;
-    offset: number;
-    length: number;
-  }>;
-  suggestions: string[];
-  score: number;
 }

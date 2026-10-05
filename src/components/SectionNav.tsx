@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   HomeIcon,
   UserIcon,
@@ -7,162 +6,65 @@ import {
   BriefcaseIcon,
   DocumentTextIcon,
   EnvelopeIcon,
+  AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 
-interface Section {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  element: HTMLElement;
-}
+const SECTIONS: Array<{ id: string; label: string; icon: ComponentType<{ className?: string }> }> = [
+  { id: "hero", label: "Home", icon: HomeIcon },
+  { id: "about", label: "About", icon: UserIcon },
+  { id: "stack", label: "Skills", icon: CodeBracketIcon },
+  { id: "experience", label: "Experience", icon: AcademicCapIcon },
+  { id: "work", label: "Work", icon: BriefcaseIcon },
+  { id: "blog", label: "Blog", icon: DocumentTextIcon },
+  { id: "contact", label: "Contact", icon: EnvelopeIcon },
+];
 
-const sectionConfig: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  hero: { label: "Home", icon: HomeIcon },
-  about: { label: "About", icon: UserIcon },
-  stack: { label: "Stack", icon: CodeBracketIcon },
-  work: { label: "Work", icon: BriefcaseIcon },
-  blog: { label: "Blog", icon: DocumentTextIcon },
-  contact: { label: "Contact", icon: EnvelopeIcon },
-};
-
+/** Floating dot navigation for the home page sections (wide screens only). */
 export default function SectionNav(): React.ReactElement {
-  const [sections, setSections] = useState<Section[]>([]);
-  const [activeSection, setActiveSection] = useState<string>("");
+  const [active, setActive] = useState("hero");
 
   useEffect(() => {
-    // Find all sections with IDs (Hero, About, Stack, Work, Blog, Contact)
-    const sectionIds = ["hero", "about", "stack", "work", "blog", "contact"];
-    const foundSections = sectionIds.flatMap((id): Section[] => {
-      const element =
-        document.getElementById(id) ??
-        document.querySelector<HTMLElement>(`[data-section="${id}"]`);
-      const config = sectionConfig[id];
-      if (element && config) {
-        return [
-          {
-            id,
-            label: config.label,
-            icon: config.icon,
-            element,
-          },
-        ];
-      }
-      return [];
-    });
-
-    setSections(foundSections);
-
-    // Intersection Observer to track active section
+    const elements = SECTIONS.map((section) => document.getElementById(section.id)).filter(
+      (element): element is HTMLElement => Boolean(element)
+    );
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            const id = entry.target.id || entry.target.getAttribute("data-section");
-            if (id) {
-              setActiveSection(id);
-            }
-          }
-        });
+        const visible = entries.filter((entry) => entry.isIntersecting);
+        if (visible[0]) setActive(visible[0].target.id);
       },
-      {
-        rootMargin: "-20% 0px -20% 0px",
-        threshold: [0, 0.5, 1],
-      }
+      { rootMargin: "-45% 0px -50% 0px" }
     );
-
-    foundSections.forEach((section) => {
-      observer.observe(section.element);
-    });
-
-    return () => {
-      foundSections.forEach((section) => {
-        observer.unobserve(section.element);
-      });
-    };
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
   }, []);
 
-  const scrollToSection = (sectionId: string): void => {
-    const section = sections.find((s) => s.id === sectionId);
-    if (section) {
-      section.element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
-
-  if (sections.length === 0) {
-    return <></>;
-  }
-
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      className="fixed right-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block"
+    <nav
+      aria-label="Page sections"
+      className="fixed right-5 top-1/2 z-30 hidden -translate-y-1/2 2xl:block"
     >
-      <nav className="bg-base-100/90 backdrop-blur-lg border border-primary/30 rounded-2xl p-3 shadow-2xl">
-        <ul className="flex flex-col gap-3">
-          {sections.map((section) => {
-            const Icon = section.icon;
-            const isActive = activeSection === section.id;
-            
-            return (
-              <li key={section.id}>
-                <motion.button
-                  onClick={() => scrollToSection(section.id)}
-                  className={`relative group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-                    isActive
-                      ? "bg-primary text-primary-content shadow-lg shadow-primary/50"
-                      : "bg-base-200/50 text-base-content hover:bg-primary/20 hover:text-primary"
-                  }`}
-                  aria-label={`Go to ${section.label} section`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {/* Active indicator line */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeIndicator"
-                      className="absolute left-0 top-0 bottom-0 w-1 bg-primary-content rounded-r-full"
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
-                  )}
-                  
-                  {/* Icon */}
-                  <div className={`relative z-10 ${isActive ? "text-primary-content" : "text-base-content group-hover:text-primary"}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  
-                  {/* Section Name - Always visible when active, visible on hover otherwise */}
-                  <motion.span
-                    className={`relative z-10 text-sm font-semibold whitespace-nowrap ${
-                      isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    } transition-opacity duration-300`}
-                    initial={false}
-                    animate={{
-                      opacity: isActive ? 1 : 0,
-                      width: isActive ? "auto" : 0,
-                    }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {section.label}
-                  </motion.span>
-                  
-                  {/* Hover tooltip (fallback for when name is hidden) */}
-                  {!isActive && (
-                    <span className="absolute right-full mr-3 px-3 py-2 bg-base-300 text-base-content text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-primary/20">
-                      {section.label}
-                      <span className="absolute right-0 top-1/2 translate-x-full -translate-y-1/2 border-4 border-transparent border-l-base-300"></span>
-                    </span>
-                  )}
-                </motion.button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </motion.div>
+      <ul className="surface flex flex-col gap-1 p-1.5">
+        {SECTIONS.map(({ id, label, icon: Icon }) => {
+          const isActive = active === id;
+          return (
+            <li key={id} className="group relative">
+              <a
+                href={`#${id}`}
+                aria-label={label}
+                aria-current={isActive ? "location" : undefined}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                  isActive ? "bg-primary text-primary-content" : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </a>
+              <span className="pointer-events-none absolute right-full top-1/2 mr-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-base-300 px-2.5 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                {label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }

@@ -1,110 +1,90 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-
-interface Heading {
-  id: string;
-  text: string;
-  level: number;
-}
+import type { HeadingInfo } from "../utils/posts";
 
 interface TableOfContentsProps {
-  content: string;
+  headings: HeadingInfo[];
+  variant?: "sidebar" | "inline";
 }
 
-export default function TableOfContents({ content }: TableOfContentsProps): React.ReactElement {
-  const [headings, setHeadings] = useState<Heading[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
+/** "On this page" navigation that highlights the section being read. */
+export default function TableOfContents({
+  headings,
+  variant = "sidebar",
+}: TableOfContentsProps): React.ReactElement | null {
+  const [activeId, setActiveId] = useState(headings[0]?.id ?? "");
 
   useEffect(() => {
-    // Parse HTML content to extract headings
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, "text/html");
-    const headingElements = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
-    
-    const extractedHeadings: Heading[] = Array.from(headingElements).map((el, index) => {
-      const id = el.id || `heading-${index}`;
-      if (!el.id) {
-        el.id = id;
-      }
-      return {
-        id,
-        text: el.textContent || "",
-        level: parseInt(el.tagName.charAt(1)),
-      };
-    });
+    if (headings.length === 0) return;
+    const elements = headings
+      .map((heading) => document.getElementById(heading.id))
+      .filter((element): element is HTMLElement => Boolean(element));
 
-    setHeadings(extractedHeadings);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActiveId(visible[0].target.id);
+      },
+      { rootMargin: "-90px 0px -65% 0px" }
+    );
+    elements.forEach((element) => observer.observe(element));
+    return () => observer.disconnect();
+  }, [headings]);
 
-    // Update active heading on scroll
-    const handleScroll = (): void => {
-      const headingElements = extractedHeadings.map((h) => document.getElementById(h.id)).filter(Boolean) as HTMLElement[];
-      
-      for (let i = headingElements.length - 1; i >= 0; i--) {
-        const element = headingElements[i];
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 100) {
-            setActiveId(element.id);
-            break;
-          }
-        }
-      }
-    };
+  if (headings.length < 2) return null;
+  const minLevel = Math.min(...headings.map((heading) => heading.level));
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [content]);
-
-  if (headings.length === 0) return <></>;
-
-  const scrollToHeading = (id: string): void => {
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 100;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="sticky top-24 bg-base-100 rounded-2xl shadow-lg p-4 sm:p-6 border border-base-300 max-h-[calc(100vh-8rem)] overflow-y-auto"
-    >
-      <h3 className="text-lg sm:text-xl font-bold mb-4 text-base-content">
-        Table of Contents
-      </h3>
-      <nav className="space-y-2">
-        {headings.map((heading) => (
+  const list = (
+    <ol className="flex flex-col gap-0.5 text-sm">
+      {headings.map((heading) => (
+        <li key={heading.id}>
           <a
-            key={heading.id}
             href={`#${heading.id}`}
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToHeading(heading.id);
+            onClick={(event) => {
+              event.preventDefault();
+              document.getElementById(heading.id)?.scrollIntoView({ behavior: "smooth" });
+              history.replaceState(null, "", `#${heading.id}`);
+              setActiveId(heading.id);
             }}
-            className={`block text-sm sm:text-base py-1.5 px-2 rounded-lg transition-colors ${
+            aria-current={activeId === heading.id ? "location" : undefined}
+            className={`block rounded-md border-l-2 py-1 pr-2 transition-colors ${
               activeId === heading.id
-                ? "bg-primary text-primary-content font-semibold"
-                : "text-base-content/70 hover:text-base-content hover:bg-base-200"
+                ? "border-primary bg-primary/5 font-medium text-primary"
+                : "border-transparent text-base-content/65 hover:text-base-content"
             }`}
-            style={{ paddingLeft: `${(heading.level - 1) * 1}rem` }}
+            style={{ paddingLeft: `${0.75 + (heading.level - minLevel) * 0.85}rem` }}
           >
             {heading.text}
           </a>
-        ))}
-      </nav>
-    </motion.div>
+        </li>
+      ))}
+    </ol>
+  );
+
+  if (variant === "inline") {
+    return (
+      <details className="surface group mb-8 p-4 lg:hidden">
+        <summary className="cursor-pointer list-none font-semibold [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between">
+            On this page
+            <span className="text-xs text-base-content/55 group-open:hidden">Show</span>
+            <span className="hidden text-xs text-base-content/55 group-open:inline">Hide</span>
+          </span>
+        </summary>
+        <nav aria-label="Table of contents" className="mt-3">
+          {list}
+        </nav>
+      </details>
+    );
+  }
+
+  return (
+    <nav aria-label="Table of contents" className="max-h-[calc(100vh-8rem)] overflow-y-auto">
+      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-base-content/55">
+        On this page
+      </h2>
+      {list}
+    </nav>
   );
 }
-
-
-

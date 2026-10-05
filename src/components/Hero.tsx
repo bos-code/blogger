@@ -1,442 +1,172 @@
+import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import {
+  ArrowDownTrayIcon,
+  BriefcaseIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
 import dera from "../assets/dera.webp";
-import { motion } from "framer-motion";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
-import Twitter from "../assets/twitter";
-import { useState, useEffect } from "react";
 import resumeStats from "../data/resumeStats";
+import { site } from "../data/site";
 
-const stack = [
-  "HTML",
-  "CSS",
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Next.js",
-  "Tailwind CSS",
-  "Git",
-];
+const STACK = ["TypeScript", "React", "Next.js", "Tailwind CSS", "Firebase", "Git"];
 
-function Hero(): React.ReactElement {
-  // Animated counter state
-  const [animatedStats, setAnimatedStats] = useState({
-    stat1: 0,
-    stat2: 0,
-    stat3: 0,
-  });
-
-  // Animate numbers
+/** Counts up from 0 to `target` once (skipped when reduced motion is preferred). */
+function useCountUp(target: number, skip: boolean): number {
+  const [value, setValue] = useState(skip ? target : 0);
   useEffect(() => {
-    const duration = 2000; // 2 seconds
-    const steps = 60;
-    const interval = duration / steps;
-
-    const animateValue = (
-      start: number,
-      end: number,
-      callback: (value: number) => void
-    ) => {
-      const increment = (end - start) / steps;
-      let current = start;
-      let stepCount = 0;
-
-      const timer = setInterval(() => {
-        stepCount++;
-        current += increment;
-        if (stepCount >= steps) {
-          callback(end);
-          clearInterval(timer);
-        } else {
-          callback(Math.floor(current));
-        }
-      }, interval);
+    if (skip) return setValue(target);
+    let frame = 0;
+    const start = performance.now();
+    const duration = 1200;
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      setValue(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+      if (progress < 1) frame = requestAnimationFrame(tick);
     };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, skip]);
+  return value;
+}
 
-    animateValue(0, resumeStats.stat1.value, (value) => {
-      setAnimatedStats((prev) => ({ ...prev, stat1: value }));
-    });
-    animateValue(0, resumeStats.stat2.value, (value) => {
-      setAnimatedStats((prev) => ({ ...prev, stat2: value }));
-    });
-    animateValue(0, resumeStats.stat3.value, (value) => {
-      setAnimatedStats((prev) => ({ ...prev, stat3: value }));
-    });
-  }, []);
-
+function Stat({ value, suffix, label, skip }: { value: number; suffix?: string; label: string; skip: boolean }) {
+  const current = useCountUp(value, skip);
   return (
-    <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 2xl:px-16 pb-12 sm:pb-16 md:pb-20 lg:pb-24 xl:pb-32 page-padding max-w-7xl flex flex-col items-center justify-center min-h-[80vh]">
-      {/* Main heading */}
-      <motion.h1
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="heading--primary text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] font-bold leading-tight sm:leading-none text-center"
-      >
-        developer
-      </motion.h1>
-
-      {/* Hero Content Container */}
-      <div className="hero__content flex flex-col xl:flex-row items-center justify-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16 2xl:gap-20 mt-6 sm:mt-8 md:mt-10 lg:mt-12 xl:mt-16 w-full max-w-6xl mx-auto">
-        {/* Profile Card */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="about-me bg-base-100 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 sm:p-5 md:p-6 lg:p-6 xl:p-7 2xl:p-8 flex gap-3 sm:gap-4 md:gap-5 lg:gap-5 xl:gap-6 flex-col w-full sm:max-w-sm md:max-w-md xl:max-w-none xl:w-auto flex-shrink-0"
-        >
-          {/* Profile Image */}
-          <div className="flex justify-center">
-            <motion.img
-              src={dera}
-              alt="Dera"
-              className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 lg:w-28 lg:h-28 xl:w-32 xl:h-32 2xl:w-36 2xl:h-36 grayscale-50 hover:grayscale-0 transition-all duration-500 rounded-full shadow-xl border-4 border-primary object-cover"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            />
-          </div>
-
-          {/* Name and Title */}
-          <div className="text-content flex justify-center items-center flex-col gap-1">
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-2xl xl:text-3xl 2xl:text-4xl ibm-plex font-bold capitalize text-center break-words">
-              dera
-            </h2>
-            <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base 2xl:text-lg ibm-plex-mono capitalize text-base-content/70 break-words">
-              front-end developer
-            </p>
-          </div>
-
-          {/* Contact Info */}
-          <div className="fx flex-col gap-2.5 sm:gap-3 md:gap-3.5 xl:gap-4">
-            <ul className="flex flex-col gap-2 sm:gap-2.5 md:gap-3 xl:gap-4 ibm-plex-mono text-xs sm:text-sm md:text-sm">
-              <li className="links">
-                <a
-                  href="mailto:chidera9713@gmail.com"
-                  className="flex items-center gap-2 sm:gap-3 hover:text-primary transition-colors group"
-                  aria-label="Email"
-                >
-                  <svg
-                    className="w-3.5 h-3 sm:w-4 sm:h-3.5 flex-shrink-0"
-                    viewBox="0 0 14 12"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M0.583361 2.48988C0.583267 2.49564 0.583257 2.50139 0.583333 2.50715V9.5C0.583333 10.4638 1.3695 11.25 2.33333 11.25H11.6667C12.6305 11.25 13.4167 10.4638 13.4167 9.5V2.50721C13.4167 2.50141 13.4167 2.4956 13.4166 2.4898C13.4111 1.53063 12.6271 0.75 11.6667 0.75H2.33333C1.37287 0.75 0.588839 1.53067 0.583361 2.48988ZM1.81217 2.2398C1.90864 2.04904 2.10702 1.91667 2.33333 1.91667H11.6667C11.893 1.91667 12.0914 2.04904 12.1878 2.2398L7 5.87128L1.81217 2.2398ZM12.25 3.62038V9.5C12.25 9.8195 11.9862 10.0833 11.6667 10.0833H2.33333C2.01383 10.0833 1.75 9.8195 1.75 9.5V3.62038L6.66548 7.06122C6.86633 7.20182 7.13367 7.20182 7.33452 7.06122L12.25 3.62038Z"
-                      fill="currentColor"
-                      className="group-hover:fill-[var(--color-primary)] transition-colors"
-                    />
-                  </svg>
-                  <span className="truncate">chidera9713@gmail.com</span>
-                </a>
-              </li>
-              <li className="links">
-                <a
-                  href="#"
-                  className="flex items-center gap-2 sm:gap-3 hover:text-primary transition-colors group"
-                  aria-label="Location"
-                >
-                  <svg
-                    className="w-3 h-3.5 sm:w-3.5 sm:h-4 flex-shrink-0"
-                    viewBox="0 0 12 14"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M5.99999 3.5C4.71133 3.5 3.66666 4.54467 3.66666 5.83333C3.66666 7.122 4.71133 8.16667 5.99999 8.16667C7.28865 8.16667 8.33332 7.122 8.33332 5.83333C8.33332 4.54467 7.28865 3.5 5.99999 3.5ZM4.83332 5.83333C4.83332 5.189 5.35566 4.66667 5.99999 4.66667C6.64432 4.66667 7.16666 5.189 7.16666 5.83333C7.16666 6.47767 6.64432 7 5.99999 7C5.35566 7 4.83332 6.47767 4.83332 5.83333Z"
-                      fill="currentColor"
-                      className="group-hover:fill-[var(--color-primary)] transition-colors"
-                    />
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M5.6761 13.9018C5.67627 13.9019 5.67641 13.902 5.99999 13.4167L5.6761 13.9018C5.87204 14.0324 6.12762 14.0327 6.32356 13.902L5.99999 13.4167C6.32356 13.902 6.3234 13.9021 6.32356 13.902L6.32555 13.9007L6.32944 13.8981L6.3428 13.8891C6.35416 13.8813 6.37036 13.8703 6.39108 13.8559C6.43251 13.8272 6.49205 13.7854 6.56711 13.7312C6.71717 13.6228 6.92961 13.4646 7.18368 13.2623C7.69088 12.8584 8.36868 12.275 9.04846 11.5574C10.3842 10.1475 11.8333 8.10947 11.8333 5.83333C11.8333 4.28624 11.2187 2.80251 10.1248 1.70854C9.03082 0.614581 7.54709 0 5.99999 0C4.45289 0 2.96916 0.614581 1.8752 1.70854C0.781238 2.80251 0.166656 4.28624 0.166656 5.83333C0.166656 8.10947 1.61581 10.1475 2.95152 11.5574C3.6313 12.275 4.3091 12.8584 4.8163 13.2623C5.07037 13.4646 5.28281 13.6228 5.43287 13.7312C5.50793 13.7854 5.56747 13.8272 5.6089 13.8559C5.62962 13.8703 5.64582 13.8813 5.65718 13.8891L5.67054 13.8981L5.67443 13.9007L5.6761 13.9018ZM2.70016 2.5335C3.57533 1.65833 4.76231 1.16667 5.99999 1.16667C7.23767 1.16667 8.42465 1.65833 9.29982 2.5335C10.175 3.40867 10.6667 4.59566 10.6667 5.83333C10.6667 7.64053 9.49081 9.39415 8.20152 10.7551C7.5688 11.4229 6.9341 11.9697 6.45693 12.3497C6.27934 12.4911 6.12423 12.6089 5.99999 12.7007C5.87575 12.6089 5.72064 12.4911 5.54305 12.3497C5.06588 11.9697 4.43118 11.4229 3.79846 10.7551C2.50917 9.39415 1.33332 7.64053 1.33332 5.83333C1.33332 4.59566 1.82499 3.40867 2.70016 2.5335Z"
-                      fill="currentColor"
-                      className="group-hover:fill-[var(--color-primary)] transition-colors"
-                    />
-                  </svg>
-                  <span>Nigeria</span>
-                </a>
-              </li>
-              <li className="links">
-                <a
-                  href="#"
-                  className="flex items-center gap-2 sm:gap-3 hover:text-primary transition-colors group"
-                  aria-label="Employment"
-                >
-                  <svg
-                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M5.83334 1.16669C5.36922 1.16669 4.9241 1.35106 4.59591 1.67925C4.26772 2.00744 4.08334 2.45256 4.08334 2.91669V3.50002H2.33334C1.36685 3.50002 0.583344 4.28352 0.583344 5.25002V11.0834C0.583344 12.0499 1.36685 12.8334 2.33334 12.8334H11.6667C12.6332 12.8334 13.4167 12.0499 13.4167 11.0834V5.25002C13.4167 4.28352 12.6332 3.50002 11.6667 3.50002H9.91668V2.91669C9.91668 2.45256 9.7323 2.00744 9.40411 1.67925C9.07593 1.35106 8.63081 1.16669 8.16668 1.16669H5.83334ZM8.75001 3.50002V2.91669C8.75001 2.76198 8.68855 2.6136 8.57916 2.50421C8.46976 2.39481 8.32139 2.33335 8.16668 2.33335H5.83334C5.67863 2.33335 5.53026 2.39481 5.42087 2.50421C5.31147 2.6136 5.25001 2.76198 5.25001 2.91669V3.50002H8.75001ZM5.25001 4.66669H8.75001V11.6667H5.25001V4.66669ZM4.08334 4.66669H2.33334C2.01118 4.66669 1.75001 4.92785 1.75001 5.25002V11.0834C1.75001 11.4055 2.01118 11.6667 2.33334 11.6667H4.08334V4.66669ZM9.91668 11.6667V4.66669H11.6667C11.9888 4.66669 12.25 4.92785 12.25 5.25002V11.0834C12.25 11.4055 11.9888 11.6667 11.6667 11.6667H9.91668Z"
-                      fill="currentColor"
-                      className="group-hover:fill-[var(--color-primary)] transition-colors"
-                    />
-                  </svg>
-                  <span className="text-xs sm:text-sm">
-                    Full-time / Freelancer
-                  </span>
-                </a>
-              </li>
-              <li className="links hidden xl:block">
-                <a
-                  href="https://johndera-portfolio.vercel.app/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 sm:gap-3 hover:text-primary transition-colors group"
-                  aria-label="Portfolio Website"
-                >
-                  <svg
-                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <g clipPath="url(#clip0_590_899)">
-                      <path
-                        d="M9.91417 0.622203C8.99648 0.614228 8.11237 0.967009 7.45226 1.60456L7.44624 1.61047L6.4429 2.60797C6.21443 2.83511 6.21336 3.20445 6.4405 3.43292C6.66764 3.66139 7.03698 3.66247 7.26545 3.43533L8.26563 2.44096C8.7054 2.01767 9.29357 1.78352 9.90403 1.78883C10.5158 1.79414 11.1011 2.03954 11.5337 2.47215C11.9663 2.90477 12.2117 3.49 12.217 4.1018C12.2223 4.71199 11.9884 5.29992 11.5654 5.73962L9.8192 7.48584C9.58265 7.72247 9.29791 7.90553 8.98442 8.02247C8.67093 8.13941 8.33596 8.18757 8.00223 8.16367C7.66849 8.13976 7.3438 8.04437 7.05018 7.88395C6.75656 7.72353 6.50087 7.50184 6.30046 7.23391C6.10749 6.97593 5.74192 6.92323 5.48394 7.1162C5.22596 7.30917 5.17326 7.67474 5.36623 7.93272C5.66685 8.33461 6.05038 8.66715 6.49082 8.90778C6.93125 9.14841 7.41829 9.2915 7.91889 9.32735C8.41949 9.3632 8.92194 9.29097 9.39217 9.11556C9.8624 8.94016 10.2894 8.66567 10.6442 8.31072L12.3942 6.56079L12.4013 6.55356C13.0388 5.89345 13.3916 5.00935 13.3836 4.09166C13.3756 3.17397 13.0076 2.29613 12.3586 1.6472C11.7097 0.998268 10.8319 0.630177 9.91417 0.622203Z"
-                        fill="currentColor"
-                        className="group-hover:fill-[var(--color-primary)] transition-colors"
-                      />
-                      <path
-                        d="M6.08111 4.6726C5.58051 4.63675 5.07805 4.70898 4.60782 4.88439C4.13762 5.05979 3.71064 5.33425 3.35584 5.68916L1.60584 7.43916L1.59873 7.44639C0.96118 8.1065 0.608399 8.99061 0.616374 9.9083C0.624348 10.826 0.99244 11.7038 1.64137 12.3528C2.2903 13.0017 3.16814 13.3698 4.08583 13.3778C5.00352 13.3857 5.88763 13.0329 6.54773 12.3954L6.55496 12.3883L7.55246 11.3908C7.78027 11.163 7.78027 10.7936 7.55246 10.5658C7.32466 10.338 6.95531 10.338 6.72751 10.5658L5.73378 11.5596C5.29408 11.9825 4.70616 12.2164 4.09597 12.2111C3.48417 12.2058 2.89894 11.9604 2.46633 11.5278C2.03371 11.0952 1.78831 10.51 1.783 9.89816C1.77769 9.28796 2.01164 8.70004 2.43458 8.26034L4.1808 6.51412C4.41734 6.27749 4.70209 6.09442 5.01558 5.97748C5.32906 5.86054 5.66403 5.81239 5.99777 5.83629C6.3315 5.86019 6.65619 5.95559 6.94981 6.11601C7.24344 6.27643 7.49913 6.49812 7.69954 6.76605C7.89251 7.02403 8.25808 7.07673 8.51606 6.88376C8.77403 6.69078 8.82673 6.32522 8.63376 6.06724C8.33315 5.66535 7.94961 5.33281 7.50918 5.09218C7.06874 4.85155 6.58171 4.70846 6.08111 4.6726Z"
-                        fill="currentColor"
-                        className="group-hover:fill-[var(--color-primary)] transition-colors"
-                      />
-                    </g>
-                    <defs>
-                      <clipPath id="clip0_590_899">
-                        <rect width="14" height="14" fill="white" />
-                      </clipPath>
-                    </defs>
-                  </svg>
-                  <span className="text-xs sm:text-sm truncate">
-                    https://johndera-portfolio.vercel.app/
-                  </span>
-                </a>
-              </li>
-            </ul>
-
-            {/* Social Media Icons */}
-            <div className="flex items-center justify-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <motion.a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
-                aria-label="GitHub"
-              >
-                <Github />
-              </motion.a>
-
-              <motion.a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
-                aria-label="LinkedIn"
-              >
-                <LinkedIn />
-              </motion.a>
-
-              <motion.a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-full bg-base-200 hover:bg-primary text-base-content hover:text-primary-content transition-all duration-300 group"
-                aria-label="Twitter"
-              >
-                <Twitter />
-              </motion.a>
-            </div>
-
-            {/* Tech Stack Badges */}
-            <div className="labels fx flex-col gap-2 sm:gap-2.5 md:gap-3 justify-center">
-              {/* First Row */}
-              <div className="flex gap-2 sm:gap-2.5 md:gap-3 flex-wrap justify-center">
-                {stack.slice(0, 4).map((item, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.4 + i * 0.1 }}
-                    whileHover={{ scale: 1.1 }}
-                    className="badge badge-primary rounded-full text-base-100 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium"
-                  >
-                    {item}
-                  </motion.div>
-                ))}
-              </div>
-              {/* Second Row */}
-              <div className="flex gap-2 sm:gap-2.5 md:gap-3 flex-wrap justify-center">
-                {stack.slice(4).map((item, i) => (
-                  <motion.div
-                    key={i + 4}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: 0.4 + (i + 4) * 0.1 }}
-                    whileHover={{ scale: 1.1 }}
-                    className="badge badge-primary rounded-full text-base-100 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 font-medium"
-                  >
-                    {item}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Download CV Button */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="btn xl:self-start rounded-full 2xl:btn-wide bg-[var(--color-base-content)] hover:bg-[var(--color-base-content)]/90 text-base-100 text-xs sm:text-sm md:text-base lg:text-lg font-medium w-full sm:w-auto px-4 sm:px-6 md:px-8 py-2 sm:py-2.5 md:py-3 flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <span>Download CV</span>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M13 3C13 2.44772 12.5523 2 12 2C11.4477 2 11 2.44772 11 3V12.5858L7.70711 9.29289C7.31658 8.90237 6.68342 8.90237 6.29289 9.29289C5.90237 9.68342 5.90237 10.3166 6.29289 10.7071L11.2929 15.7071C11.6834 16.0976 12.3166 16.0976 12.7071 15.7071L17.7071 10.7071C18.0976 10.3166 18.0976 9.68342 17.7071 9.29289C17.3166 8.90237 16.6834 8.90237 16.2929 9.29289L13 12.5858V3Z"
-                fill={"var(--color-base-100)"}
-              />
-              <path
-                d="M3 14C3.55228 14 4 14.4477 4 15V19C4 19.2652 4.10536 19.5196 4.29289 19.7071C4.48043 19.8946 4.73478 20 5 20H19C19.2652 20 19.5196 19.8946 19.7071 19.7071C19.8946 19.5196 20 19.2652 20 19V15C20 14.4477 20.4477 14 21 14C21.5523 14 22 14.4477 22 15V19C22 19.7957 21.6839 20.5587 21.1213 21.1213C20.5587 21.6839 19.7957 22 19 22H5C4.20435 22 3.44129 21.6839 2.87868 21.1213C2.31607 20.5587 2 19.7957 2 19V15C2 14.4477 2.44772 14 3 14Z"
-                fill={"var(--color-base-100)"}
-              />
-            </svg>
-          </motion.button>
-        </motion.div>
-
-        {/* Main Content Section */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="textbox flex flex-col lg:flex-row gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-14 w-full lg:w-auto lg:flex-1"
-        >
-          {/* Text Content */}
-          <div className="text w-full xl:w-auto xl:flex-1 text-center xl:text-left">
-            <h1 className="heading-primary mb-4 sm:mb-5 md:mb-6 xl:mb-8 flex justify-center xl:justify-start items-center xl:items-start flex-col text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight sm:leading-tight md:leading-tight lg:leading-tight">
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65">
-                {"<h1>"}
-              </span>
-              <span className="font-bold">hey,</span>
-              <span className="font-bold">
-                i'm <span className="text-primary">Chidera</span>,
-              </span>
-              <span className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="font-bold sm:whitespace-nowrap">
-                  Frontend developer
-                </span>
-                <span className="htag -ml-2 sm:-ml-3 md:-ml-4 lg:-ml-6 ibm-plex text-xs sm:text-sm md:text-base lg:text-lg text-base-content/65 inline-block">
-                  {"</h1>"}
-                </span>
-              </span>
-            </h1>
-
-            <p className="hero-descript ibm-plex text-sm sm:text-base md:text-lg lg:text-xl text-base-content/80 mb-4 sm:mb-5 md:mb-6 leading-relaxed text-center xl:text-left">
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/65">
-                {"<p>"}
-              </span>
-              <span className="text-base-content">
-                I'm a passionate frontend developer with a knack for creating{" "}
-                <br className="hidden sm:inline" />
-                beautiful and functional user interfaces.
-              </span>
-              <span className="htag -ml-3 sm:-ml-4 md:-ml-6 ibm-plex text-xs sm:text-sm text-base-content/65">
-                {"</p>"}
-              </span>
-            </p>
-
-            <motion.a
-              href="#contact"
-              whileHover={{ scale: 1.05, x: 5 }}
-              whileTap={{ scale: 0.95 }}
-              className="link link-hover flex text-xl sm:text-2xl md:text-3xl lg:text-3xl xl:text-4xl 2xl:text-5xl capitalize justify-center xl:justify-start items-center gap-3 sm:gap-4 md:gap-5 link-primary mt-4 sm:mt-5 md:mt-6 font-semibold group"
-            >
-              <span>let's talk</span>
-              <span className="rel-card w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-10 lg:h-10 xl:w-12 xl:h-12 2xl:w-14 2xl:h-14">
-                <svg
-                  className="w-full h-full"
-                  viewBox="0 0 14 12"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M0.583361 2.48988C0.583267 2.49564 0.583257 2.50139 0.583333 2.50715V9.5C0.583333 10.4638 1.3695 11.25 2.33333 11.25H11.6667C12.6305 11.25 13.4167 10.4638 13.4167 9.5V2.50721C13.4167 2.50141 13.4167 2.4956 13.4166 2.4898C13.4111 1.53063 12.6271 0.75 11.6667 0.75H2.33333C1.37287 0.75 0.588839 1.53067 0.583361 2.48988ZM1.81217 2.2398C1.90864 2.04904 2.10702 1.91667 2.33333 1.91667H11.6667C11.893 1.91667 12.0914 2.04904 12.1878 2.2398L7 5.87128L1.81217 2.2398ZM12.25 3.62038V9.5C12.25 9.8195 11.9862 10.0833 11.6667 10.0833H2.33333C2.01383 10.0833 1.75 9.8195 1.75 9.5V3.62038L6.66548 7.06122C6.86633 7.20182 7.13367 7.20182 7.33452 7.06122L12.25 3.62038Z"
-                    fill="currentColor"
-                    className="group-hover:fill-[var(--color-primary)] transition-colors"
-                  />
-                </svg>
-              </span>
-            </motion.a>
-          </div>
-
-          {/* Stats Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="stacks flex flex-row lg:flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-6 xl:gap-8 w-full lg:w-auto justify-center items-center"
-          >
-            <motion.p
-              whileHover={{ scale: 1.05 }}
-              className="text-center flex flex-col items-center"
-            >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
-                {animatedStats.stat1.toLocaleString()}{resumeStats.stat1.suffix || ""}
-              </span>
-              <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat1.label.replace("\n", " ")}
-              </span>
-            </motion.p>
-            <motion.p
-              whileHover={{ scale: 1.05 }}
-              className="text-center flex flex-col items-center"
-            >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
-                {animatedStats.stat2.toLocaleString()}{resumeStats.stat2.suffix || ""}
-              </span>
-              <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat2.label.replace("\n", " ")}
-              </span>
-            </motion.p>
-            <motion.p
-              whileHover={{ scale: 1.05 }}
-              className="text-center flex flex-col items-center"
-            >
-              <span className="stats text-4xl sm:text-5xl md:text-6xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold block mb-1 sm:mb-2 text-primary">
-                {animatedStats.stat3.toLocaleString()}{resumeStats.stat3.suffix || ""}
-              </span>
-              <span className="stats-descrpt text-xs sm:text-sm md:text-base lg:text-sm xl:text-base text-base-content/70">
-                {resumeStats.stat3.label.replace("\n", " ")}
-              </span>
-            </motion.p>
-          </motion.div>
-        </motion.div>
-      </div>
+    <div className="flex flex-col">
+      <dt className="order-2 text-sm text-base-content/65">{label.replace("\n", " ")}</dt>
+      <dd className="order-1 text-3xl font-bold text-primary sm:text-4xl">
+        {current}
+        {suffix}
+      </dd>
     </div>
   );
 }
 
-export default Hero;
+export default function Hero(): React.ReactElement {
+  const reduceMotion = Boolean(useReducedMotion());
+  const fadeUp = (delay = 0) =>
+    reduceMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 16 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.5, delay },
+        };
+
+  return (
+    <section id="hero" aria-labelledby="hero-heading" className="page-container pb-16 pt-6 sm:pb-24 sm:pt-10">
+      <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
+        <div className="text-center lg:text-left">
+          <motion.p {...fadeUp()} className="font-mono text-sm text-secondary">
+            {"<h1>"}
+          </motion.p>
+          <motion.h1
+            id="hero-heading"
+            {...fadeUp(0.05)}
+            className="mt-2 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl"
+          >
+            Hey, I&apos;m <span className="text-primary">Chidera</span>.
+            <br />
+            I build fast, accessible interfaces for the web.
+          </motion.h1>
+          <motion.p {...fadeUp(0.05)} className="mt-2 font-mono text-sm text-secondary">
+            {"</h1>"}
+          </motion.p>
+          <motion.p
+            {...fadeUp(0.1)}
+            className="mx-auto mt-6 max-w-xl text-lg text-base-content/75 lg:mx-0"
+          >
+            Frontend engineer working with React, Next.js and React Native — turning designs into
+            responsive, maintainable products, and writing about what I learn along the way.
+          </motion.p>
+
+          <motion.div
+            {...fadeUp(0.15)}
+            className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start"
+          >
+            <a href="#work" className="btn btn-primary btn-lg">
+              View my work
+            </a>
+            <a href="#contact" className="btn btn-ghost btn-lg border border-base-300">
+              Let&apos;s talk
+            </a>
+          </motion.div>
+
+          <motion.dl
+            {...fadeUp(0.2)}
+            className="mx-auto mt-12 grid max-w-md grid-cols-3 gap-6 text-center lg:mx-0 lg:text-left"
+          >
+            {[resumeStats.stat1, resumeStats.stat2, resumeStats.stat3].map((stat) => (
+              <Stat key={stat.label} value={stat.value} suffix={stat.suffix} label={stat.label} skip={reduceMotion} />
+            ))}
+          </motion.dl>
+        </div>
+
+        <motion.aside
+          {...(reduceMotion ? {} : { initial: { opacity: 0, scale: 0.97 }, animate: { opacity: 1, scale: 1 }, transition: { duration: 0.5, delay: 0.1 } })}
+          aria-label="Profile"
+          className="surface relative mx-auto w-full max-w-sm overflow-hidden p-6 sm:p-8"
+        >
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-br from-primary/30 via-secondary/15 to-transparent" aria-hidden="true" />
+          <div className="relative flex flex-col items-center text-center">
+            <img
+              src={dera}
+              alt="Portrait of Chidera Okonkwo"
+              width={128}
+              height={128}
+              className="h-28 w-28 rounded-full border-4 border-base-100 object-cover shadow-lg ring-2 ring-primary sm:h-32 sm:w-32"
+            />
+            <h2 className="mt-4 text-2xl font-bold">{site.fullName}</h2>
+            <p className="font-mono text-sm text-base-content/70">{site.role}</p>
+          </div>
+
+          <ul className="relative mt-6 flex flex-col gap-3 text-sm">
+            <li>
+              <a href={`mailto:${site.email}`} className="flex items-center gap-3 hover:text-primary">
+                <EnvelopeIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                <span className="truncate">{site.email}</span>
+              </a>
+            </li>
+            <li className="flex items-center gap-3">
+              <MapPinIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              {site.location}
+            </li>
+            <li className="flex items-center gap-3">
+              <BriefcaseIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              {site.availability}
+            </li>
+          </ul>
+
+          <ul className="mt-6 flex flex-wrap justify-center gap-2" aria-label="Main skills">
+            {STACK.map((item) => (
+              <li key={item} className="badge badge-primary badge-soft">
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-6 flex items-center gap-2">
+            <a
+              href={site.resumeUrl}
+              download
+              className="btn btn-neutral flex-1 gap-2"
+            >
+              <ArrowDownTrayIcon className="h-5 w-5" />
+              Download CV
+            </a>
+            <a href={site.socials.github} target="_blank" rel="noopener noreferrer" className="btn btn-square btn-ghost border border-base-300" aria-label="GitHub profile">
+              <Github />
+            </a>
+            <a href={site.socials.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-square btn-ghost border border-base-300" aria-label="LinkedIn profile">
+              <LinkedIn />
+            </a>
+          </div>
+        </motion.aside>
+      </div>
+    </section>
+  );
+}

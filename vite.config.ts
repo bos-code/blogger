@@ -1,9 +1,10 @@
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { apiDevServer } from "./vite.apiDevServer";
 
-export default defineConfig({
-  plugins: [tailwindcss(), react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [tailwindcss(), react(), apiDevServer(mode)],
   css: {
     devSourcemap: true,
   },
@@ -28,7 +29,6 @@ export default defineConfig({
           ) {
             return "motion";
           }
-          if (modulePath.includes("/gsap@")) return "gsap";
           if (
             modulePath.includes("/@tiptap+") ||
             modulePath.includes("/prosemirror-") ||
@@ -46,7 +46,4 @@ export default defineConfig({
       },
     },
   },
-});
-
-
-
+}));

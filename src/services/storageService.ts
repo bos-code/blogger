@@ -1,4 +1,4 @@
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, listAll, deleteObject } from "firebase/storage";
 import { storage } from "../firebaseconfig";
 
 /**
@@ -36,4 +36,27 @@ export async function uploadImageToStorage(
   const storageRef = ref(storage, path);
   const snapshot = await uploadBytes(storageRef, file);
   return await getDownloadURL(snapshot.ref);
+}
+
+export interface StoredImage {
+  url: string;
+  name: string;
+  fullPath: string;
+}
+
+/** Lists the images a user has uploaded (newest first). */
+export async function listUserImages(userId: string): Promise<StoredImage[]> {
+  const result = await listAll(ref(storage, `post-images/${userId}`));
+  const items = await Promise.all(
+    result.items.map(async (item) => ({
+      url: await getDownloadURL(item),
+      name: item.name.replace(/^[0-9a-f-]{36}-/, ""),
+      fullPath: item.fullPath,
+    }))
+  );
+  return items.reverse();
+}
+
+export async function deleteStoredImage(fullPath: string): Promise<void> {
+  await deleteObject(ref(storage, fullPath));
 }

@@ -1,884 +1,965 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEditor, EditorContent } from "@tiptap/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebaseconfig";
 import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Button,
-} from "@heroui/react";
-import {
-  PencilIcon,
-  ExclamationTriangleIcon,
-  ArrowRightIcon,
+  ArrowLeftIcon,
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  ClockIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
   EyeIcon,
-  EyeSlashIcon,
+  PencilIcon,
+  Cog6ToothIcon,
   XMarkIcon,
   CheckIcon,
+  ExclamationTriangleIcon,
+  CloudIcon,
 } from "@heroicons/react/24/outline";
-import { motion, AnimatePresence } from "framer-motion";
 
-/* TipTap & syntax highlighting */
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import Youtube from "@tiptap/extension-youtube";
-import CharacterCount from "@tiptap/extension-character-count";
-import { lowlight } from "lowlight/lib/core";
-/* register languages */
-import javascript from "highlight.js/lib/languages/javascript";
-import css from "highlight.js/lib/languages/css";
-import xml from "highlight.js/lib/languages/xml";
-import json from "highlight.js/lib/languages/json";
-import typescriptLang from "highlight.js/lib/languages/typescript";
-
-/* --- Components --- */
-import TipTapToolbar from "../components/TipTapToolbar";
+import { buildEditorExtensions } from "../editor/extensions";
+import EditorToolbar from "../editor/EditorToolbar";
+import EditorBubbleMenus from "../editor/EditorBubbleMenus";
+import EditorDialogs from "../editor/EditorDialogs";
+import PostSettingsPanel from "../editor/PostSettingsPanel";
+import RevisionHistory from "../editor/RevisionHistory";
+import type { EditorDialog } from "../editor/slashItems";
+import {
+  EMPTY_FIELDS,
+  EditConflictError,
+  addRevision,
+  fetchPostForEditing,
+  getAuthorDisplayName,
+  toPostData,
+  updatePostSafely,
+  type EditorFields,
+} from "../editor/postApi";
 import AIAssistant from "../components/AIAssistant";
-import { useCreatePost, useUpdatePost } from "../hooks/usePosts";
+import ArticleBody from "../components/article/ArticleBody";
+import Modal from "../components/ui/Modal";
+import Avatar from "../components/ui/Avatar";
+import PremiumSpinner from "../components/PremiumSpinner";
+import { useCreatePost, notifyStatusChange } from "../hooks/usePosts";
+import { useCategories } from "../hooks/useCategories";
 import { useAuthStore } from "../stores/authStore";
-import { showConfirm, showSuccess } from "../utils/sweetalert";
+import { useUIStore } from "../stores/uiStore";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { uploadImageToStorage } from "../services/storageService";
-import type { BlogPost, CreatePostInput } from "../types";
-import { toDateTimeLocalValue } from "../utils/date";
+import { triggerPostEmails } from "../services/emailHooks";
+import { showError, showSuccess, showToast } from "../utils/sweetalert";
+import { formatRelativeTime, toDateTimeLocalValue } from "../utils/date";
+import { addHeadingIds, calculateReadingTime, countWords, htmlToText } from "../utils/posts";
 import { sanitizeRichText } from "../utils/sanitize";
+import { queryKeys } from "../utils/queryClient";
+import type { BlogPost, PostRevision, PostStatus } from "../types";
 
-// Register languages
-lowlight.registerLanguage("js", javascript);
-lowlight.registerLanguage("javascript", javascript);
-lowlight.registerLanguage("css", css);
-lowlight.registerLanguage("html", xml);
-lowlight.registerLanguage("xml", xml);
-lowlight.registerLanguage("json", json);
-lowlight.registerLanguage("typescript", typescriptLang);
-lowlight.registerLanguage("ts", typescriptLang);
+type SaveState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "saved"; at: number }
+  | { kind: "local"; at: number }
+  | { kind: "error"; message: string };
 
-type EditorStatus = "draft" | "published";
-
-interface EditorLocationState extends Partial<BlogPost> {
-  rawText?: string;
+interface LocalBackup {
+  fields: EditorFields;
+  savedAt: number;
 }
 
-interface LocalDraft {
-  title?: string;
-  content?: string;
-  tags?: string[];
-  category?: string;
-  coverImage?: string;
-  excerpt?: string;
-  scheduledAt?: string;
-  status?: EditorStatus;
-}
+const AUTOSAVE_DELAY = 2500;
+const TITLE_MAX = 200;
+
+const serialize = (fields: EditorFields): string => JSON.stringify(fields);
+const backupKey = (postId: string | null) => `post-editor:${postId ?? "new"}`;
+
+const readBackup = (postId: string | null): LocalBackup | null => {
+  try {
+    const raw = localStorage.getItem(backupKey(postId));
+    return raw ? (JSON.parse(raw) as LocalBackup) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeBackup = (postId: string | null, fields: EditorFields) => {
+  try {
+    localStorage.setItem(
+      backupKey(postId),
+      JSON.stringify({ fields, savedAt: Date.now() } satisfies LocalBackup)
+    );
+  } catch {
+    // Storage full or blocked: the remote autosave still protects the work.
+  }
+};
+
+const clearBackup = (postId: string | null) => {
+  try {
+    localStorage.removeItem(backupKey(postId));
+  } catch {
+    // Nothing to clean up.
+  }
+};
+
+const fieldsFromPost = (post: BlogPost): EditorFields => ({
+  title: post.title ?? "",
+  content: post.content ?? "",
+  excerpt: post.excerpt ?? "",
+  category: post.category ?? "",
+  tags: post.tags ?? [],
+  coverImage: post.coverImage ?? "",
+  coverImageAlt: post.coverImageAlt ?? "",
+  scheduledAt: toDateTimeLocalValue(post.scheduledFor),
+  seoTitle: post.seoTitle ?? "",
+  seoDescription: post.seoDescription ?? "",
+  series: post.series ?? "",
+  seriesOrder: post.seriesOrder ? String(post.seriesOrder) : "",
+});
 
 export default function CreatePost(): React.ReactElement {
-  const navigate = useNavigate();
+  const { postId: routeId } = useParams<{ postId?: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const authUser = useAuthStore((s) => s.user);
   const role = useAuthStore((s) => s.role);
+  const setDashboardScreen = useUIStore((s) => s.setDashboardScreen);
   const isAdmin = role === "admin" || role === "super_admin";
-  const editState = useMemo<EditorLocationState>(() => {
-    if (!location.state || typeof location.state !== "object") return {};
-    return location.state as EditorLocationState;
-  }, [location.state]);
+  const createPost = useCreatePost();
+  const { data: categoryList = [] } = useCategories();
 
-  // inputs
-  const [title, setTitle] = useState<string>("");
-  const [showPreview, setShowPreview] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [modalMsg, setModalMsg] = useState<string>("");
-  const [tags, setTags] = useState<string[]>(() => editState.tags ?? []);
-  const [category, setCategory] = useState<string>(
-    () => editState.category ?? ""
+  const [postId, setPostId] = useState<string | null>(routeId ?? null);
+  const [fields, setFields] = useState<EditorFields>(EMPTY_FIELDS);
+  const [savedSnapshot, setSavedSnapshot] = useState(() => serialize(EMPTY_FIELDS));
+  const [status, setStatus] = useState<PostStatus | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [previewToken, setPreviewToken] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "not-found" | "forbidden" | "error">(
+    routeId ? "loading" : "ready"
   );
-  const [coverImage, setCoverImage] = useState<string>(
-    () => editState.coverImage ?? ""
-  );
-  const [excerpt, setExcerpt] = useState<string>(() => editState.excerpt ?? "");
-  const [scheduledAt, setScheduledAt] = useState<string>(() =>
-    toDateTimeLocalValue(editState.scheduledFor)
-  );
-  const [status, setStatus] = useState<EditorStatus>(() =>
-    editState.status && editState.status !== "draft" ? "published" : "draft"
-  );
-  const [showPublishModal, setShowPublishModal] = useState<boolean>(false);
-  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
-  const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
+  const [saveState, setSaveState] = useState<SaveState>({ kind: "idle" });
+  const [backupOffer, setBackupOffer] = useState<LocalBackup | null>(null);
+  const [conflict, setConflict] = useState<BlogPost | null>(null);
+  const [dialog, setDialog] = useState<EditorDialog | null>(null);
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [showSettings, setShowSettings] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [, setTick] = useState(0);
 
-  const previewBodyRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const knownUpdatedAt = useRef(0);
+  const savingRef = useRef(false);
+  const postIdRef = useRef(postId);
+  const fieldsRef = useRef(fields);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  postIdRef.current = postId;
+  fieldsRef.current = fields;
 
-  /* --- TipTap Editable Editor --- */
+  const isDirty = serialize(fields) !== savedSnapshot;
+  const legacyEditId = (location.state as { id?: string } | null)?.id;
+
+  useDocumentMeta({
+    title: fields.title ? `Editing: ${fields.title}` : "New post",
+    noIndex: true,
+  });
+
+  // Show the panel by default on wide screens.
+  useEffect(() => {
+    if (window.matchMedia("(min-width: 1280px)").matches) setShowSettings(true);
+  }, []);
+
+  // Refresh "saved 5s ago" labels.
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((tick) => tick + 1), 15000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const uploadImage = useCallback(
+    (file: File) => uploadImageToStorage(file, { userId: authUser?.uid, folder: "post-images" }),
+    [authUser?.uid]
+  );
+
+  // Stable callbacks for the editor extensions.
+  const dialogRef = useRef(setDialog);
+  const filesRef = useRef<(files: File[], position?: number) => void>(() => undefined);
+
   const editor = useEditor({
-    editable: true,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-        codeBlock: false,
-      }),
-      Underline,
-      CodeBlockLowlight.configure({
-        lowlight,
-        defaultLanguage: "javascript",
-      }),
-      Image.configure({
-        inline: true,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: "rounded-lg max-w-full",
-        },
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-primary underline",
-        },
-      }),
-      Placeholder.configure({
-        placeholder: "Start writing your post here...",
-      }),
-      Youtube.configure({
-        controls: true,
-        nocookie: true,
-        HTMLAttributes: {
-          class: "rounded-lg",
-        },
-      }),
-      CharacterCount,
-    ],
-    content: "<p></p>",
+    extensions: buildEditorExtensions({
+      openDialog: (next) => dialogRef.current(next),
+      onImageFiles: (files, position) => filesRef.current(files, position),
+    }),
+    content: "",
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[400px] p-6",
+          "tiptap-editor article-content prose prose-base sm:prose-lg max-w-none focus:outline-none min-h-[50vh] pb-24",
+        "aria-label": "Post content",
       },
+    },
+    onUpdate: ({ editor: e }) => {
+      setFields((current) => ({ ...current, content: e.isEmpty ? "" : e.getHTML() }));
     },
   });
 
-  const showModalMsg = (msg: string): void => {
-    setModalMsg(msg);
-    setModalOpen(true);
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    e.preventDefault();
-    e.stopPropagation();
-    setTitle(e.target.value);
-  };
-
-  const createPost = useCreatePost();
-  const updatePost = useUpdatePost();
-
-  /* --- Save as Draft --- */
-  const saveAsDraft = async (): Promise<void> => {
-    if (!title.trim()) {
-      showModalMsg("Please enter a post title");
-      return;
-    }
-    if (!(editor?.getHTML() ?? "").trim()) {
-      showModalMsg("Please write something first");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const payload: CreatePostInput = {
-        title,
-        content: editor?.getHTML() ?? "",
-        tags,
-        category,
-        coverImage: coverImage || null,
-        excerpt: excerpt || null,
-        scheduledFor: scheduledAt ? new Date(scheduledAt) : null,
-        status: "draft",
-      };
-
-      if (editState?.id) {
-        await updatePost.mutateAsync({ id: editState.id, data: payload });
-        showSuccess("Draft Saved", "Your post has been saved as a draft!");
-      } else {
-        await createPost.mutateAsync(payload);
-        showSuccess("Draft Saved", "Your post has been saved as a draft!");
-      }
-
-      setStatus("draft");
-      setShowSaveModal(false);
-      // Don't clear form, just save
-    } catch (error) {
-      console.error("Error saving draft: ", error);
-      showModalMsg("Error saving draft. Try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* --- Publish Post --- */
-  const publishPost = async (): Promise<void> => {
-    if (!title.trim()) {
-      showModalMsg("Please enter a post title");
-      setShowPublishModal(false);
-      return;
-    }
-    if (!(editor?.getHTML() ?? "").trim()) {
-      showModalMsg("Please write something first");
-      setShowPublishModal(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const payload: CreatePostInput = {
-        title,
-        content: editor?.getHTML() ?? "",
-        tags,
-        category,
-        coverImage: coverImage || null,
-        excerpt: excerpt || null,
-        scheduledFor:
-          scheduledAt && new Date(scheduledAt).getTime() > Date.now()
-            ? new Date(scheduledAt)
-            : null,
-        status: isAdmin ? "approved" : "pending",
-      };
-
-      if (editState?.id) {
-        await updatePost.mutateAsync({ id: editState.id, data: payload });
-        showSuccess(
-          "Post Published!",
-          isAdmin
-            ? "Your post has been published and is live!"
-            : "Your post has been submitted for approval!"
-        );
-      } else {
-        await createPost.mutateAsync(payload);
-        showSuccess(
-          "Post Published!",
-          isAdmin
-            ? "Your post has been published and is live!"
-            : "Your post has been submitted for approval!"
-        );
-      }
-
-      setShowPublishModal(false);
-      // Clear form after successful publish
-      setTitle("");
-      editor?.commands.setContent("<p></p>");
-      setTags([]);
-      setCategory("");
-      localStorage.removeItem("create-post-draft");
-      
-      // Navigate to admin dashboard after a short delay
-      setTimeout(() => {
-        navigate("/admin");
-      }, 1500);
-    } catch (error) {
-      console.error("Error publishing post: ", error);
-      showModalMsg("Error publishing post. Try again.");
-      setShowPublishModal(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleClear = (): void => {
-    showConfirm(
-      "Clear All Content",
-      "Are you sure you want to clear all content? This action cannot be undone.",
-      {
-        confirmText: "Clear",
-        cancelText: "Cancel",
-        confirmColor: "error",
-        cancelColor: "ghost",
-        onConfirm: () => {
-          setTitle("");
-          editor?.commands.clearContent();
-          setTags([]);
-          setCategory("");
-          setCoverImage("");
-          setExcerpt("");
-          setScheduledAt("");
-          localStorage.removeItem("create-post-draft");
-          showSuccess(
-            "Content Cleared",
-            "All content has been cleared successfully!"
-          );
-        },
-      }
-    );
-  };
-
-  // Autosave draft locally every 10s
-  useEffect(() => {
-    const id = setInterval(() => {
+  filesRef.current = async (files, position) => {
+    if (!editor) return;
+    for (const file of files) {
+      void showToast("info", "Uploading image…");
       try {
-        const draft = {
-          title,
-          content: editor?.getHTML() ?? "",
-          tags,
-          category,
-          coverImage,
-          excerpt,
-          scheduledAt,
-          status,
-          updatedAt: Date.now(),
-          id: editState?.id ?? null,
+        const src = await uploadImage(file);
+        const node = {
+          type: "image",
+          attrs: { src, alt: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "), size: "full" },
         };
-        localStorage.setItem("create-post-draft", JSON.stringify(draft));
-      } catch (err) {
-        console.warn("Autosave failed:", err);
+        if (typeof position === "number") editor.chain().focus().insertContentAt(position, node).run();
+        else editor.chain().focus().insertContent(node).run();
+        void showToast("success", "Image added", "Click it to add alt text or a caption.");
+      } catch (error) {
+        showError("Upload failed", error instanceof Error ? error.message : "Please try again.");
       }
-    }, 10000);
-
-    return () => clearInterval(id);
-  }, [
-    title,
-    editor,
-    tags,
-    category,
-    coverImage,
-    excerpt,
-    scheduledAt,
-    status,
-    editState.id,
-  ]);
-
-  // Load draft on mount when not editing, or populate editor for edit
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("create-post-draft");
-      if (raw && !editState?.id) {
-        const d = JSON.parse(raw) as LocalDraft;
-        setTitle(d.title || "");
-        setTags(d.tags || []);
-        setCategory(d.category || "");
-        setCoverImage(d.coverImage || "");
-        setExcerpt(d.excerpt || "");
-        setScheduledAt(d.scheduledAt || "");
-        setStatus(d.status === "published" ? "published" : "draft");
-        editor?.commands.setContent(d.content || "<p></p>");
-      }
-
-      if (editState?.rawText || editState?.title) {
-        setTitle(editState.title || "");
-        editor?.commands.setContent(editState.rawText || "<p></p>");
-        setTags(editState.tags || []);
-        setCategory(editState.category || "");
-        setCoverImage(editState.coverImage || "");
-        setExcerpt(editState.excerpt || "");
-        setScheduledAt(toDateTimeLocalValue(editState.scheduledFor));
-        setStatus(
-          editState.status && editState.status !== "draft"
-            ? "published"
-            : "draft"
-        );
-      }
-    } catch (err) {
-      console.warn("Failed to load draft:", err);
     }
-  }, [editor, editState]);
+  };
+
+  // ------------------------------------------------------------------ loading
+  useEffect(() => {
+    if (!editor) return;
+    if (!routeId) {
+      const backup = readBackup(null);
+      if (backup && (backup.fields.title || backup.fields.content)) setBackupOffer(backup);
+      return;
+    }
+    if (routeId === postIdRef.current && loadState === "ready") return;
+
+    let cancelled = false;
+    setLoadState("loading");
+    fetchPostForEditing(routeId)
+      .then((loaded) => {
+        if (cancelled) return;
+        if (!loaded) {
+          setLoadState("not-found");
+          return;
+        }
+        const { post, updatedAtMs } = loaded;
+        if (!isAdmin && post.authorId !== authUser?.uid) {
+          setLoadState("forbidden");
+          return;
+        }
+        const loadedFields = fieldsFromPost(post);
+        knownUpdatedAt.current = updatedAtMs;
+        setPostId(post.id);
+        setStatus(post.status ?? "draft");
+        setRejectionReason(post.rejectionReason ?? null);
+        setPreviewToken((post as BlogPost & { previewToken?: string }).previewToken ?? null);
+        setFields(loadedFields);
+        setSavedSnapshot(serialize(loadedFields));
+        editor.commands.setContent(loadedFields.content || "", { emitUpdate: false });
+        setLoadState("ready");
+
+        const backup = readBackup(post.id);
+        if (
+          backup &&
+          backup.savedAt > updatedAtMs &&
+          serialize(backup.fields) !== serialize(loadedFields)
+        ) {
+          setBackupOffer(backup);
+        }
+      })
+      .catch(() => !cancelled && setLoadState("error"));
+
+    return () => {
+      cancelled = true;
+    };
+    // loadState is intentionally excluded: it is only read to skip reloading our own post.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId, editor, isAdmin, authUser?.uid]);
+
+  const applyFields = useCallback(
+    (next: EditorFields) => {
+      setFields(next);
+      editor?.commands.setContent(next.content || "", { emitUpdate: false });
+    },
+    [editor]
+  );
+
+  const updateFields = (patch: Partial<EditorFields>) =>
+    setFields((current) => ({ ...current, ...patch }));
+
+  // ------------------------------------------------------------------ saving
+  const canAutosaveRemote = status === null || status === "draft" || status === "rejected";
+
+  const persist = useCallback(
+    async ({
+      targetStatus,
+      explicit,
+      force = false,
+    }: {
+      targetStatus: PostStatus;
+      explicit: boolean;
+      force?: boolean;
+    }): Promise<boolean> => {
+      if (!authUser?.uid || savingRef.current) return false;
+      const snapshot = fieldsRef.current;
+      const data = toPostData(snapshot);
+      if (!data.title || !data.content) return false;
+
+      savingRef.current = true;
+      setSaveState({ kind: "saving" });
+      try {
+        let id = postIdRef.current;
+        if (!id) {
+          const created = await createPost.mutateAsync({ ...data, status: targetStatus });
+          id = created.id;
+          knownUpdatedAt.current = Date.now();
+          clearBackup(null);
+          setPostId(id);
+          navigate(`/edit/${id}`, { replace: true });
+        } else {
+          knownUpdatedAt.current = await updatePostSafely({
+            id,
+            data,
+            status: targetStatus,
+            knownUpdatedAtMs: knownUpdatedAt.current,
+            userId: authUser.uid,
+            force,
+          });
+          if (targetStatus !== status || explicit) {
+            void triggerPostEmails({
+              postId: id,
+              status: targetStatus,
+              isAdmin,
+              scheduledFor: data.scheduledFor,
+            });
+          }
+          if (targetStatus !== status) {
+            await notifyStatusChange(
+              { id, title: data.title, authorName: getAuthorDisplayName(authUser) },
+              targetStatus,
+              isAdmin
+            );
+          }
+        }
+
+        if (explicit && id) {
+          try {
+            await addRevision(id, {
+              title: data.title,
+              content: data.content,
+              savedBy: authUser.uid,
+              savedByName: getAuthorDisplayName(authUser),
+            });
+          } catch {
+            // Version history is best-effort.
+          }
+        }
+
+        clearBackup(id);
+        setStatus(targetStatus);
+        if (targetStatus !== "rejected") setRejectionReason(null);
+        setSavedSnapshot(serialize(snapshot));
+        setSaveState({ kind: "saved", at: Date.now() });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+        return true;
+      } catch (error) {
+        if (error instanceof EditConflictError) {
+          setConflict(error.serverPost);
+          setSaveState({ kind: "error", message: "Edited elsewhere" });
+        } else {
+          writeBackup(postIdRef.current, snapshot);
+          setSaveState({
+            kind: "error",
+            message: "Couldn't save — kept a copy on this device",
+          });
+        }
+        return false;
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [authUser, createPost, isAdmin, navigate, queryClient, status]
+  );
+
+  // Autosave: drafts save to the database; published/in-review posts keep a
+  // local copy until the writer explicitly updates them.
+  useEffect(() => {
+    if (!isDirty || loadState !== "ready" || conflict) return;
+    const timer = window.setTimeout(() => {
+      const current = fieldsRef.current;
+      const hasEnough = current.title.trim() && current.content;
+      if (canAutosaveRemote && hasEnough) {
+        void persist({ targetStatus: status ?? "draft", explicit: false });
+      } else {
+        writeBackup(postIdRef.current, current);
+        setSaveState({ kind: "local", at: Date.now() });
+      }
+    }, AUTOSAVE_DELAY);
+    return () => window.clearTimeout(timer);
+  }, [fields, isDirty, loadState, canAutosaveRemote, persist, status, conflict]);
+
+  // Warn before closing the tab with unsaved work.
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  // Keyboard: Ctrl/Cmd+S saves, Esc leaves focus mode.
+  const saveNowRef = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        saveNowRef.current();
+      }
+      if (event.key === "Escape" && focusMode && !dialog) setFocusMode(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode, dialog]);
+
+  // Auto-grow title.
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [fields.title, mode, loadState]);
+
+  // ------------------------------------------------------------------ actions
+  const validate = (): string | null => {
+    if (!fields.title.trim()) return "Add a title before saving.";
+    if (fields.title.trim().length > TITLE_MAX) return `Titles can be at most ${TITLE_MAX} characters.`;
+    if (!fields.content || editor?.isEmpty) return "Write some content before saving.";
+    return null;
+  };
+
+  const saveDraft = async () => {
+    const problem = validate();
+    if (problem) return showError("Can't save yet", problem);
+    const ok = await persist({ targetStatus: "draft", explicit: true });
+    if (ok) showSuccess("Draft saved");
+  };
+
+  const isFutureSchedule =
+    Boolean(fields.scheduledAt) && new Date(fields.scheduledAt).getTime() > Date.now();
+
+  const primaryLabel = (() => {
+    if (isAdmin) {
+      if (status === "approved") return "Update";
+      return isFutureSchedule ? "Schedule" : "Publish";
+    }
+    if (status === "pending") return "Update submission";
+    if (status === "approved") return "Submit changes";
+    return "Submit for review";
+  })();
+
+  const publish = async () => {
+    setConfirmPublish(false);
+    const target: PostStatus = isAdmin ? "approved" : "pending";
+    const ok = await persist({ targetStatus: target, explicit: true });
+    if (!ok) return;
+    showSuccess(
+      isAdmin
+        ? isFutureSchedule
+          ? "Post scheduled"
+          : status === "approved"
+            ? "Post updated"
+            : "Post published"
+        : "Submitted for review",
+      isAdmin ? undefined : "An admin will review it shortly."
+    );
+    setDashboardScreen("posts");
+  };
+
+  saveNowRef.current = () => {
+    if (canAutosaveRemote) void saveDraft();
+    else if (isAdmin && status === "approved") void persist({ targetStatus: "approved", explicit: true });
+    else setConfirmPublish(true);
+  };
+
+  const requestPublish = () => {
+    const problem = validate();
+    if (problem) return showError("Not ready yet", problem);
+    setConfirmPublish(true);
+  };
+
+  const leave = () => {
+    if (isDirty && saveState.kind !== "saved") {
+      writeBackup(postIdRef.current, fieldsRef.current);
+    }
+    navigate("/admin");
+  };
+
+  const setPreviewLink = async (create: boolean) => {
+    if (!postId) return;
+    const token = create
+      ? Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("")
+      : null;
+    try {
+      await updateDoc(doc(db, "posts", postId), { previewToken: token });
+      setPreviewToken(token);
+      showToast("success", create ? "Preview link created" : "Preview link revoked");
+    } catch {
+      showError("Couldn't update the preview link", "Please try again.");
+    }
+  };
+
+  const restoreRevision = (revision: PostRevision) => {
+    applyFields({ ...fieldsRef.current, title: revision.title, content: revision.content });
+    setShowHistory(false);
+    showToast("info", "Version restored", "Save to keep it.");
+  };
+
+  const resolveConflict = (choice: "theirs" | "mine") => {
+    if (!conflict) return;
+    if (choice === "theirs") {
+      // Keep the local edits on this device so they can still be recovered.
+      writeBackup(postIdRef.current, fieldsRef.current);
+      const theirs = fieldsFromPost(conflict);
+      knownUpdatedAt.current = Date.now();
+      applyFields(theirs);
+      setSavedSnapshot(serialize(theirs));
+      setStatus(conflict.status ?? "draft");
+      setSaveState({ kind: "saved", at: Date.now() });
+      setConflict(null);
+    } else {
+      setConflict(null);
+      void persist({ targetStatus: status ?? "draft", explicit: true, force: true });
+    }
+  };
+
+  // ------------------------------------------------------------------ derived
+  const text = useMemo(() => htmlToText(fields.content), [fields.content]);
+  const words = countWords(text);
+  const readingTime = calculateReadingTime(fields.content);
+  const preview = useMemo(
+    () => (mode === "preview" ? addHeadingIds(sanitizeRichText(fields.content)) : null),
+    [mode, fields.content]
+  );
+  const categories = categoryList.map((category) => category.name);
+
+  if (legacyEditId && !routeId) return <Navigate to={`/edit/${legacyEditId}`} replace />;
+
+  if (loadState === "loading" || !editor) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <PremiumSpinner size="lg" text="Opening editor..." />
+      </div>
+    );
+  }
+
+  if (loadState !== "ready") {
+    const messages = {
+      "not-found": "This post doesn't exist or was deleted.",
+      forbidden: "You can only edit your own posts.",
+      error: "We couldn't load this post. Check your connection and try again.",
+    } as const;
+    return (
+      <div className="page-container flex min-h-[60vh] flex-col items-center justify-center gap-4 text-center">
+        <ExclamationTriangleIcon className="h-10 w-10 text-warning" />
+        <p className="text-lg">{messages[loadState]}</p>
+        <Link to="/admin" className="btn btn-primary">
+          Back to dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  const saveIndicator = (() => {
+    switch (saveState.kind) {
+      case "saving":
+        return (
+          <span className="flex items-center gap-1.5">
+            <span className="loading loading-spinner loading-xs" /> Saving…
+          </span>
+        );
+      case "saved":
+        return isDirty ? (
+          <span>Unsaved changes</span>
+        ) : (
+          <span className="flex items-center gap-1.5">
+            <CheckIcon className="h-4 w-4 text-success" /> Saved · {formatRelativeTime(saveState.at)}
+          </span>
+        );
+      case "local":
+        return (
+          <span className="flex items-center gap-1.5" title="Saved on this device. Use the action button to save it to the site.">
+            <CloudIcon className="h-4 w-4" /> Saved on this device
+          </span>
+        );
+      case "error":
+        return (
+          <span className="flex items-center gap-1.5 text-error">
+            <ExclamationTriangleIcon className="h-4 w-4" /> {saveState.message}
+          </span>
+        );
+      default:
+        return isDirty ? <span>Unsaved changes</span> : postId ? <span>All changes saved</span> : <span>New post</span>;
+    }
+  })();
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200">
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-50 bg-base-100/80 backdrop-blur-lg border-b border-base-300 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-3">
-                <PencilIcon className="w-6 h-6 text-primary" />
-                <h1 className="text-xl font-bold text-base-content">
-                  Create New Post
-                </h1>
+    <div className="flex min-h-screen flex-col bg-base-100">
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 border-b border-base-300 bg-base-100/90 backdrop-blur-lg">
+        <div className="flex h-14 items-center gap-2 px-3 sm:px-5">
+          <button type="button" className="btn btn-ghost btn-sm btn-square" onClick={leave} aria-label="Back to dashboard">
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
+          <div className="hidden min-w-0 text-xs text-base-content/65 sm:block" aria-live="polite">
+            {saveIndicator}
+          </div>
+
+          <div className="ml-auto flex items-center gap-1">
+            <AIAssistant
+              title={fields.title}
+              text={text}
+              onApplyTitle={(title) => updateFields({ title })}
+              onApplyExcerpt={(excerpt) => updateFields({ excerpt })}
+            />
+            <div className="join" role="group" aria-label="Editor mode">
+              <button
+                type="button"
+                className={`btn btn-sm join-item ${mode === "edit" ? "btn-active" : "btn-ghost"}`}
+                onClick={() => setMode("edit")}
+                aria-pressed={mode === "edit"}
+                aria-label="Write"
+              >
+                <PencilIcon className="h-4 w-4" />
+                <span className="hidden md:inline">Write</span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm join-item ${mode === "preview" ? "btn-active" : "btn-ghost"}`}
+                onClick={() => setMode("preview")}
+                aria-pressed={mode === "preview"}
+                aria-label="Preview"
+              >
+                <EyeIcon className="h-4 w-4" />
+                <span className="hidden md:inline">Preview</span>
+              </button>
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-square"
+              onClick={() => setShowHistory(true)}
+              aria-label="Version history"
+              title="Version history"
+              disabled={!postId}
+            >
+              <ClockIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm btn-square ${showSettings ? "btn-active" : "btn-ghost"}`}
+              onClick={() => setShowSettings((value) => !value)}
+              aria-label="Post settings"
+              aria-pressed={showSettings}
+              title="Post settings"
+            >
+              <Cog6ToothIcon className="h-5 w-5" />
+            </button>
+            {canAutosaveRemote && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm hidden sm:inline-flex"
+                onClick={() => void saveDraft()}
+                disabled={saveState.kind === "saving"}
+              >
+                Save draft
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={requestPublish}
+              disabled={saveState.kind === "saving"}
+            >
+              {primaryLabel}
+            </button>
+          </div>
+        </div>
+        {mode === "edit" && !focusMode && (
+          <div className="border-t border-base-300">
+            <div className="mx-auto flex max-w-5xl items-center">
+              <div className="min-w-0 flex-1">
+                <EditorToolbar editor={editor} openDialog={setDialog} />
               </div>
-
-              <div className="flex items-center gap-2">
-                {/* AI Assistant */}
-                <AIAssistant
-                  editor={editor}
-                  title={title}
-                  onTitleChange={setTitle}
-                  onContentInsert={(content: string) => {
-                    if (editor) {
-                      editor.commands.insertContent(content);
-                    }
-                  }}
-                />
-
-                {/* Upload Image */}
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color="primary"
-                  onPress={() => fileInputRef.current?.click()}
-                  isLoading={isUploadingImage}
-                  isDisabled={isUploadingImage}
-                  className="hidden sm:flex"
-                >
-                  <ArrowRightIcon className="w-4 h-4 rotate-90" />
-                  <span className="ml-1">Upload Image</span>
-                </Button>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      setIsUploadingImage(true);
-                      const url = await uploadImageToStorage(file, {
-                        userId: authUser?.uid,
-                        folder: "post-images",
-                      });
-                      editor?.commands.insertContent(
-                        `<img src="${url}" alt="${title || file.name}" />`
-                      );
-                      showSuccess("Image uploaded", "Inserted into the editor.");
-                    } catch (err) {
-                      showModalMsg(
-                        (err as Error)?.message ||
-                          "Failed to upload image. Check Firebase Storage config."
-                      );
-                    } finally {
-                      setIsUploadingImage(false);
-                      if (fileInputRef.current) fileInputRef.current.value = "";
-                    }
-                  }}
-                />
-
-                {/* Preview Toggle */}
-                <Button
-                  size="sm"
-                  variant="flat"
-                  onPress={() => setShowPreview(!showPreview)}
-                  className="hidden md:flex"
-                >
-                  {showPreview ? (
-                    <>
-                      <EyeSlashIcon className="w-4 h-4" />
-                      <span className="ml-1">Hide Preview</span>
-                    </>
-                  ) : (
-                    <>
-                      <EyeIcon className="w-4 h-4" />
-                      <span className="ml-1">Show Preview</span>
-                    </>
-                  )}
-                </Button>
-
-                {/* Action Buttons */}
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color="default"
-                  onPress={handleClear}
-                  isDisabled={loading}
-                >
-                  <XMarkIcon className="w-4 h-4" />
-                  <span className="ml-1 hidden sm:inline">Clear</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="flat"
-                  color="secondary"
-                  onPress={() => setShowSaveModal(true)}
-                  isDisabled={loading || createPost.isPending}
-                  isLoading={loading || createPost.isPending}
-                >
-                  <CheckIcon className="w-4 h-4" />
-                  <span className="ml-1 hidden sm:inline">Save Draft</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  color="primary"
-                  onPress={() => setShowPublishModal(true)}
-                  isDisabled={loading || createPost.isPending}
-                >
-                  <span className="hidden sm:inline">Publish</span>
-                  <ArrowRightIcon className="w-4 h-4 sm:ml-2" />
-                </Button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square mr-2 shrink-0"
+                onClick={() => setFocusMode(true)}
+                aria-label="Focus mode"
+                title="Focus mode (Esc to exit)"
+              >
+                <ArrowsPointingOutIcon className="h-4 w-4" />
+              </button>
             </div>
           </div>
-        </div>
+        )}
+      </header>
 
-        {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Editor Column */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className={showPreview ? "lg:col-span-7" : "lg:col-span-12"}
+      {backupOffer && (
+        <div role="status" className="border-b border-info/30 bg-info/10 px-4 py-2.5 text-sm">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-3">
+            <span className="mr-auto">
+              You have unsaved changes from {formatRelativeTime(backupOffer.savedAt)} on this device.
+            </span>
+            <button
+              type="button"
+              className="btn btn-xs btn-info"
+              onClick={() => {
+                applyFields(backupOffer.fields);
+                setBackupOffer(null);
+              }}
             >
-              <div className="bg-base-100 rounded-2xl shadow-xl border border-base-300 overflow-hidden">
-                {/* Title Input */}
-                <div className="p-6 border-b border-base-300 bg-base-200/50">
-                  <input
-                    type="text"
-                    placeholder="Enter post title..."
-                    value={title}
-                    onChange={handleTitleChange}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
-                    }}
-                    onKeyPress={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className="w-full text-2xl font-bold bg-transparent border-none outline-none placeholder:text-base-content/40 focus:placeholder:text-base-content/20 transition-colors"
-                  />
-                </div>
-
-                {/* Editor Toolbar & Content */}
-                <div className="bg-base-100">
-                  <TipTapToolbar editor={editor} />
-                  {/* Meta fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-6 py-4 border-b border-base-300 bg-base-200/40">
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text text-sm">Cover image URL</span>
-                      </label>
-                      <input
-                        type="url"
-                        placeholder="https://..."
-                        value={coverImage}
-                        onChange={(e) => setCoverImage(e.target.value)}
-                        className="input input-bordered w-full"
-                      />
-                    </div>
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text text-sm">Excerpt (140-200 chars)</span>
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={220}
-                        value={excerpt}
-                        onChange={(e) => setExcerpt(e.target.value)}
-                        className="input input-bordered w-full"
-                        placeholder="Short summary shown in lists"
-                      />
-                    </div>
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text text-sm">Schedule publish (optional)</span>
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={scheduledAt}
-                        onChange={(e) => setScheduledAt(e.target.value)}
-                        className="input input-bordered w-full"
-                      />
-                      <p className="text-xs text-base-content/60 mt-1">
-                        If set in the future, post stays pending until this time (admin can override).
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-base-300">
-                    <EditorContent editor={editor} />
-                  </div>
-                </div>
-
-                {/* Footer Stats */}
-                <div className="p-4 border-t border-base-300 bg-base-200/30 flex items-center justify-between text-sm">
-                  <div className="text-base-content/70">
-                    {editor?.storage.characterCount ? (
-                      <span>
-                        {editor.storage.characterCount.characters()} characters
-                        {" • "}
-                        {editor.storage.characterCount.words()} words
-                      </span>
-                    ) : (
-                      <span>0 characters</span>
-                    )}
-                  </div>
-                  <div className="text-base-content/50">
-                    {editor?.storage.characterCount?.characters() &&
-                      editor.storage.characterCount.characters() > 0 && (
-                        <span>
-                          ~
-                          {Math.ceil(
-                            editor.storage.characterCount.characters() / 1000
-                          )}{" "}
-                          min read
-                        </span>
-                      )}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Preview Column */}
-            <AnimatePresence>
-              {showPreview && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="lg:col-span-5"
-                >
-                  <div className="sticky top-20 bg-base-100 rounded-2xl shadow-xl border border-base-300 overflow-hidden h-[calc(100vh-8rem)] flex flex-col">
-                    {/* Preview Header */}
-                    <div className="p-4 border-b border-base-300 bg-base-200/50 flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-base-content flex items-center gap-2">
-                        <EyeIcon className="w-5 h-5 text-primary" />
-                        Live Preview
-                      </h2>
-                      <Button
-                        size="sm"
-                        variant="light"
-                        isIconOnly
-                        onPress={() => setShowPreview(false)}
-                        className="md:hidden"
-                      >
-                        <XMarkIcon className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* Preview Content */}
-                    <div
-                      ref={previewBodyRef}
-                      className="flex-1 overflow-y-auto p-6 custom-scrollbar"
-                    >
-                      {title && (
-                        <h1 className="text-3xl font-bold mb-4 text-base-content">
-                          {title}
-                        </h1>
-                      )}
-                      <div
-                        className="prose prose-sm sm:prose lg:prose-lg max-w-none prose-headings:text-base-content prose-p:text-base-content prose-strong:text-base-content prose-code:text-primary prose-pre:bg-base-300 prose-blockquote:border-l-primary"
-                        dangerouslySetInnerHTML={{
-                          __html: sanitizeRichText(
-                            editor?.getHTML() ||
-                              "<p class='text-base-content/50'>Start writing to see preview...</p>"
-                          ),
-                        }}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              Restore
+            </button>
+            <button
+              type="button"
+              className="btn btn-xs btn-ghost"
+              onClick={() => {
+                clearBackup(postId);
+                setBackupOffer(null);
+              }}
+            >
+              Discard
+            </button>
           </div>
         </div>
+      )}
+
+      <div className="flex flex-1">
+        <main className="min-w-0 flex-1">
+          {mode === "edit" ? (
+            <div className={`mx-auto w-full max-w-3xl px-5 sm:px-8 ${focusMode ? "pt-16" : "pt-8 sm:pt-12"}`}>
+              {focusMode && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm fixed right-4 top-16 z-30 gap-1"
+                  onClick={() => setFocusMode(false)}
+                >
+                  <ArrowsPointingInIcon className="h-4 w-4" /> Exit focus
+                </button>
+              )}
+              {fields.coverImage && !focusMode && (
+                <img
+                  src={fields.coverImage}
+                  alt={fields.coverImageAlt}
+                  className="mb-8 aspect-[2/1] w-full rounded-2xl object-cover"
+                />
+              )}
+              <label htmlFor="post-title" className="sr-only">
+                Title
+              </label>
+              <textarea
+                id="post-title"
+                ref={titleRef}
+                rows={1}
+                value={fields.title}
+                maxLength={TITLE_MAX}
+                onChange={(event) => updateFields({ title: event.target.value.replace(/\n/g, " ") })}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    editor.commands.focus("start");
+                  }
+                }}
+                placeholder="Post title"
+                className="w-full resize-none overflow-hidden bg-transparent text-3xl font-bold leading-tight outline-none placeholder:text-base-content/30 sm:text-4xl lg:text-5xl"
+              />
+              <div className="mt-6">
+                <EditorContent editor={editor} />
+                <EditorBubbleMenus editor={editor} openDialog={setDialog} />
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-6">
+              <div className="mb-4 flex justify-center">
+                <div className="join" role="group" aria-label="Preview size">
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item gap-1 ${previewDevice === "desktop" ? "btn-active" : "btn-ghost"}`}
+                    onClick={() => setPreviewDevice("desktop")}
+                    aria-pressed={previewDevice === "desktop"}
+                  >
+                    <ComputerDesktopIcon className="h-4 w-4" /> Desktop
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm join-item gap-1 ${previewDevice === "mobile" ? "btn-active" : "btn-ghost"}`}
+                    onClick={() => setPreviewDevice("mobile")}
+                    aria-pressed={previewDevice === "mobile"}
+                  >
+                    <DevicePhoneMobileIcon className="h-4 w-4" /> Mobile
+                  </button>
+                </div>
+              </div>
+              <div
+                className={`mx-auto overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-xl transition-all ${
+                  previewDevice === "mobile" ? "max-w-[390px]" : "max-w-4xl"
+                }`}
+              >
+                <article className="px-5 py-8 sm:px-10">
+                  {fields.coverImage && (
+                    <img src={fields.coverImage} alt={fields.coverImageAlt} className="mb-6 aspect-[2/1] w-full rounded-xl object-cover" />
+                  )}
+                  {fields.category && (
+                    <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">{fields.category}</p>
+                  )}
+                  <h1 className={`font-bold leading-tight ${previewDevice === "mobile" ? "text-3xl" : "text-4xl sm:text-5xl"}`}>
+                    {fields.title || "Untitled post"}
+                  </h1>
+                  <div className="mb-8 mt-4 flex items-center gap-3 text-sm text-base-content/65">
+                    <Avatar name={authUser?.name} src={authUser?.photoURL} size="sm" />
+                    <span>{getAuthorDisplayName(authUser)}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{readingTime} min read</span>
+                  </div>
+                  {preview?.html ? (
+                    <ArticleBody html={preview.html} className={previewDevice === "mobile" ? "prose-sm sm:prose-base" : ""} />
+                  ) : (
+                    <p className="text-base-content/50">Nothing to preview yet.</p>
+                  )}
+                </article>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Settings panel: sidebar on desktop, sheet on mobile */}
+        {showSettings && !focusMode && (
+          <>
+            <button
+              type="button"
+              aria-label="Close settings"
+              className="fixed inset-0 z-40 bg-black/40 xl:hidden"
+              onClick={() => setShowSettings(false)}
+            />
+            <aside
+              aria-label="Post settings"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-base-300 bg-base-100 shadow-2xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-96 sm:rounded-none sm:border-l sm:border-t-0 xl:sticky xl:top-[6.25rem] xl:z-auto xl:h-[calc(100vh-6.25rem)] xl:w-80 xl:shadow-none"
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-300 bg-base-100 px-5 py-3">
+                <h2 className="font-semibold">Post settings</h2>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-square"
+                  onClick={() => setShowSettings(false)}
+                  aria-label="Close settings"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+              <PostSettingsPanel
+                previewToken={previewToken}
+                onCreatePreviewLink={() => setPreviewLink(true)}
+                onRevokePreviewLink={() => setPreviewLink(false)}
+                fields={fields}
+                onChange={updateFields}
+                categories={categories}
+                canManageCategories={isAdmin}
+                status={status}
+                rejectionReason={rejectionReason}
+                postId={postId}
+                uploadImage={uploadImage}
+              />
+            </aside>
+          </>
+        )}
       </div>
 
-      {/* Notice Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        isDismissable
-        placement="center"
-        size="sm"
-      >
-        <ModalContent>
-          <ModalHeader className="flex items-center gap-2">
-            <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
-            <span>Notice</span>
-          </ModalHeader>
-          <ModalBody>
-            <p className="text-base-content">{modalMsg}</p>
-          </ModalBody>
-          <ModalFooter>
-            <Button color="primary" onPress={() => setModalOpen(false)}>
-              OK
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {/* Footer stats */}
+      <footer className="sticky bottom-0 z-30 border-t border-base-300 bg-base-100/90 px-4 py-2 text-xs text-base-content/60 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <span className="sm:hidden" aria-live="polite">{saveIndicator}</span>
+          <span className="hidden sm:inline">
+            Type <kbd className="kbd kbd-xs">/</kbd> for blocks · select text to format · <kbd className="kbd kbd-xs">Ctrl</kbd>+<kbd className="kbd kbd-xs">S</kbd> to save
+          </span>
+          <span className="tabular-nums">
+            {words.toLocaleString()} words · {readingTime} min read
+          </span>
+        </div>
+      </footer>
 
-      {/* Save Draft Confirmation Modal */}
+      <EditorDialogs editor={editor} dialog={dialog} onClose={() => setDialog(null)} uploadImage={uploadImage} />
+
+      <RevisionHistory open={showHistory} postId={postId} onClose={() => setShowHistory(false)} onRestore={restoreRevision} />
+
       <Modal
-        isOpen={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
-        isDismissable
-        placement="center"
-        size="md"
+        open={confirmPublish}
+        onClose={() => setConfirmPublish(false)}
+        title={primaryLabel}
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setConfirmPublish(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" onClick={() => void publish()}>
+              {primaryLabel}
+            </button>
+          </>
+        }
       >
-        <ModalContent>
-          <ModalHeader className="flex items-center gap-2">
-            <CheckIcon className="w-5 h-5 text-secondary" />
-            <span>Save as Draft</span>
-          </ModalHeader>
-          <ModalBody>
-            <p className="text-base-content">
-              Are you sure you want to save this post as a draft? You can publish it later.
+        <div className="flex flex-col gap-3 text-sm">
+          <p>
+            {isAdmin
+              ? isFutureSchedule
+                ? `This post will go live on ${new Date(fields.scheduledAt).toLocaleString()}.`
+                : "This post will be visible to everyone straight away."
+              : status === "approved"
+                ? "Your changes will be reviewed by an admin. The post is hidden until they're approved."
+                : "An admin will review your post before it's published."}
+          </p>
+          <dl className="grid grid-cols-[7rem_1fr] gap-y-1.5 rounded-xl bg-base-200 p-3">
+            <dt className="text-base-content/60">Title</dt>
+            <dd className="font-medium">{fields.title || "Untitled"}</dd>
+            <dt className="text-base-content/60">Category</dt>
+            <dd>{fields.category || "None"}</dd>
+            <dt className="text-base-content/60">Tags</dt>
+            <dd>{fields.tags.length ? fields.tags.map((tag) => `#${tag}`).join(" ") : "None"}</dd>
+            <dt className="text-base-content/60">Length</dt>
+            <dd>
+              {words.toLocaleString()} words · {readingTime} min
+            </dd>
+          </dl>
+          {!fields.excerpt && (
+            <p className="text-xs text-base-content/60">
+              Tip: add an excerpt in Post settings to control how this appears in lists.
             </p>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="flat"
-              color="default"
-              onPress={() => setShowSaveModal(false)}
-              isDisabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              color="secondary"
-              onPress={saveAsDraft}
-              isLoading={loading}
-              isDisabled={loading}
-            >
-              Save Draft
-            </Button>
-          </ModalFooter>
-        </ModalContent>
+          )}
+          {fields.coverImage && !fields.coverImageAlt && (
+            <p className="text-xs text-warning">Your cover image has no alt text.</p>
+          )}
+        </div>
       </Modal>
 
-      {/* Publish Confirmation Modal */}
       <Modal
-        isOpen={showPublishModal}
-        onClose={() => setShowPublishModal(false)}
-        isDismissable
-        placement="center"
-        size="md"
+        open={conflict !== null}
+        onClose={() => setConflict(null)}
+        title="This post was changed elsewhere"
+        description="Someone (or another tab) saved this post after you opened it."
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => resolveConflict("theirs")}>
+              Load their version
+            </button>
+            <button type="button" className="btn btn-warning" onClick={() => resolveConflict("mine")}>
+              Overwrite with mine
+            </button>
+          </>
+        }
       >
-        <ModalContent>
-          <ModalHeader className="flex items-center gap-2">
-            <ExclamationTriangleIcon className="w-5 h-5 text-primary" />
-            <span>Publish Post</span>
-          </ModalHeader>
-          <ModalBody>
-            <div className="space-y-3">
-              <p className="text-base-content">
-                {isAdmin
-                  ? "Are you sure you want to publish this post? It will be immediately visible to all users."
-                  : "Are you sure you want to publish this post? It will be submitted for admin approval."}
-              </p>
-              <div className="bg-base-200 rounded-lg p-3 space-y-2">
-                <p className="text-sm font-semibold text-base-content">Post Details:</p>
-                <p className="text-sm text-base-content/70">
-                  <strong>Title:</strong> {title || "Untitled"}
-                </p>
-                <p className="text-sm text-base-content/70">
-                  <strong>Status:</strong>{" "}
-                  {isAdmin ? "Will be approved immediately" : "Will be pending approval"}
-                </p>
-                {category && (
-                  <p className="text-sm text-base-content/70">
-                    <strong>Category:</strong> {category}
-                  </p>
-                )}
-                {tags.length > 0 && (
-                  <p className="text-sm text-base-content/70">
-                    <strong>Tags:</strong> {tags.join(", ")}
-                  </p>
-                )}
-              </div>
-            </div>
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              variant="flat"
-              color="default"
-              onPress={() => setShowPublishModal(false)}
-              isDisabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              color="primary"
-              onPress={publishPost}
-              isLoading={loading}
-              isDisabled={loading}
-            >
-              {isAdmin ? "Publish Now" : "Submit for Approval"}
-            </Button>
-          </ModalFooter>
-        </ModalContent>
+        <p className="text-sm text-base-content/75">
+          Loading their version replaces what's in the editor; your edits are kept on this device and
+          offered for restore next time you open the post. Overwriting replaces their changes with yours.
+        </p>
       </Modal>
-
-      {/* Styles */}
-      <style>{`
-        .custom-scrollbar { 
-          scrollbar-color: hsl(var(--p) / 0.3) transparent; 
-          scrollbar-width: thin; 
-        }
-        .custom-scrollbar::-webkit-scrollbar { 
-          width: 8px; 
-          height: 8px; 
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: hsl(var(--p) / 0.3);
-          border-radius: 999px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--p) / 0.5);
-        }
-        .ProseMirror { 
-          outline: none; 
-        }
-        .ProseMirror p.is-editor-empty:first-child::before {
-          content: attr(data-placeholder);
-          float: left;
-          color: hsl(var(--bc) / 0.4);
-          pointer-events: none;
-          height: 0;
-        }
-        .ProseMirror img {
-          max-width: 100%;
-          height: auto;
-          display: block;
-          margin: 1rem auto;
-          border-radius: 0.5rem;
-        }
-        .ProseMirror pre {
-          background: hsl(var(--n));
-          color: hsl(var(--nc));
-          padding: 1rem;
-          border-radius: 0.5rem;
-          overflow-x: auto;
-          margin: 1rem 0;
-        }
-        .ProseMirror code {
-          background: hsl(var(--n) / 0.3);
-          padding: 0.2rem 0.4rem;
-          border-radius: 0.25rem;
-          font-size: 0.9em;
-        }
-        .ProseMirror pre code {
-          background: transparent;
-          padding: 0;
-        }
-        .ProseMirror blockquote {
-          border-left: 4px solid hsl(var(--p));
-          padding-left: 1rem;
-          margin: 1rem 0;
-          font-style: italic;
-        }
-        .ProseMirror ul, .ProseMirror ol {
-          padding-left: 1.5rem;
-          margin: 1rem 0;
-        }
-        .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
-          font-weight: bold;
-          margin-top: 1.5rem;
-          margin-bottom: 0.5rem;
-        }
-        .ProseMirror h1 { font-size: 2em; }
-        .ProseMirror h2 { font-size: 1.5em; }
-        .ProseMirror h3 { font-size: 1.25em; }
-        .ProseMirror a {
-          color: hsl(var(--p));
-          text-decoration: underline;
-        }
-        .ProseMirror a:hover {
-          color: hsl(var(--pf));
-        }
-      `}</style>
-    </>
+    </div>
   );
 }

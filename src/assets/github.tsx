@@ -1,4 +1,8 @@
-export default function Github(): React.ReactElement {
+export default function Github({
+  className = "h-5 w-5",
+}: {
+  className?: string;
+}): React.ReactElement {
   return (
     <svg
       width="16"
@@ -6,7 +10,8 @@ export default function Github(): React.ReactElement {
       viewBox="0 0 16 16"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
+      className={className}
+      aria-hidden="true"
     >
       <path
         fillRule="evenodd"

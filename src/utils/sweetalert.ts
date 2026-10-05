@@ -17,8 +17,6 @@ let isModalOpen = false;
 const applyBlur = (): void => {
   if (!isModalOpen) {
     isModalOpen = true;
-    // Add blur class to body and app container
-    document.body.classList.add("swal-blur-active");
     const appElement = document.querySelector(".App");
     if (appElement) {
       (appElement as HTMLElement).classList.add("swal-blur-active");
@@ -32,7 +30,6 @@ const applyBlur = (): void => {
 const removeBlur = (): void => {
   if (isModalOpen) {
     isModalOpen = false;
-    document.body.classList.remove("swal-blur-active");
     const appElement = document.querySelector(".App");
     if (appElement) {
       (appElement as HTMLElement).classList.remove("swal-blur-active");
@@ -46,12 +43,11 @@ const removeBlur = (): void => {
  */
 const StyledSwal = Swal.mixin({
   customClass: {
-    popup: "swal-popup rounded-2xl shadow-2xl bg-base-100 text-base-content",
-    container: "swal-container",
+    popup: "swal-popup",
     title: "text-2xl font-bold text-base-content",
     htmlContainer: "text-base text-base-content/80",
-    confirmButton: "btn btn-primary rounded-lg px-6 py-2 font-medium",
-    cancelButton: "btn btn-ghost rounded-lg px-6 py-2 font-medium",
+    confirmButton: "btn btn-primary rounded-lg px-6 font-medium",
+    cancelButton: "btn btn-ghost rounded-lg px-6 font-medium",
     actions: "gap-3",
   },
   buttonsStyling: false,
@@ -67,29 +63,49 @@ const mergeCustomClass = (
   options: SweetAlertOptions,
   confirmButton: string
 ): SweetAlertOptions["customClass"] => ({
+  popup: "swal-popup",
+  title: "text-2xl font-bold text-base-content",
+  htmlContainer: "text-base text-base-content/80",
   confirmButton,
   ...(typeof options.customClass === "object" ? options.customClass : {}),
 });
 
 /**
- * Success Alert with Tailwind styling
+ * Non-blocking toast used for routine confirmations.
+ */
+const Toast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  showCloseButton: true,
+  timer: 3200,
+  timerProgressBar: true,
+  customClass: { popup: "swal-toast" },
+  didOpen: (toast) => {
+    toast.addEventListener("mouseenter", Swal.stopTimer);
+    toast.addEventListener("mouseleave", Swal.resumeTimer);
+  },
+});
+
+export const showToast = (
+  icon: "success" | "info" | "warning" | "error",
+  title: string,
+  message?: string
+): Promise<SweetAlertResult> => Toast.fire({ icon, title, text: message });
+
+/**
+ * Success feedback, shown as a toast so it never blocks the page.
  */
 export const showSuccess = (
   title: string,
   message?: string,
   options: SweetAlertOptions = {}
 ): Promise<SweetAlertResult> => {
-  return StyledSwal.fire({
-    ...options,
+  return Toast.fire({
     icon: "success",
     title,
     text: message,
-    confirmButtonText: options.confirmButtonText || "OK",
-    customClass: mergeCustomClass(
-      options,
-      "btn btn-success rounded-lg px-6 py-2 font-medium"
-    ),
-    buttonsStyling: false,
+    ...(typeof options.timer === "number" ? { timer: options.timer } : {}),
   });
 };
 
@@ -138,24 +154,18 @@ export const showWarning = (
 };
 
 /**
- * Info Alert with Tailwind styling
+ * Informational feedback, shown as a toast.
  */
 export const showInfo = (
   title: string,
   message?: string,
   options: SweetAlertOptions = {}
 ): Promise<SweetAlertResult> => {
-  return StyledSwal.fire({
-    ...options,
+  return Toast.fire({
     icon: "info",
     title,
     text: message,
-    confirmButtonText: options.confirmButtonText || "OK",
-    customClass: mergeCustomClass(
-      options,
-      "btn btn-info rounded-lg px-6 py-2 font-medium"
-    ),
-    buttonsStyling: false,
+    ...(typeof options.timer === "number" ? { timer: options.timer } : {}),
   });
 };
 
@@ -185,8 +195,11 @@ export const showConfirm = (
     confirmButtonText: options?.confirmText || "Yes",
     cancelButtonText: options?.cancelText || "Cancel",
     customClass: {
-      confirmButton: `btn btn-${confirmColor} rounded-lg px-6 py-2 font-medium`,
-      cancelButton: `btn btn-${cancelColor} rounded-lg px-6 py-2 font-medium`,
+      popup: "swal-popup",
+      title: "text-2xl font-bold text-base-content",
+      htmlContainer: "text-base text-base-content/80",
+      confirmButton: `btn btn-${confirmColor} rounded-lg px-6 font-medium`,
+      cancelButton: `btn btn-${cancelColor} rounded-lg px-6 font-medium`,
     },
     buttonsStyling: false,
     reverseButtons: true,
@@ -215,12 +228,14 @@ export const showDeleteConfirm = (
     confirmButtonText: "Delete",
     cancelButtonText: "Cancel",
     customClass: {
-      confirmButton: "btn btn-error rounded-lg px-6 py-2 font-medium",
-      cancelButton: "btn btn-ghost rounded-lg px-6 py-2 font-medium",
+      popup: "swal-popup",
+      title: "text-2xl font-bold text-base-content",
+      htmlContainer: "text-base text-base-content/80",
+      confirmButton: "btn btn-error rounded-lg px-6 font-medium",
+      cancelButton: "btn btn-ghost rounded-lg px-6 font-medium",
     },
     buttonsStyling: false,
     reverseButtons: true,
-    confirmButtonColor: "#ef4444",
   }).then((result) => {
     if (result.isConfirmed) {
       return onConfirm();

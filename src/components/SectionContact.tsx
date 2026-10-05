@@ -1,168 +1,207 @@
-import { useState, FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { EnvelopeIcon, MapPinIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { db } from "../firebaseconfig";
-import { showSuccess, showError } from "../utils/sweetalert";
-import PremiumSpinner from "./PremiumSpinner";
+import { apiRequest } from "../services/api";
+import { showSuccess } from "../utils/sweetalert";
 import SectionHead from "./sectionHead";
+import Github from "../assets/github";
+import LinkedIn from "../assets/linkedin";
+import { site } from "../data/site";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LIMITS = { name: [3, 100], message: [10, 5000] } as const;
+
+type Field = "name" | "email" | "message";
+
+const validate = (values: Record<Field, string>): Partial<Record<Field, string>> => {
+  const errors: Partial<Record<Field, string>> = {};
+  const name = values.name.trim();
+  const email = values.email.trim();
+  const message = values.message.trim();
+  if (name.length < LIMITS.name[0]) errors.name = "Please enter at least 3 characters.";
+  if (!EMAIL_PATTERN.test(email)) errors.email = "Please enter a valid email address.";
+  if (message.length < LIMITS.message[0]) errors.message = "Please write at least 10 characters.";
+  return errors;
+};
 
 function SectionContact(): React.ReactElement {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", message: "" });
+  const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
+  const update = (field: Field) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setValues((current) => ({ ...current, [field]: event.target.value }));
+    if (errors[field]) setErrors((current) => ({ ...current, [field]: undefined }));
+  };
 
-    // Validation
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      showError("Validation Error", "Please fill in all fields.");
-      return;
-    }
-
-    if (name.trim().length < 3) {
-      showError("Validation Error", "Name must be at least 3 characters.");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      showError("Validation Error", "Please enter a valid email address.");
-      return;
-    }
-
-    if (message.trim().length < 10) {
-      showError("Validation Error", "Message must be at least 10 characters.");
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    const found = validate(values);
+    setErrors(found);
+    if (Object.keys(found).length) {
+      const first = Object.keys(found)[0];
+      document.getElementById(`contact-${first}`)?.focus();
       return;
     }
 
     setIsSubmitting(true);
-
+    setSubmitError(null);
     try {
-      // Store message in Firestore
-      await addDoc(collection(db, "messages"), {
-        name: name.trim(),
-        email: email.trim(),
-        message: message.trim(),
+      const payload = {
+        name: values.name.trim(),
+        email: values.email.trim(),
+        message: values.message.trim(),
+      };
+      const ref = await addDoc(collection(db, "messages"), {
+        ...payload,
         createdAt: serverTimestamp(),
         read: false,
       });
+      // Email alert to the site owner (best-effort; the message is already saved).
+      void apiRequest("contact-alert", { body: { messageId: ref.id } }).catch(() => undefined);
 
-      // Show success message
-      showSuccess(
-        "Message Sent!",
-        "Thank you for reaching out. I'll get back to you soon!"
-      );
-
-      // Reset form
-      setName("");
-      setEmail("");
-      setMessage("");
-    } catch (error) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to send message. Please try again.";
-      showError("Error", errorMessage);
-      console.error("Error sending message:", error);
+      showSuccess("Message sent!", "Thanks for reaching out — I'll get back to you soon.");
+      setValues({ name: "", email: "", message: "" });
+    } catch {
+      setSubmitError(`Your message couldn't be sent. Please try again, or email me at ${site.email}.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const fieldClass = (field: Field) => `${field === "message" ? "textarea" : "input"} w-full ${errors[field] ? "input-error textarea-error" : ""}`;
+
   return (
-    <section className="bg-base-200 px-4 sm:px-8 md:px-16 lg:px-24 xl:px-32 py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24 flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center">
-      <SectionHead
-        title={"Contact"}
-        descript={"I'm currently available for freelance work"}
-      />
+    <section id="contact" aria-labelledby="contact-heading" className="bg-base-200/60 py-20 sm:py-24">
+      <div className="page-container">
+        <SectionHead
+          id="contact-heading"
+          eyebrow="Contact"
+          title="Let's work together"
+          descript="I'm currently available for freelance and full-time work. Send a message and I'll reply within a couple of days."
+        />
 
-      <form
-        onSubmit={handleSubmit}
-        className="form w-full flex flex-col gap-8 sm:gap-12 lg:gap-16 items-center justify-center max-w-4xl"
-      >
-        <h3 className="form-header ibm-plex-md text-primary border-2 border-primary rounded-tl-2xl sm:rounded-tl-3xl lg:rounded-tl-4xl rounded-br-2xl sm:rounded-br-3xl lg:rounded-br-4xl px-6 sm:px-8 lg:px-10 py-3 sm:py-4 text-sm sm:text-base md:text-lg lg:text-xl self-center">
-          Send me a message
-        </h3>
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <aside className="surface flex flex-col gap-5 p-6 sm:p-8">
+            <h3 className="text-lg font-semibold">Other ways to reach me</h3>
+            <a href={`mailto:${site.email}`} className="flex items-center gap-3 hover:text-primary">
+              <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                <EnvelopeIcon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 truncate">{site.email}</span>
+            </a>
+            <p className="flex items-center gap-3">
+              <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                <MapPinIcon className="h-5 w-5" />
+              </span>
+              {site.location} · Remote friendly
+            </p>
+            <div className="mt-auto flex gap-2 pt-2">
+              <a href={site.socials.github} target="_blank" rel="noopener noreferrer" className="btn btn-ghost gap-2 border border-base-300">
+                <Github /> GitHub
+              </a>
+              <a href={site.socials.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-ghost gap-2 border border-base-300">
+                <LinkedIn /> LinkedIn
+              </a>
+            </div>
+          </aside>
 
-        <div className="personals flex flex-col sm:flex-row justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-16 xl:gap-32 items-center w-full">
-          <fieldset className="fieldset flex flex-col gap-3 sm:gap-5 flex-1 w-full">
-            <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
-              Your name *
-            </legend>
-            <input
-              type="text"
-              required
-              placeholder="Enter your name"
-              pattern="[A-Za-z][A-Za-z0-9\s\-]*"
-              minLength={3}
-              maxLength={50}
-              title="Only letters, numbers, spaces or dash"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={isSubmitting}
-              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
-            />
-          </fieldset>
-
-          <fieldset className="fieldset flex flex-col gap-3 sm:gap-5 flex-1 w-full">
-            <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
-              Your email *
-            </legend>
-            <input
-              type="email"
-              required
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isSubmitting}
-              className="input validator border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
-            />
-          </fieldset>
-        </div>
-
-        <fieldset className="fieldset w-full">
-          <legend className="fieldset-legend ubuntu-light text-sm sm:text-base text-primary py-0">
-            Your message *
-          </legend>
-          <textarea
-            required
-            minLength={10}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            disabled={isSubmitting}
-            className="p-2 -pb-2 inline-block h-auto min-h-[120px] sm:min-h-[150px] border-0 border-b-1 bg-transparent shadow-none rounded-none w-full items-start pl-0 border-secondary placeholder:text-sm sm:text-base placeholder:text-white focus:outline-0"
-            placeholder="Enter your needs"
-          ></textarea>
-        </fieldset>
-        <button
-          className="btn bg-primary text-base-100 text-base sm:text-lg lg:text-xl font-normal rounded-full py-3 sm:py-4 px-6 sm:px-8 flex items-center justify-center gap-2 sm:gap-4 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <PremiumSpinner size="sm" variant="neutral" showParticles={false} />
-              <span>Sending...</span>
-            </>
-          ) : (
-            <>
-              Send Message
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M22.7071 1.29292C22.9306 1.5164 23.0262 1.81935 22.9939 2.11081C22.9848 2.19252 22.9657 2.27332 22.9366 2.35121L15.9439 22.3304C15.8084 22.7174 15.4504 22.9825 15.0408 22.9992C14.6311 23.0159 14.2527 22.7808 14.0862 22.4062L10.2424 13.7576L1.59387 9.91384C1.21919 9.74731 0.984122 9.36894 1.00084 8.95926C1.01755 8.54959 1.28265 8.19162 1.66965 8.05617L21.6488 1.06348C21.7272 1.03414 21.8085 1.01497 21.8907 1.00598C21.9511 0.999338 22.0117 0.998262 22.0717 1.00259C22.3032 1.01913 22.5301 1.11591 22.7071 1.29292ZM18.1943 4.3915L4.71108 9.11063L10.7785 11.8073L18.1943 4.3915ZM12.1928 13.2215L19.6085 5.80571L14.8894 19.289L12.1928 13.2215Z"
-                  fill="#292F36"
+          <form onSubmit={handleSubmit} noValidate className="surface flex flex-col gap-5 p-6 sm:p-8">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="contact-name" className="field-label">
+                  Your name
+                </label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  autoComplete="name"
+                  value={values.name}
+                  onChange={update("name")}
+                  maxLength={LIMITS.name[1]}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? "contact-name-error" : undefined}
+                  className={fieldClass("name")}
                 />
-              </svg>
-            </>
-          )}
-        </button>
-      </form>
+                {errors.name && (
+                  <p id="contact-name-error" className="mt-1 text-xs text-error">
+                    {errors.name}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="contact-email" className="field-label">
+                  Your email
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  value={values.email}
+                  onChange={update("email")}
+                  maxLength={254}
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "contact-email-error" : undefined}
+                  className={fieldClass("email")}
+                />
+                {errors.email && (
+                  <p id="contact-email-error" className="mt-1 text-xs text-error">
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="contact-message" className="field-label">
+                  Message
+                </label>
+                <span className="text-xs tabular-nums text-base-content/50">
+                  {values.message.length}/{LIMITS.message[1]}
+                </span>
+              </div>
+              <textarea
+                id="contact-message"
+                rows={6}
+                value={values.message}
+                onChange={update("message")}
+                maxLength={LIMITS.message[1]}
+                disabled={isSubmitting}
+                aria-invalid={Boolean(errors.message)}
+                aria-describedby={errors.message ? "contact-message-error" : undefined}
+                placeholder="Tell me about your project or role"
+                className={fieldClass("message")}
+              />
+              {errors.message && (
+                <p id="contact-message-error" className="mt-1 text-xs text-error">
+                  {errors.message}
+                </p>
+              )}
+            </div>
+            {submitError && (
+              <p role="alert" className="text-sm text-error">
+                {submitError}
+              </p>
+            )}
+            <button type="submit" className="btn btn-primary self-start" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <span className="loading loading-spinner loading-sm" /> Sending…
+                </>
+              ) : (
+                <>
+                  Send message <PaperAirplaneIcon className="h-5 w-5" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
     </section>
   );
 }

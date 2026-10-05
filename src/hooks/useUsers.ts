@@ -8,7 +8,7 @@ import {
   type QuerySnapshot,
 } from "firebase/firestore";
 import { db } from "../firebaseconfig";
-import { useNotificationStore } from "../stores/notificationStore";
+import { useRole } from "./useRole";
 import { queryKeys } from "../utils/queryClient";
 import type { User, UserRole } from "../types";
 
@@ -24,6 +24,7 @@ interface UpdateUserData {
 
 // Fetch all users
 export const useUsers = () => {
+  const { isAdmin, isEmailVerified } = useRole();
   return useQuery<UserWithId[]>({
     queryKey: queryKeys.users.all,
     queryFn: async () => {
@@ -43,7 +44,7 @@ export const useUsers = () => {
         throw new Error("Failed to fetch users. Please try again later.");
       }
     },
-    // Only fetch users if user has admin role (can be enhanced with auth check)
+    enabled: isAdmin && isEmailVerified,
     retry: (failureCount, error) => {
       if (error instanceof Error && error.message.includes("permission")) {
         return false;
@@ -56,9 +57,6 @@ export const useUsers = () => {
 // Update user mutation
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore(
-    (state) => state.showNotification
-  );
 
   return useMutation<UserWithId, Error, UpdateUserData>({
     mutationFn: async ({ uid, data }) => {
@@ -70,20 +68,6 @@ export const useUpdateUser = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
-      showNotification({
-        type: "success",
-        title: "User Updated",
-        message: "User information has been updated successfully!",
-      });
-    },
-    onError: (error: Error) => {
-      showNotification({
-        type: "error",
-        title: "Failed to Update User",
-        message:
-          "There was an error updating the user. Please try again.",
-      });
-      console.error(error);
     },
   });
 };

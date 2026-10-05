@@ -6,7 +6,9 @@ import {
 } from "@tanstack/react-query";
 import {
   collection,
+  getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   addDoc,
@@ -15,12 +17,15 @@ import {
   doc,
   increment,
   serverTimestamp,
+  writeBatch,
   type DocumentData,
   type QuerySnapshot,
 } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
+import { createNotification } from "./useNotifications";
+import { triggerPostEmails } from "../services/emailHooks";
 import { queryKeys } from "../utils/queryClient";
 import type { BlogPost, CreatePostInput, User } from "../types";
 
@@ -44,6 +49,8 @@ const getUserDisplayName = (user: User | null): string => {
 interface UpdatePostData {
   id: string;
   data: Partial<BlogPost>;
+  /** Status before this update; used to send notifications on changes. */
+  previousStatus?: BlogPost["status"];
 }
 
 interface UpdatePostResult {
@@ -52,7 +59,7 @@ interface UpdatePostResult {
 }
 
 interface LikeMutationContext {
-  previousPostQueries: Array<[QueryKey, BlogPost[] | undefined]>;
+  previousPostQueries: Array<[QueryKey, BlogPost[] | BlogPost | null | undefined]>;
 }
 
 type PostReadScope = "all" | "writer" | "public";
@@ -141,100 +148,131 @@ export const usePosts = () => {
   });
 };
 
+/**
+ * One post by id. Uses the post list cache when available and otherwise
+ * reads the document directly (approved posts are publicly readable).
+ */
+export const usePost = (id: string | undefined) => {
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const displayStatus = useAuthStore((state) => state.displayStatus);
+
+  return useQuery<BlogPost | null>({
+    queryKey: [...queryKeys.posts.detail(id ?? ""), user?.uid ?? "anonymous"],
+    queryFn: async () => {
+      try {
+        const snapshot = await getDoc(doc(db, "posts", id!));
+        return snapshot.exists()
+          ? ({ id: snapshot.id, ...snapshot.data() } as BlogPost)
+          : null;
+      } catch (error) {
+        // Private posts are unreadable to other users: treat as not found.
+        if ((error as { code?: string }).code === "permission-denied") return null;
+        throw error;
+      }
+    },
+    initialData: () =>
+      queryClient
+        .getQueriesData<BlogPost[]>({ queryKey: queryKeys.posts.all })
+        .flatMap(([, posts]) => (Array.isArray(posts) ? posts : []))
+        .find((post) => post.id === id),
+    initialDataUpdatedAt: () =>
+      queryClient.getQueryState(queryKeys.posts.all)?.dataUpdatedAt,
+    enabled: Boolean(id) && displayStatus !== "loading",
+    staleTime: 30 * 1000,
+  });
+};
+
 // Create post mutation
 export const useCreatePost = () => {
   const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
-  const showNotification = useNotificationStore(
-    (state) => state.showNotification
-  );
   const isAdmin = role === "admin" || role === "super_admin";
 
   return useMutation<BlogPost, Error, CreatePostInput>({
     mutationFn: async (data) => {
+      if (!user?.uid) throw new Error("You must be signed in to create posts.");
       const blog = {
         ...data,
-        authorId: user?.uid || "guest",
+        authorId: user.uid,
         authorName: getUserDisplayName(user),
-        authorAvatar: user?.photoURL || null, // Include author avatar
+        authorAvatar: user.photoURL || null,
         createdAt: serverTimestamp(),
         status: data.status ?? (isAdmin ? "approved" : "pending"),
-        likedBy: [], // Initialize with empty array
-        likes: 0, // Initialize with 0
+        likedBy: [],
+        likes: 0,
+        views: 0,
       };
       const ref = await addDoc(collection(db, "posts"), blog);
       const blogData = { id: ref.id, ...blog } as unknown as BlogPost;
-
-      // Admin-published posts can announce themselves to all signed-in users.
-      if (isAdmin) {
-        try {
-          await addDoc(collection(db, "notifications"), {
-            userId: "all",
-            type: "new_post",
-            message: `${blogData.authorName} added "${blogData.title}"`,
-            blogId: blogData.id,
-            createdAt: serverTimestamp(),
-          });
-        } catch (error) {
-          console.error("Failed to create notification:", error);
-        }
-      }
-
+      await notifyStatusChange(blogData, blogData.status, isAdmin);
+      void triggerPostEmails({
+        postId: ref.id,
+        status: blogData.status,
+        isAdmin,
+        scheduledFor: (data.scheduledFor as Date | null | undefined) ?? null,
+      });
       return blogData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      showNotification({
-        type: "success",
-        title: "Post Created",
-        message: "Your blog post has been created successfully!",
-      });
-    },
-    onError: (error: Error) => {
-      showNotification({
-        type: "error",
-        title: "Failed to Create Post",
-        message:
-          "There was an error creating your blog post. Please try again.",
-      });
-      console.error(error);
     },
   });
+};
+
+/**
+ * Sends the in-app notifications that go with a post entering a new state:
+ * writers' submissions alert administrators; admin-published posts are
+ * announced to every signed-in reader.
+ */
+export const notifyStatusChange = async (
+  post: Pick<BlogPost, "id" | "title" | "authorName">,
+  status: BlogPost["status"],
+  isAdmin: boolean
+): Promise<void> => {
+  if (status === "pending" && !isAdmin) {
+    await createNotification({
+      userId: "admins",
+      type: "pending_post",
+      message: `${post.authorName || "A writer"} submitted "${post.title}" for review`,
+      blogId: post.id,
+    });
+  }
+  if (status === "approved" && isAdmin) {
+    await createNotification({
+      userId: "all",
+      type: "new_post",
+      message: `New post: "${post.title}"`,
+      blogId: post.id,
+    });
+  }
 };
 
 // Update post mutation
 export const useUpdatePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore(
-    (state) => state.showNotification
-  );
+  const role = useAuthStore((state) => state.role);
+  const isAdmin = role === "admin" || role === "super_admin";
 
   return useMutation<UpdatePostResult, Error, UpdatePostData>({
-    mutationFn: async ({ id, data }) => {
+    mutationFn: async ({ id, data, previousStatus }) => {
       await updateDoc(doc(db, "posts", id), {
         ...data,
         updatedAt: serverTimestamp(),
       });
+      if (data.status && data.status !== previousStatus && data.title) {
+        await notifyStatusChange(
+          { id, title: data.title, authorName: data.authorName ?? null },
+          data.status,
+          isAdmin
+        );
+      }
       return { id, data };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
-      showNotification({
-        type: "success",
-        title: "Post Updated",
-        message: "Your blog post has been updated successfully!",
-      });
-    },
-    onError: (error: Error) => {
-      showNotification({
-        type: "error",
-        title: "Failed to Update Post",
-        message:
-          "There was an error updating your blog post. Please try again.",
-      });
-      console.error(error);
     },
   });
 };
@@ -242,9 +280,6 @@ export const useUpdatePost = () => {
 // Delete post mutation
 export const useDeletePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore(
-    (state) => state.showNotification
-  );
 
   return useMutation<string, Error, string>({
     mutationFn: async (id: string) => {
@@ -253,19 +288,6 @@ export const useDeletePost = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
-      showNotification({
-        type: "success",
-        title: "Post Deleted",
-        message: "The blog post has been deleted successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      showNotification({
-        type: "error",
-        title: "Failed to Delete Post",
-        message: "There was an error deleting the blog post. Please try again.",
-      });
-      console.error(error);
     },
   });
 };
@@ -273,46 +295,120 @@ export const useDeletePost = () => {
 // Approve post mutation
 export const useApprovePost = () => {
   const queryClient = useQueryClient();
-  const showNotification = useNotificationStore(
-    (state) => state.showNotification
-  );
 
-  return useMutation<string, Error, string>({
-    mutationFn: async (id: string) => {
-      await updateDoc(doc(db, "posts", id), { status: "approved" });
+  return useMutation<string, Error, Pick<BlogPost, "id" | "title" | "authorId">>({
+    mutationFn: async (post) => {
+      await updateDoc(doc(db, "posts", post.id), {
+        status: "approved",
+        rejectionReason: null,
+        updatedAt: serverTimestamp(),
+      });
 
-      // Create notification
-      try {
-        await addDoc(collection(db, "notifications"), {
-          userId: "all",
-          type: "approval",
-          message: `An admin approved a blog.`,
-          blogId: id,
-          createdAt: serverTimestamp(),
-        });
-      } catch (err) {
-        console.error("Failed to create notification:", err);
-      }
+      await createNotification({
+        userId: post.authorId,
+        type: "post_approved",
+        message: `Your post "${post.title}" was published`,
+        blogId: post.id,
+      });
+      await createNotification({
+        userId: "all",
+        type: "new_post",
+        message: `New post: "${post.title}"`,
+        blogId: post.id,
+      });
+      void triggerPostEmails({ postId: post.id, status: "approved", isAdmin: true });
 
-      return id;
+      return post.id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      showNotification({
-        type: "success",
-        title: "Post Approved",
-        message: "The blog post has been approved successfully!",
-      });
     },
-    onError: (error: Error) => {
-      showNotification({
-        type: "error",
-        title: "Failed to Approve Post",
-        message:
-          "There was an error approving the blog post. Please try again.",
+  });
+};
+
+// Reject post mutation (with an optional reason shown to the writer)
+export const useRejectPost = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    string,
+    Error,
+    { post: Pick<BlogPost, "id" | "title" | "authorId">; reason: string }
+  >({
+    mutationFn: async ({ post, reason }) => {
+      const trimmed = reason.trim();
+      await updateDoc(doc(db, "posts", post.id), {
+        status: "rejected",
+        rejectionReason: trimmed || null,
+        updatedAt: serverTimestamp(),
       });
-      console.error(error);
+      await createNotification({
+        userId: post.authorId,
+        type: "post_rejected",
+        message: trimmed
+          ? `"${post.title}" needs changes: ${trimmed}`
+          : `"${post.title}" was sent back for changes`,
+        link: `/edit/${post.id}`,
+      });
+      return post.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+};
+
+// Feature/unfeature a post on the homepage (admins).
+export const useSetFeaturedPost = () => {
+  const queryClient = useQueryClient();
+  const { data: posts = [] } = usePosts();
+
+  return useMutation<void, Error, { id: string; featured: boolean }>({
+    mutationFn: async ({ id, featured }) => {
+      const batch = writeBatch(db);
+      // Only one featured post at a time.
+      if (featured) {
+        posts
+          .filter((post) => post.featured && post.id !== id)
+          .forEach((post) =>
+            batch.update(doc(db, "posts", post.id), { featured: false })
+          );
+      }
+      batch.update(doc(db, "posts", id), { featured });
+      await batch.commit();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
+    },
+  });
+};
+
+// Apply one status/delete action to many posts at once (admins).
+export const useBulkPostAction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    void,
+    Error,
+    { ids: string[]; action: "approve" | "draft" | "delete" }
+  >({
+    mutationFn: async ({ ids, action }) => {
+      const batch = writeBatch(db);
+      for (const id of ids) {
+        const ref = doc(db, "posts", id);
+        if (action === "delete") batch.delete(ref);
+        else
+          batch.update(ref, {
+            status: action === "approve" ? "approved" : "draft",
+            updatedAt: serverTimestamp(),
+          });
+      }
+      await batch.commit();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
   });
 };
@@ -326,12 +422,23 @@ export const useIncrementPostView = () => {
         views: increment(1),
         updatedAt: serverTimestamp(),
       });
+      // Daily totals for the analytics dashboard (best-effort).
+      const day = new Date().toISOString().slice(0, 10);
+      try {
+        await setDoc(
+          doc(db, "dailyStats", day),
+          { date: day, views: increment(1), posts: { [postId]: increment(1) } },
+          { merge: true }
+        );
+      } catch {
+        // Analytics must never affect reading.
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.posts.all });
     },
     onError: (error) => {
-      console.error("Failed to increment post view:", error);
+      if (import.meta.env.DEV) console.error("Failed to increment post view:", error);
     },
   });
 };
@@ -401,7 +508,9 @@ export const useLikePost = () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.posts.all });
 
       // Snapshot the previous value for rollback
-      const previousPostQueries = queryClient.getQueriesData<BlogPost[]>({
+      const previousPostQueries = queryClient.getQueriesData<
+        BlogPost[] | BlogPost | null
+      >({
         queryKey: queryKeys.posts.all,
       });
 
@@ -417,21 +526,16 @@ export const useLikePost = () => {
         ? currentLikedBy.filter((id) => id !== userId)
         : [...currentLikedBy, userId];
 
-      // Optimistically update the cache
-      queryClient.setQueriesData<BlogPost[]>(
+      // Optimistically update both post lists and single-post entries.
+      const applyLike = (post: BlogPost): BlogPost =>
+        post.id === postId
+          ? { ...post, likedBy: newLikedBy, likes: newLikedBy.length }
+          : post;
+      queryClient.setQueriesData<BlogPost[] | BlogPost | null>(
         { queryKey: queryKeys.posts.all },
-        (oldPosts) => {
-          if (!oldPosts) return oldPosts;
-
-          return oldPosts.map((post) =>
-            post.id === postId
-              ? {
-                  ...post,
-                  likedBy: newLikedBy,
-                  likes: newLikedBy.length,
-                }
-              : post
-          );
+        (cached) => {
+          if (!cached) return cached;
+          return Array.isArray(cached) ? cached.map(applyLike) : applyLike(cached);
         }
       );
 

@@ -1,190 +1,277 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../firebaseconfig";
+import { useId, useMemo, useState, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import { COMMENT_MAX_LENGTH, useCommentActions, useComments } from "../hooks/useComments";
 import { useAuthStore } from "../stores/authStore";
-import { motion } from "framer-motion";
-import { CompactSpinner } from "./PremiumSpinner";
-import type { DateValue } from "../types";
-import { toDate } from "../utils/date";
+import { useRole } from "../hooks/useRole";
+import { formatRelativeTime } from "../utils/date";
+import { showDeleteConfirm, showError } from "../utils/sweetalert";
+import Avatar from "./ui/Avatar";
+import type { Comment } from "../types";
 
-interface Comment {
-  id: string;
-  postId: string;
-  authorId: string;
-  authorName: string;
-  content: string;
-  createdAt?: DateValue;
+interface CommentsProps {
+  post: { id: string; title: string; authorId: string };
 }
 
-export default function Comments({ postId }: { postId: string }): React.ReactElement {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [text, setText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const user = useAuthStore((s) => s.user);
+function CommentForm({
+  onSubmit,
+  initialValue = "",
+  submitLabel,
+  onCancel,
+  autoFocus,
+  label,
+}: {
+  onSubmit: (text: string) => Promise<void>;
+  initialValue?: string;
+  submitLabel: string;
+  onCancel?: () => void;
+  autoFocus?: boolean;
+  label: string;
+}) {
+  const id = useId();
+  const [text, setText] = useState(initialValue);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const q = query(
-      collection(db, "comments"),
-      where("postId", "==", postId),
-      orderBy("createdAt", "asc")
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      const comments = snap.docs.map((commentDocument) => ({
-        id: commentDocument.id,
-        ...(commentDocument.data() as Omit<Comment, "id">),
-      }));
-      setComments(comments);
-    });
-    return () => unsub();
-  }, [postId]);
-
-  const formatDate = (timestamp: DateValue | undefined): string => {
-    const date = toDate(timestamp);
-    if (!date) return "Just now";
-
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return "Just now";
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    }).format(date);
-  };
-
-  const submit = async (e?: React.FormEvent): Promise<void> => {
-    e?.preventDefault();
-    if (!text.trim() || !user) return;
-    setIsSubmitting(true);
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!text.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
     try {
-      await addDoc(collection(db, "comments"), {
-        postId,
-        authorId: user.uid,
-        authorName: user.name || "Anonymous",
-        content: text.trim(),
-        createdAt: serverTimestamp(),
-      });
+      await onSubmit(text);
       setText("");
-    } catch (err) {
-      console.error("Error adding comment:", err);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error && !submitError.message.startsWith("Missing or insufficient")
+          ? submitError.message
+          : "Your comment couldn't be posted. Make sure your email is verified."
+      );
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="mt-4 sm:mt-6">
-      <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-base-content">
-        Comments {comments.length > 0 && `(${comments.length})`}
-      </h3>
-
-      {/* Comments List */}
-      <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-        {comments.length === 0 ? (
-          <p className="text-base-content/60 text-sm sm:text-base text-center py-4">
-            No comments yet. Be the first to comment!
-          </p>
-        ) : (
-          comments.map((c) => (
-            <div
-              key={c.id}
-              className="bg-base-200 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-base-300 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2 sm:gap-4 mb-2">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="avatar placeholder">
-                    <div className="bg-primary text-primary-content rounded-full w-8 h-8 sm:w-10 sm:h-10">
-                      <span className="text-xs sm:text-sm font-bold">
-                        {c.authorName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm sm:text-base font-semibold text-base-content">
-                      {c.authorName}
-                    </div>
-                    <div className="text-xs sm:text-sm text-base-content/60">
-                      {formatDate(c.createdAt)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="text-sm sm:text-base text-base-content ml-0 sm:ml-14">
-                {c.content}
-              </div>
-            </div>
-          ))
-        )}
+    <form onSubmit={submit} className="flex flex-col gap-2">
+      <label htmlFor={id} className="sr-only">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        maxLength={COMMENT_MAX_LENGTH}
+        rows={3}
+        autoFocus={autoFocus}
+        placeholder={label}
+        className="textarea w-full"
+        disabled={submitting}
+      />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs tabular-nums text-base-content/50">
+          {text.length}/{COMMENT_MAX_LENGTH}
+        </span>
+        <div className="flex gap-2">
+          {onCancel && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel} disabled={submitting}>
+              Cancel
+            </button>
+          )}
+          <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !text.trim()}>
+            {submitting && <span className="loading loading-spinner loading-xs" />}
+            {submitLabel}
+          </button>
+        </div>
       </div>
+      {error && (
+        <p role="alert" className="text-sm text-error">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
 
-      {/* Comment Form */}
-      {user ? (
-        <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <input
-            className="input input-bordered flex-1 text-sm sm:text-base"
-            placeholder="Write a comment..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={isSubmitting}
-            minLength={1}
-            maxLength={500}
-          />
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="btn btn-primary text-sm sm:text-base"
-            type="submit"
-            disabled={isSubmitting || !text.trim()}
-          >
-            {isSubmitting ? (
-              <>
-                <CompactSpinner size="sm" variant="primary" />
-                <span className="hidden sm:inline">Posting...</span>
-              </>
+export default function Comments({ post }: CommentsProps): React.ReactElement {
+  const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const { isAdmin, isEmailVerified } = useRole();
+  const { comments, loading, error } = useComments(post.id);
+  const { addComment, editComment, deleteComment } = useCommentActions(post);
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+
+  const { topLevel, replies } = useMemo(() => {
+    const ids = new Set(comments.map((comment) => comment.id));
+    const byParent = new Map<string, Comment[]>();
+    const roots: Comment[] = [];
+    for (const comment of comments) {
+      if (comment.parentId && ids.has(comment.parentId)) {
+        byParent.set(comment.parentId, [...(byParent.get(comment.parentId) ?? []), comment]);
+      } else {
+        roots.push(comment);
+      }
+    }
+    return { topLevel: roots, replies: byParent };
+  }, [comments]);
+
+  const handleDelete = (comment: Comment) =>
+    void showDeleteConfirm("this comment", async () => {
+      try {
+        await deleteComment(comment);
+      } catch {
+        showError("Couldn't delete", "Please try again.");
+      }
+    });
+
+  const renderComment = (comment: Comment, depth = 0) => {
+    const isOwn = user?.uid === comment.authorId;
+    const isEditing = editing === comment.id;
+    const childComments = replies.get(comment.id) ?? [];
+
+    return (
+      <li key={comment.id} className={depth ? "ml-6 border-l border-base-300 pl-4 sm:ml-10" : ""}>
+        <article className="flex gap-3 py-3">
+          <Avatar name={comment.authorName} src={comment.authorAvatar} size={depth ? "sm" : "md"} />
+          <div className="min-w-0 flex-1">
+            <header className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-semibold">{comment.authorName || "Anonymous"}</span>
+              {comment.authorId === post.authorId && (
+                <span className="badge badge-primary badge-xs">Author</span>
+              )}
+              <time className="text-xs text-base-content/55">
+                {formatRelativeTime(comment.createdAt)}
+                {comment.updatedAt ? " · edited" : ""}
+              </time>
+            </header>
+
+            {isEditing ? (
+              <div className="mt-2">
+                <CommentForm
+                  label="Edit your comment"
+                  initialValue={comment.content}
+                  submitLabel="Save"
+                  autoFocus
+                  onCancel={() => setEditing(null)}
+                  onSubmit={async (text) => {
+                    await editComment(comment, text);
+                    setEditing(null);
+                  }}
+                />
+              </div>
             ) : (
-              "Comment"
+              <p className="mt-1 whitespace-pre-line break-words text-base-content/90">{comment.content}</p>
             )}
-          </motion.button>
-        </form>
+
+            {!isEditing && (
+              <div className="mt-1 flex gap-1 text-xs">
+                {user && isEmailVerified && depth === 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
+                    aria-expanded={replyTo === comment.id}
+                  >
+                    Reply
+                  </button>
+                )}
+                {isOwn && (
+                  <button type="button" className="btn btn-ghost btn-xs" onClick={() => setEditing(comment.id)}>
+                    Edit
+                  </button>
+                )}
+                {(isOwn || isAdmin) && (
+                  <button type="button" className="btn btn-ghost btn-xs text-error" onClick={() => handleDelete(comment)}>
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
+
+            {replyTo === comment.id && (
+              <div className="mt-2">
+                <CommentForm
+                  label={`Reply to ${comment.authorName || "this comment"}`}
+                  submitLabel="Reply"
+                  autoFocus
+                  onCancel={() => setReplyTo(null)}
+                  onSubmit={async (text) => {
+                    await addComment(text, comment);
+                    setReplyTo(null);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </article>
+        {childComments.length > 0 && (
+          <ol>{childComments.map((child) => renderComment(child, depth + 1))}</ol>
+        )}
+      </li>
+    );
+  };
+
+  return (
+    <section aria-labelledby="comments-heading">
+      <h2 id="comments-heading" className="mb-4 flex items-center gap-2 text-2xl font-bold">
+        <ChatBubbleLeftRightIcon className="h-6 w-6" />
+        Comments {comments.length > 0 && <span className="text-base-content/50">({comments.length})</span>}
+      </h2>
+
+      {user ? (
+        isEmailVerified ? (
+          <div className="mb-6 flex gap-3">
+            <Avatar name={user.name} src={user.photoURL} size="md" />
+            <div className="flex-1">
+              <CommentForm label="Share your thoughts" submitLabel="Comment" onSubmit={(text) => addComment(text)} />
+            </div>
+          </div>
+        ) : (
+          <div className="alert mb-6">
+            <span>
+              <Link to="/verify-email" className="link link-primary">
+                Verify your email
+              </Link>{" "}
+              to join the conversation.
+            </span>
+          </div>
+        )
       ) : (
-        <div className="alert alert-info">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            className="stroke-current shrink-0 w-6 h-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
-          </svg>
-          <span className="text-sm sm:text-base">
-            Please{" "}
-            <a href="/login" className="link link-primary font-semibold">
-              login
-            </a>{" "}
-            to comment
-          </span>
+        <div className="surface mb-6 flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-base-content/75">Sign in to join the conversation.</p>
+          <div className="flex gap-2">
+            <Link to="/login" state={{ from: location }} className="btn btn-primary btn-sm">
+              Log in
+            </Link>
+            <Link to="/signup" className="btn btn-ghost btn-sm border border-base-300">
+              Sign up
+            </Link>
+          </div>
         </div>
       )}
-    </div>
+
+      {loading ? (
+        <div className="flex flex-col gap-4" aria-busy="true">
+          {[0, 1].map((index) => (
+            <div key={index} className="flex gap-3">
+              <div className="skeleton h-10 w-10 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="skeleton h-3 w-32" />
+                <div className="skeleton h-3 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <p role="alert" className="text-sm text-error">
+          {error}
+        </p>
+      ) : comments.length === 0 ? (
+        <p className="py-6 text-center text-base-content/60">No comments yet. Start the conversation.</p>
+      ) : (
+        <ol className="divide-y divide-base-300">{topLevel.map((comment) => renderComment(comment))}</ol>
+      )}
+    </section>
   );
 }

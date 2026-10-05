@@ -1,203 +1,111 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../stores/authStore";
-import { sendVerificationEmail, reloadAuthUser } from "../stores/authStore";
-import { showError, showSuccess } from "../utils/sweetalert";
-import { motion } from "framer-motion";
-import PremiumSpinner, { CompactSpinner } from "../components/PremiumSpinner";
-import { EnvelopeIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import { reloadAuthUser, sendVerificationEmail, useAuthStore } from "../stores/authStore";
+import AuthLayout from "../components/auth/AuthLayout";
+import PremiumSpinner from "../components/PremiumSpinner";
+import { useDocumentMeta } from "../hooks/useDocumentMeta";
+import { getAuthErrorMessage } from "../utils/authErrors";
+import { showSuccess } from "../utils/sweetalert";
+
+const RESEND_COOLDOWN = 60;
 
 export default function VerifyEmail(): React.ReactElement {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const emailVerified = useAuthStore((state) => state.emailVerified);
   const logStatus = useAuthStore((state) => state.logStatus);
+  const displayStatus = useAuthStore((state) => state.displayStatus);
+  const signOut = useAuthStore((state) => state.signOut);
 
-  const [isSending, setIsSending] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  const [busy, setBusy] = useState<"send" | "check" | null>(null);
+  const [message, setMessage] = useState<{ kind: "info" | "error"; text: string } | null>(null);
+  const [cooldown, setCooldown] = useState(0);
 
-  // Redirect if not logged in
+  useDocumentMeta({ title: "Verify your email", noIndex: true });
+
   useEffect(() => {
-    if (!logStatus || !user) {
-      navigate("/login");
-    }
-  }, [logStatus, user, navigate]);
+    if (cooldown <= 0) return;
+    const id = window.setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [cooldown]);
 
-  // Redirect if already verified
+  // Check automatically when the tab regains focus (e.g. after clicking the email link).
   useEffect(() => {
-    if (emailVerified && logStatus) {
-      navigate("/admin");
-    }
-  }, [emailVerified, logStatus, navigate]);
+    const onFocus = () => {
+      if (!emailVerified) void reloadAuthUser();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [emailVerified]);
 
-  const handleResendVerification = async (): Promise<void> => {
-    setIsSending(true);
-    try {
-      await sendVerificationEmail();
-      showSuccess(
-        "Verification Email Sent",
-        "Please check your email and click the verification link. The link will expire in 1 hour."
-      );
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to send verification email.";
-      showError("Error", errorMessage);
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleCheckVerification = async (): Promise<void> => {
-    setIsChecking(true);
-    try {
-      await reloadAuthUser();
-      if (emailVerified) {
-        showSuccess(
-          "Email Verified!",
-          "Your email has been verified successfully."
-        );
-        setTimeout(() => {
-          navigate("/admin");
-        }, 1500);
-      } else {
-        showError(
-          "Not Verified Yet",
-          "Your email is still not verified. Please check your email and click the verification link."
-        );
-      }
-    } catch (error: unknown) {
-      const errorMessage =
-        (error as Error)?.message || "Failed to check verification status.";
-      showError("Error", errorMessage);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  if (!logStatus || !user) {
+  if (displayStatus === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <PremiumSpinner size="lg" variant="primary" text="Loading..." />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <PremiumSpinner size="lg" text="Loading..." />
       </div>
     );
   }
+  if (!logStatus || !user) return <Navigate to="/login" replace />;
+  if (emailVerified) return <Navigate to="/admin" replace />;
+
+  const resend = async () => {
+    setBusy("send");
+    setMessage(null);
+    try {
+      await sendVerificationEmail();
+      setCooldown(RESEND_COOLDOWN);
+      setMessage({ kind: "info", text: "A new verification link is on its way." });
+    } catch (error) {
+      setMessage({ kind: "error", text: getAuthErrorMessage(error, "Couldn't send the email. Try again shortly.") });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const check = async () => {
+    setBusy("check");
+    setMessage(null);
+    const verified = await reloadAuthUser();
+    setBusy(null);
+    if (verified) {
+      showSuccess("Email verified");
+      navigate("/admin", { replace: true });
+    } else {
+      setMessage({ kind: "error", text: "Not verified yet. Click the link in the email, then try again." });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="card bg-base-100 shadow-2xl w-full max-w-md"
-      >
-        <div className="card-body p-8">
-          {/* Header */}
-          <div className="text-center mb-6">
-            {emailVerified ? (
-              <CheckCircleIcon className="w-16 h-16 text-success mx-auto mb-4" />
-            ) : (
-              <EnvelopeIcon className="w-16 h-16 text-primary mx-auto mb-4" />
-            )}
-            <h1 className="text-3xl font-bold text-base-content mb-2">
-              {emailVerified ? "Email Verified!" : "Verify Your Email"}
-            </h1>
-            <p className="text-base-content/70">
-              {emailVerified
-                ? "Your email has been verified successfully."
-                : `We've sent a verification email to ${user.email}`}
-            </p>
-          </div>
-
-          {!emailVerified && (
-            <>
-              {/* Instructions */}
-              <div className="alert alert-info mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  className="stroke-current shrink-0 w-6 h-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
-                <div className="text-sm">
-                  <p className="font-semibold">Check your inbox</p>
-                  <p>
-                    Click the verification link in the email to verify your
-                    account. The link will expire in 1 hour.
-                  </p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-3">
-                <button
-                  className="btn btn-primary w-full"
-                  onClick={handleResendVerification}
-                  disabled={isSending}
-                >
-                  {isSending ? (
-                    <>
-                      <CompactSpinner size="sm" variant="primary" />
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <EnvelopeIcon className="w-5 h-5" />
-                      Resend Verification Email
-                    </>
-                  )}
-                </button>
-
-                <button
-                  className="btn btn-outline w-full"
-                  onClick={handleCheckVerification}
-                  disabled={isChecking}
-                >
-                  {isChecking ? (
-                    <>
-                      <CompactSpinner size="sm" variant="primary" />
-                      <span>Checking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircleIcon className="w-5 h-5" />
-                      I've Verified My Email
-                    </>
-                  )}
-                </button>
-              </div>
-            </>
-          )}
-
-          {emailVerified && (
-            <button
-              className="btn btn-primary w-full mt-4"
-              onClick={() => navigate("/admin")}
-            >
-              Go to Dashboard
-            </button>
-          )}
-
-          {/* Sign Out Option */}
-          <div className="text-center mt-6">
-            <button
-              className="link link-hover text-sm text-base-content/60"
-              onClick={async () => {
-                await useAuthStore.getState().signOut();
-                navigate("/login");
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+    <AuthLayout title="Verify your email" subtitle="One last step before you can comment, like and write.">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <span className="rounded-full bg-primary/15 p-4 text-primary">
+          <EnvelopeIcon className="h-8 w-8" />
+        </span>
+        <p className="text-sm text-base-content/75">
+          We sent a verification link to <strong className="text-base-content">{user.email}</strong>. Open it,
+          then come back here.
+        </p>
+        {message && (
+          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-error" : "text-success"}`}>
+            {message.text}
+          </p>
+        )}
+        <button type="button" className="btn btn-primary w-full" onClick={() => void check()} disabled={busy !== null}>
+          {busy === "check" && <span className="loading loading-spinner loading-sm" />}
+          I&apos;ve verified my email
+        </button>
+        <button type="button" className="btn btn-ghost w-full border border-base-300" onClick={() => void resend()} disabled={busy !== null || cooldown > 0}>
+          {busy === "send" && <span className="loading loading-spinner loading-sm" />}
+          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
+        </button>
+        <p className="text-xs text-base-content/60">
+          Wrong account?{" "}
+          <button type="button" className="link" onClick={() => void signOut()}>
+            Log out
+          </button>
+        </p>
+      </div>
+    </AuthLayout>
   );
 }
