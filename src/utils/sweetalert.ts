@@ -2,40 +2,9 @@ import Swal from "sweetalert2";
 import type { SweetAlertOptions, SweetAlertResult } from "sweetalert2";
 
 /**
- * SweetAlert Utility with Background Blur
- * 
- * This utility wraps SweetAlert2 to automatically blur the background
- * when any modal is displayed.
+ * SweetAlert2 helpers styled with the site's DaisyUI theme.
+ * The backdrop blur lives in styles/sweetalert.css.
  */
-
-// Track if a modal is currently open
-let isModalOpen = false;
-
-/**
- * Apply blur to background when modal opens
- */
-const applyBlur = (): void => {
-  if (!isModalOpen) {
-    isModalOpen = true;
-    const appElement = document.querySelector(".App");
-    if (appElement) {
-      (appElement as HTMLElement).classList.add("swal-blur-active");
-    }
-  }
-};
-
-/**
- * Remove blur from background when modal closes
- */
-const removeBlur = (): void => {
-  if (isModalOpen) {
-    isModalOpen = false;
-    const appElement = document.querySelector(".App");
-    if (appElement) {
-      (appElement as HTMLElement).classList.remove("swal-blur-active");
-    }
-  }
-};
 
 /**
  * Configure SweetAlert with default settings and blur effect
@@ -51,12 +20,8 @@ const StyledSwal = Swal.mixin({
     actions: "gap-3",
   },
   buttonsStyling: false,
-  didOpen: () => {
-    applyBlur();
-  },
-  didClose: () => {
-    removeBlur();
-  },
+  // Keep the page's own height and scrollbar untouched so nothing jumps behind the dialog.
+  heightAuto: false,
 });
 
 const mergeCustomClass = (
@@ -266,7 +231,6 @@ export const showLoading = (title: string = "Loading..."): void => {
     },
     buttonsStyling: false,
     didOpen: () => {
-      applyBlur();
       StyledSwal.showLoading();
     },
   });
@@ -277,7 +241,6 @@ export const showLoading = (title: string = "Loading..."): void => {
  */
 export const closeAlert = (): void => {
   StyledSwal.close();
-  removeBlur();
 };
 
 // Export default Swal instance

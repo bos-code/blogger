@@ -41,8 +41,16 @@ test("reader can like, save, comment and reply", async ({ page }) => {
   await page.getByRole("button", { name: "Reply", exact: true }).last().click();
   await expect(page.locator("li > article p", { hasText: `Reply ${text}` })).toBeVisible();
 
-  await page.locator("li > article", { hasText: `${text} (edited)` }).getByRole("button", { name: "Delete" }).first().click();
+  // Cancelling the confirm dialog must fully close it and leave the page usable.
+  const deleteComment = page.locator("li > article", { hasText: `${text} (edited)` }).getByRole("button", { name: "Delete" }).first();
+  await deleteComment.click();
+  await page.locator(".swal2-popup").getByRole("button", { name: "Cancel" }).click();
+  await expect(page.locator(".swal2-container")).toHaveCount(0);
+  await expect(page.locator("body")).not.toHaveClass(/swal2-shown/);
+
+  await deleteComment.click();
   await page.getByRole("button", { name: "Delete", exact: true }).last().click();
+  await expect(page.locator(".swal2-container")).toHaveCount(0);
   await expect(page.locator("article p", { hasText: `${text} (edited)` })).toHaveCount(0);
 
   await page.goto("/admin");

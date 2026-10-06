@@ -1,10 +1,5 @@
 /* SweetAlert2 styling on DaisyUI 5 theme tokens */
 
-/* Blur only the app behind an open dialog (the dialog itself lives in <body>). */
-.App.swal-blur-active {
-  filter: blur(3px);
-  transition: filter 0.2s ease;
-}
 
 .swal2-container {
   z-index: 9999 !important;
@@ -12,6 +7,9 @@
 
 .swal2-container.swal2-backdrop-show {
   background-color: color-mix(in oklab, var(--color-base-300) 55%, transparent) !important;
+  /* Blur behind the dialog without touching the app's own layout or fixed elements. */
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 
 .swal2-popup.swal-popup {
@@ -20,6 +18,11 @@
   border: 1px solid var(--color-base-300);
   border-radius: 1rem;
   box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.35);
+}
+
+/* Only the opening animation is customised; overriding .swal2-hide would stop
+   SweetAlert from ever finishing its close (it waits for animationend). */
+.swal2-popup.swal-popup.swal2-show {
   animation: swalFadeIn 0.2s ease-out;
 }
 
