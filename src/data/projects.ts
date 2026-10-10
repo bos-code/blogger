@@ -9,6 +9,59 @@ import type { Project } from "../types";
  */
 export const FALLBACK_PROJECTS: Project[] = [
   {
+    id: "yakoyo-kitchen",
+    slug: "yakoyo-kitchen",
+    title: "Yakoyo African Kitchen",
+    summary: "Online ordering and catering platform for a Nigerian restaurant in Delaware, with Stripe payments and a full operations dashboard.",
+    description: `Yakoyo African Kitchen brings an authentic Nigerian menu online for a restaurant in Wilmington, Delaware. Customers browse the menu, build a cart, pay online and request catering quotes.
+
+Behind it is a complete operations dashboard: live sales metrics by date range, orders with payment status, customer history, printable receipts and kitchen tickets, catering quotes and confirmations, menu and media management, staff accounts, an audit log and Telegram notifications for new activity.
+
+Built with Next.js, TypeScript, Prisma on PostgreSQL, Supabase Auth, Stripe and Cloudinary, deployed on Vercel.`,
+    liveUrl: "https://yakoyokitchen.com",
+    tech: ["Next.js", "TypeScript", "Prisma", "PostgreSQL", "Stripe", "Supabase"],
+    order: 1,
+  },
+  {
+    id: "studypro",
+    slug: "studypro",
+    title: "StudyPro",
+    summary: "Study platform for Nigerian schools: topic practice, timed tests, exam preparation, progress tracking, leaderboards and an admin content studio.",
+    description: `StudyPro helps secondary-school students practise and prepare for exams. Students sign in with a username and passcode, practise by topic, take timed tests and external-exam tracks, and follow their results, history and place on the leaderboard.
+
+Admins manage students, classes, subjects, topics, the question bank and exam banks, review attempts and analytics, and control settings, with role checks enforced through Firebase custom claims.
+
+Grading runs on the server through Next.js API routes so scores can't be tampered with in the browser. Built with Next.js 16, React 19, TypeScript, Firebase Auth and Firestore, Zod, Zustand and Recharts.`,
+    tech: ["Next.js 16", "TypeScript", "Firebase", "Zod", "Recharts"],
+    order: 2,
+  },
+  {
+    id: "rey-tickets",
+    slug: "rey-tickets",
+    title: "Rey Tickets",
+    summary: "Cross-platform event ticketing: discover events, buy and transfer tickets, and get in with QR codes validated on the server.",
+    description: `Rey Tickets is an event ticketing platform that runs as a native Android and iOS app and as an installable web app from one Expo codebase.
+
+Organisers create events with banners, ticket types (General, VIP, Premium) and venue details. Attendees browse by category and date, preview venues on an interactive map with directions, keep tickets in a wallet and transfer them to contacts.
+
+Every ticket carries a unique QR code. Scans are validated on the server and the ticket is marked used atomically, so a second scan is rejected. A protected admin dashboard handles events, tickets, printing and user roles.`,
+    tech: ["React Native", "Expo", "Firebase", "MapLibre", "PWA"],
+    order: 3,
+  },
+  {
+    id: "tissage-de-loh",
+    slug: "tissage-de-loh",
+    title: "Tissage De Loh",
+    summary: "Custom e-commerce rebuild for a hair and wig brand, moving off WordPress to Next.js, Supabase and Stripe.",
+    description: `Tissage De Loh sells wigs, closures, frontals and bundles. The store was rebuilt from WordPress into a custom full-stack shop.
+
+Shoppers browse the catalogue, pay with Stripe, place custom orders and look up order status without an account. The brand gets an admin area, email updates, web-push notifications and policy pages for shipping and returns.
+
+Built with Next.js, TypeScript, Supabase (PostgreSQL and Auth), Stripe, GSAP and Zod, with tests run by Vitest and deployment on Vercel.`,
+    tech: ["Next.js", "TypeScript", "Supabase", "Stripe", "GSAP"],
+    order: 4,
+  },
+  {
     id: "moidoctar",
     slug: "moidoctar",
     title: "MoiDoctar",
@@ -21,7 +74,7 @@ Nearby Care uses the browser's location and the OpenStreetMap Overpass API to li
     liveUrl: "https://moidoctar8.pxxlspace.cv",
     repoUrl: "https://github.com/MOI-DOCTAR-ORG/moidoctar",
     tech: ["React", "TypeScript", "FastAPI", "Python", "TanStack Query", "Tailwind CSS"],
-    order: 1,
+    order: 5,
   },
   {
     id: "blogger",
@@ -35,7 +88,7 @@ Firebase handles auth, Firestore and storage, with permissions enforced by secur
 Quality is covered by unit tests, API checks against the Firebase emulators and Playwright end-to-end tests on desktop and mobile in CI.`,
     repoUrl: "https://github.com/bos-code/blogger",
     tech: ["React 19", "TypeScript", "Firebase", "TipTap", "TanStack Query", "Playwright"],
-    order: 2,
+    order: 6,
   },
   {
     id: "finance-tracker",
@@ -49,7 +102,20 @@ Transactions can be captured offline; changes are queued and synced to Supabase 
 Supabase Auth handles accounts and password resets, and the app is protected by a secure PIN with optional biometrics.`,
     repoUrl: "https://github.com/bos-code/finance_tracker",
     tech: ["React Native", "Expo", "Supabase", "TanStack Query", "NativeWind"],
-    order: 3,
+    order: 7,
+  },
+  {
+    id: "chinel-media",
+    slug: "chinel-media",
+    title: "Chinel Media",
+    summary: "Website for a creative printing and media agency, with interactive 3D scenes, scroll animation and case-study pages.",
+    description: `Chinel Media is a branding, printing and media agency. Its website presents services, portfolio case studies, clients, the team, the agency's process and insights.
+
+The home page uses interactive 3D scenes built with Three.js and React Three Fiber, GSAP scroll reveals and Lenis smooth scrolling, while service and portfolio pages are generated from structured content.
+
+Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React Hook Form and Zod.`,
+    tech: ["Next.js", "Three.js", "React Three Fiber", "GSAP", "TypeScript"],
+    order: 8,
   },
   {
     id: "derashare",
@@ -64,7 +130,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     liveUrl: "https://derashare.vercel.app",
     repoUrl: "https://github.com/bos-code/Derashare",
     tech: ["Next.js", "TypeScript", "WebSockets", "Node.js", "PWA"],
-    order: 4,
+    order: 9,
   },
   {
     id: "starlite-tools",
@@ -78,7 +144,7 @@ The catalogue has 193 statically generated product pages, search, category, bran
 Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     repoUrl: "https://github.com/bos-code/starlight",
     tech: ["Next.js", "React 19", "TypeScript", "Tailwind CSS"],
-    order: 5,
+    order: 10,
   },
   {
     id: "ventum",
@@ -92,7 +158,7 @@ Visitors browse brands and products and send enquiries. Staff sign in to an admi
 A scheduled GitHub Action sends an activity report so the business sees new enquiries without logging in. Built with Next.js server actions and GSAP animation.`,
     repoUrl: "https://github.com/bos-code/ventum-automation",
     tech: ["Next.js", "TypeScript", "Appwrite", "GSAP", "GitHub Actions"],
-    order: 6,
+    order: 11,
   },
   {
     id: "dera-library",
@@ -106,7 +172,7 @@ A custom native module walks shared storage when all-files access is granted, wi
 Built with Expo Router, React Native, Reanimated and FlashList.`,
     repoUrl: "https://github.com/bos-code/Dera_library",
     tech: ["React Native", "Expo", "SQLite", "Kotlin module"],
-    order: 7,
+    order: 12,
   },
   {
     id: "time-table",
@@ -118,7 +184,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
 A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher and class clashes and spreads lessons across the week. The React + Vite front end handles data entry, validation and the generated timetable.`,
     repoUrl: "https://github.com/bos-code/time-table",
     tech: ["React", "FastAPI", "OR-Tools", "Material UI", "Tailwind CSS"],
-    order: 8,
+    order: 13,
   },
   {
     id: "math-exam-editor",
@@ -130,7 +196,7 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 9,
+    order: 14,
   },
   {
     id: "streamvibe",
@@ -141,7 +207,7 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 10,
+    order: 15,
   },
   {
     id: "banquee",
@@ -152,6 +218,6 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 11,
+    order: 16,
   },
 ];

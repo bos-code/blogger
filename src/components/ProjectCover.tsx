@@ -10,6 +10,7 @@ const GRADIENTS = [
 function ProjectCover({ project }: { project: Project }): React.ReactElement {
   const seed = [...project.slug].reduce((sum, char) => sum + char.charCodeAt(0), 0);
   const monogram = project.title
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .split(/[\s&-]+/)
     .filter(Boolean)
     .slice(0, 2)

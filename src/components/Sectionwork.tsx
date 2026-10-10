@@ -1,11 +1,17 @@
+import { useState } from "react";
 import ProjectCard from "./ProjectCard";
 import SectionHead from "./sectionHead";
 import { useProjects } from "../hooks/useProjects";
 import { FALLBACK_PROJECTS } from "../data/projects";
 
+/** Projects shown before "Show all"; three full rows on desktop. */
+const INITIAL_COUNT = 9;
+
 function Work(): React.ReactElement {
   const { data } = useProjects();
   const projects = data?.projects ?? FALLBACK_PROJECTS;
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? projects : projects.slice(0, INITIAL_COUNT);
 
   return (
     <section id="work" aria-labelledby="work-heading" className="bg-base-200/60 py-20 sm:py-24">
@@ -16,13 +22,26 @@ function Work(): React.ReactElement {
           title="Selected projects"
           descript="A few things I've designed and built."
         />
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+        <ul id="project-list" className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((project) => (
             <li key={project.id}>
               <ProjectCard project={project} />
             </li>
           ))}
         </ul>
+        {projects.length > INITIAL_COUNT && (
+          <div className="mt-10 text-center">
+            <button
+              type="button"
+              className="btn btn-ghost border border-base-300"
+              aria-expanded={showAll}
+              aria-controls="project-list"
+              onClick={() => setShowAll((value) => !value)}
+            >
+              {showAll ? "Show fewer projects" : `Show all ${projects.length} projects`}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
