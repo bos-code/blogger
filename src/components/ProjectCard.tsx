@@ -1,5 +1,6 @@
 import { ArrowTopRightOnSquareIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
+import ProjectCover from "./ProjectCover";
 import type { Project } from "../types";
 
 /** Portfolio project tile with live/code/case-study links. */
@@ -16,7 +17,7 @@ function ProjectCard({ project }: { project: Project }): React.ReactElement {
             className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full items-center justify-center font-mono text-2xl text-primary/70">{"</>"}</div>
+          <ProjectCover project={project} />
         )}
       </div>
       <div className="flex flex-1 flex-col p-5">
