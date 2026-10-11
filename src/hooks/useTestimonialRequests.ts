@@ -1,24 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
-import { auth, db } from "../firebaseconfig";
+import { auth } from "../firebaseconfig";
 import { apiRequest } from "../services/api";
-import { toTimestamp } from "../utils/date";
-import type { TestimonialRequest, TestimonialRequestInvite } from "../types";
-
-const KEY = ["testimonialRequests"] as const;
+import { useDeleteTestimonialRequest, useTestimonialAdminData } from "./useTestimonials";
+import type { TestimonialRequestInvite } from "../types";
 
 /** Every testimonial request sent to clients (admins only). */
-export const useTestimonialRequests = (enabled = true) =>
-  useQuery({
-    queryKey: KEY,
-    queryFn: async () => {
-      const snapshot = await getDocs(collection(db, "testimonialRequests"));
-      return snapshot.docs
-        .map((item) => ({ id: item.id, ...(item.data() as Omit<TestimonialRequest, "id">) }))
-        .sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
-    },
-    enabled,
-  });
+export const useTestimonialRequests = (enabled = true) => {
+  const result = useTestimonialAdminData(enabled);
+  return { ...result, data: result.data?.requests };
+};
 
 export interface TestimonialRequestInput {
   clientName: string;
@@ -46,17 +36,11 @@ export const useCreateTestimonialRequest = () => {
       const token = await auth.currentUser?.getIdToken();
       return apiRequest<CreatedTestimonialRequest>("testimonial", { token, body: { action: "request", ...input } });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["testimonials"] }),
   });
 };
 
-export const useDeleteTestimonialRequest = () => {
-  const queryClient = useQueryClient();
-  return useMutation<void, Error, string>({
-    mutationFn: (id) => deleteDoc(doc(db, "testimonialRequests", id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: KEY }),
-  });
-};
+export { useDeleteTestimonialRequest };
 
 /** The client's view of a request, from the token in their link. */
 export const useTestimonialInvite = (token: string | undefined) =>

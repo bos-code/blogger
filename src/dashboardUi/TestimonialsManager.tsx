@@ -5,13 +5,12 @@ import EmptyState from "../components/ui/EmptyState";
 import Avatar from "../components/ui/Avatar";
 import { Stars } from "../components/testimonials/Stars";
 import {
-  useAllTestimonials,
   useDeleteTestimonial,
+  useDeleteTestimonialRequest,
   useModerateTestimonial,
-  useTestimonialContacts,
+  useTestimonialAdminData,
 } from "../hooks/useTestimonials";
 import { useProjects } from "../hooks/useProjects";
-import { useDeleteTestimonialRequest, useTestimonialRequests } from "../hooks/useTestimonialRequests";
 import RequestTestimonialModal from "./RequestTestimonial";
 import { toWhatsAppNumber } from "../utils/share";
 import { formatDate } from "../utils/date";
@@ -38,12 +37,14 @@ const TABS: Array<{ status: TestimonialStatus; label: string }> = [
 
 /** Admin moderation for client testimonials. */
 export default function TestimonialsManager(): React.ReactElement {
-  const { data: testimonials = [], isPending } = useAllTestimonials();
+  const { data: adminData, isPending, error: loadError, refetch } = useTestimonialAdminData();
+  const testimonials = useMemo(() => adminData?.testimonials ?? [], [adminData]);
   const { data: projectData } = useProjects();
-  const { data: contacts } = useTestimonialContacts();
+  const contacts = adminData?.contacts;
   const moderate = useModerateTestimonial();
   const remove = useDeleteTestimonial();
-  const { data: requests = [], isPending: requestsPending } = useTestimonialRequests();
+  const requests = adminData?.requests ?? [];
+  const requestsPending = isPending;
   const removeRequest = useDeleteTestimonialRequest();
   const [tab, setTab] = useState<Tab>("pending");
   const [requesting, setRequesting] = useState(false);
@@ -105,6 +106,15 @@ export default function TestimonialsManager(): React.ReactElement {
           setResending(null);
         }}
       />
+
+      {loadError && (
+        <div role="alert" className="alert alert-error mb-4 flex flex-wrap justify-between gap-2">
+          <span>Couldn't load testimonials: {loadError.message}</span>
+          <button type="button" className="btn btn-sm" onClick={() => void refetch()}>
+            Try again
+          </button>
+        </div>
+      )}
 
       <div role="tablist" aria-label="Testimonial status" className="tabs tabs-box mb-4 w-fit">
         {TABS.map(({ status, label }) => (

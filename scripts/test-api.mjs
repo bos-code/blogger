@@ -191,6 +191,35 @@ await check("testimonial requests: admin-only, personal link works once", async 
   assert.doesNotMatch(html, /ada@example\.com|Ada/);
 });
 
+await check("testimonials are read and moderated through the API", async () => {
+  const { GET: get, POST: send } = await load("testimonial");
+  const getList = (which, headers = {}) => get(new Request(`https://example.test/api/testimonial?list=${which}`, { headers }));
+  const approved = await (await getList("approved")).json();
+  assert.ok(approved.testimonials.every((item) => item.status === "approved"));
+  assert.ok(approved.testimonials.every((item) => item.contact === undefined));
+  assert.equal((await getList("admin")).status, 403);
+
+  const signIn = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "admin@example.com", password: "password123", returnSecureToken: true }),
+  }).then((r) => r.json());
+  const auth = { Authorization: `Bearer ${signIn.idToken}` };
+  const admin = await (await getList("admin", auth)).json();
+  const pending = admin.testimonials.find((item) => item.status === "pending");
+  assert.ok(pending, "a pending testimonial exists");
+  assert.equal(typeof admin.contacts, "object");
+  assert.ok(Array.isArray(admin.requests));
+
+  assert.equal((await send(post("testimonial", { action: "moderate", id: pending.id, status: "approved" }))).status, 403);
+  assert.equal((await send(post("testimonial", { action: "moderate", id: pending.id, status: "bogus" }, auth))).status, 400);
+  assert.equal((await send(post("testimonial", { action: "moderate", id: pending.id, status: "approved" }, auth))).status, 200);
+  const after = await (await getList("approved")).json();
+  assert.ok(after.testimonials.some((item) => item.id === pending.id));
+  assert.equal((await send(post("testimonial", { action: "delete", id: pending.id }, auth))).status, 200);
+  assert.ok(!(await (await getList("approved")).json()).testimonials.some((item) => item.id === pending.id));
+});
+
 await check("share: sending a post by email is admin-only", async () => {
   const { POST: send } = await load("share");
   assert.equal((await send(post("share", { postId: "use-effect", email: "kemi@example.com" }))).status, 403);

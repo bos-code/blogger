@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp, type DocumentSnapshot } from "firebase-admin/firestore";
 import { adminDb, getCaller, isAdminRole } from "./_lib/firebaseAdmin.js";
 import { isEmailConfigured, ownerEmail, sendMail } from "./_lib/mail.js";
 import { EMAIL_PATTERN, errorResponse, json, readJson, siteUrl } from "./_lib/http.js";
@@ -30,7 +30,9 @@ interface Body {
   website?: string;
   /** Set when the client is answering a personal request (see requestTestimonial). */
   requestToken?: string;
-  action?: "request";
+  action?: "request" | "moderate" | "delete" | "deleteRequest";
+  id?: string;
+  status?: string;
 }
 
 interface RequestBody {
@@ -54,9 +56,99 @@ const requestPath = (token: string): string => `/testimonial/${token}`;
  * The token in the link is the only key, so anyone holding the link (the
  * client) can open it.
  */
+/** Firestore document → plain JSON (timestamps become ISO strings). */
+const plain = (doc: DocumentSnapshot): Record<string, unknown> => ({
+  id: doc.id,
+  ...Object.fromEntries(
+    Object.entries(doc.data() ?? {}).map(([key, value]) => [key, value instanceof Timestamp ? value.toDate().toISOString() : value])
+  ),
+});
+
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const STATUSES = ["pending", "approved", "rejected"];
+
+const requireAdmin = async (request: Request) => {
+  const caller = await getCaller(request);
+  return caller && caller.verified && isAdminRole(caller.role) ? caller : null;
+};
+
+/**
+ * Testimonials are read through the server (not straight from Firestore),
+ * so the site works whatever version of the security rules is deployed:
+ *   ?list=approved  public, published testimonials
+ *   ?list=mine      the signed-in visitor's own (including pending)
+ *   ?list=admin     everything, with private contacts and requests (admins)
+ */
+const list = async (request: Request, which: string): Promise<Response> => {
+  const db = adminDb();
+  if (which === "approved") {
+    const snapshot = await db.collection("testimonials").where("status", "==", "approved").get();
+    return json({ testimonials: snapshot.docs.map(plain) });
+  }
+  if (which === "mine") {
+    const caller = await getCaller(request);
+    if (!caller) return json({ testimonials: [] });
+    const snapshot = await db.collection("testimonials").where("authorId", "==", caller.uid).get();
+    return json({ testimonials: snapshot.docs.map(plain) });
+  }
+  if (which === "admin") {
+    if (!(await requireAdmin(request))) return errorResponse("Not allowed.", 403);
+    const [testimonials, contacts, requests] = await Promise.all([
+      db.collection("testimonials").get(),
+      db.collection("testimonialContacts").get(),
+      db.collection("testimonialRequests").get(),
+    ]);
+    return json({
+      testimonials: testimonials.docs.map(plain),
+      contacts: Object.fromEntries(contacts.docs.map((doc) => [doc.id, String(doc.get("contact") ?? "")])),
+      requests: requests.docs.map(plain),
+    });
+  }
+  return errorResponse("Unknown list.", 404);
+};
+
+/** Admins: approve / reject / unpublish, delete, or delete a request. */
+const manage = async (request: Request, body: Body): Promise<Response> => {
+  if (!(await requireAdmin(request))) return errorResponse("Not allowed.", 403);
+  const id = body.id ?? "";
+  if (!ID_PATTERN.test(id)) return errorResponse("Unknown testimonial.");
+  const db = adminDb();
+
+  if (body.action === "deleteRequest") {
+    await db.collection("testimonialRequests").doc(id).delete();
+    return json({ ok: true });
+  }
+  const ref = db.collection("testimonials").doc(id);
+  if (body.action === "delete") {
+    await Promise.all([ref.delete(), db.collection("testimonialContacts").doc(id).delete()]);
+    return json({ ok: true });
+  }
+
+  const status = body.status ?? "";
+  if (!STATUSES.includes(status)) return errorResponse("Unknown status.");
+  const snapshot = await ref.get();
+  if (!snapshot.exists) return errorResponse("That testimonial no longer exists.", 404);
+  await ref.update({ status, reviewedAt: FieldValue.serverTimestamp() });
+  const authorId = snapshot.get("authorId");
+  if (status === "approved" && snapshot.get("status") !== "approved" && authorId) {
+    await db.collection("notifications").add({
+      userId: authorId,
+      type: "testimonial_approved",
+      message: "Your testimonial is now live. Thank you!",
+      link: "/#testimonials",
+      read: false,
+      readBy: [],
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+  return json({ ok: true });
+};
+
 export async function GET(request: Request): Promise<Response> {
   if (!isAdminConfigured(process.env)) return unavailable();
-  const token = new URL(request.url).searchParams.get("request") ?? "";
+  const params = new URL(request.url).searchParams;
+  if (params.has("list")) return list(request, params.get("list") ?? "");
+  const token = params.get("request") ?? "";
   if (!TOKEN_PATTERN.test(token)) return errorResponse("This link isn't valid.", 404);
   const ref = adminDb().collection("testimonialRequests").doc(token);
   const snapshot = await ref.get();
@@ -164,6 +256,7 @@ export async function POST(request: Request): Promise<Response> {
   const body = await readJson<Body & RequestBody>(request);
   if (!body) return errorResponse("Invalid request.");
   if (body.action === "request") return createRequest(request, body);
+  if (body.action === "moderate" || body.action === "delete" || body.action === "deleteRequest") return manage(request, body);
   // Bots that fill the hidden field get a normal-looking success and nothing is saved.
   if (body.website) return json({ ok: true });
 
