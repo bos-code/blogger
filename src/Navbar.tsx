@@ -39,6 +39,7 @@ const SECTION_LINKS: Record<string, string> = {
   stack: "/#about",
   experience: "/#about",
   work: "/#work",
+  testimonials: "",
   blog: "/blog",
   contact: "/#contact",
 };

@@ -143,6 +143,44 @@ describe("projects", () => {
   });
 });
 
+describe("testimonials", () => {
+  const testimonial = (extra: Record<string, unknown> = {}) => ({
+    authorId: "alice", authorName: "Alice", authorAvatar: null, authorTitle: "Founder, Acme",
+    projectSlug: "yakoyo-kitchen", rating: 5, content: "Delivered on time and the site converts well.",
+    status: "pending", createdAt: serverTimestamp(), ...extra,
+  });
+
+  test("verified users submit as pending; nobody can self-approve", async () => {
+    await assertSucceeds(setDoc(doc(as("alice"), "testimonials/t1"), testimonial()));
+    await assertFails(setDoc(doc(as("alice"), "testimonials/t2"), testimonial({ status: "approved" })));
+    await assertFails(setDoc(doc(as("alice"), "testimonials/t3"), testimonial({ authorId: "wendy" })));
+    await assertFails(setDoc(doc(as("alice", "alice@example.com", false), "testimonials/t4"), testimonial()));
+    await assertFails(setDoc(doc(anon(), "testimonials/t5"), testimonial()));
+    await assertFails(setDoc(doc(as("alice"), "testimonials/t6"), testimonial({ content: "Too short" })));
+    await assertFails(setDoc(doc(as("alice"), "testimonials/t7"), testimonial({ rating: 6 })));
+    await assertFails(setDoc(doc(as("alice"), "testimonials/t8"), testimonial({ featured: true })));
+    await assertFails(updateDoc(doc(as("alice"), "testimonials/t1"), { status: "approved" }));
+  });
+
+  test("only approved ones are public; admins moderate", async () => {
+    await seed("testimonials/p1", { ...testimonial(), createdAt: new Date() });
+    await assertFails(getDoc(doc(anon(), "testimonials/p1")));
+    await assertFails(getDoc(doc(as("wendy"), "testimonials/p1")));
+    await assertSucceeds(getDoc(doc(as("alice"), "testimonials/p1")));
+    await assertFails(updateDoc(doc(as("wendy"), "testimonials/p1"), { status: "approved" }));
+    await assertFails(updateDoc(doc(as("adam"), "testimonials/p1"), { content: "Edited by admin" }));
+    await assertSucceeds(updateDoc(doc(as("adam"), "testimonials/p1"), { status: "approved", reviewedAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(anon(), "testimonials/p1")));
+  });
+
+  test("submitters can alert admins, but only about a testimonial", async () => {
+    const note = (type: string) => ({ userId: "admins", type, message: "x", link: "/admin", read: false, readBy: [], createdAt: serverTimestamp() });
+    await assertSucceeds(setDoc(doc(as("alice"), "notifications/n1"), note("pending_testimonial")));
+    await assertFails(setDoc(doc(as("alice"), "notifications/n2"), note("pending_post")));
+    await assertFails(setDoc(doc(anon(), "notifications/n3"), note("pending_testimonial")));
+  });
+});
+
 describe("server-only and private data", () => {
   test("subscribers and rate limits are closed to clients", async () => {
     await seed("subscribers/s1", { email: "x@example.com", token: "secret" });

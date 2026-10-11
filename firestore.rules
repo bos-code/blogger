@@ -296,6 +296,10 @@ service cloud.firestore {
         request.resource.data.type == 'pending_post'
       ) || (
         isAuthenticated() &&
+        request.resource.data.userId == 'admins' &&
+        request.resource.data.type == 'pending_testimonial'
+      ) || (
+        isAuthenticated() &&
         request.resource.data.type == 'comment' &&
         request.resource.data.userId is string &&
         request.resource.data.userId != request.auth.uid &&
@@ -320,6 +324,48 @@ service cloud.firestore {
     }
 
     // Portfolio projects shown on the home page.
+    // Client testimonials: anyone verified can submit one (as pending);
+    // admins approve or reject it before it is public.
+    match /testimonials/{testimonialId} {
+      function optionalText(field, max) {
+        return request.resource.data.get(field, null) == null ||
+          (request.resource.data[field] is string && request.resource.data[field].size() <= max);
+      }
+
+      allow read: if resource.data.status == 'approved' ||
+        isAdmin() ||
+        (isAuthenticated() && resource.data.authorId == request.auth.uid);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.keys().hasOnly([
+          'authorId', 'authorName', 'authorAvatar', 'authorTitle', 'projectSlug',
+          'rating', 'content', 'status', 'createdAt'
+        ]) &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.authorName is string &&
+        request.resource.data.authorName.size() > 0 &&
+        request.resource.data.authorName.size() <= 100 &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() >= 20 &&
+        request.resource.data.content.size() <= 1000 &&
+        optionalText('authorAvatar', 2048) &&
+        optionalText('authorTitle', 100) &&
+        optionalText('projectSlug', 120) &&
+        (request.resource.data.get('rating', null) == null ||
+          (request.resource.data.rating is int &&
+            request.resource.data.rating >= 1 &&
+            request.resource.data.rating <= 5));
+
+      allow update: if isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedAt']) &&
+        request.resource.data.status in ['pending', 'approved', 'rejected'];
+
+      allow delete: if isAdmin() ||
+        (isAuthenticated() && resource.data.authorId == request.auth.uid);
+    }
+
     match /projects/{projectId} {
       function optionalString(field, max) {
         return request.resource.data.get(field, null) == null ||

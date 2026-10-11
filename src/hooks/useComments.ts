@@ -18,7 +18,23 @@ import type { Comment } from "../types";
 
 export const COMMENT_MAX_LENGTH = 500;
 
-/** Live comments for a post, oldest first. */
+/**
+ * A comment thread. Blog posts use the post id; other threads use a prefixed
+ * key ("project:<slug>", "testimonial:<id>"), stored in the same `postId` field.
+ */
+export interface CommentThread {
+  id: string;
+  title: string;
+  /** Gets notified of new comments and shown with an "Author" badge. */
+  ownerId?: string | null;
+  /** Where notifications should link; blog threads link to the post. */
+  link?: string;
+}
+
+export const projectThreadId = (slug: string) => `project:${slug}`;
+export const testimonialThreadId = (id: string) => `testimonial:${id}`;
+
+/** Live comments for a thread, oldest first. */
 export const useComments = (postId: string) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +69,7 @@ export const useComments = (postId: string) => {
   return { comments, loading, error };
 };
 
-export const useCommentActions = (post: { id: string; title: string; authorId: string }) => {
+export const useCommentActions = (thread: CommentThread) => {
   const user = useAuthStore((state) => state.user);
 
   const addComment = async (content: string, parent?: Comment | null) => {
@@ -64,7 +80,7 @@ export const useCommentActions = (post: { id: string; title: string; authorId: s
       throw new Error(`Comments can be at most ${COMMENT_MAX_LENGTH} characters.`);
     }
     await addDoc(collection(db, "comments"), {
-      postId: post.id,
+      postId: thread.id,
       authorId: user.uid,
       authorName: user.nickname || user.name || "Anonymous",
       authorAvatar: user.photoURL || null,
@@ -75,7 +91,7 @@ export const useCommentActions = (post: { id: string; title: string; authorId: s
 
     const author = user.nickname || user.name || "Someone";
     const recipients = new Set<string>();
-    if (post.authorId && post.authorId !== user.uid) recipients.add(post.authorId);
+    if (thread.ownerId && thread.ownerId !== user.uid) recipients.add(thread.ownerId);
     if (parent && parent.authorId !== user.uid) recipients.add(parent.authorId);
     for (const recipient of recipients) {
       void createNotification({
@@ -83,9 +99,9 @@ export const useCommentActions = (post: { id: string; title: string; authorId: s
         type: "comment",
         message:
           parent && recipient === parent.authorId
-            ? `${author} replied to your comment on "${post.title}"`
-            : `${author} commented on "${post.title}"`,
-        blogId: post.id,
+            ? `${author} replied to your comment on "${thread.title}"`
+            : `${author} commented on "${thread.title}"`,
+        ...(thread.link ? { link: thread.link } : { blogId: thread.id }),
       });
     }
   };

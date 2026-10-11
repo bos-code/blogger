@@ -12,6 +12,8 @@ import Messages from "../dashboardUi/Messages";
 import SavedPosts from "../dashboardUi/SavedPosts";
 import Subscribers from "../dashboardUi/Subscribers";
 import ProjectsManager from "../dashboardUi/ProjectsManager";
+import TestimonialsManager from "../dashboardUi/TestimonialsManager";
+import { useAllTestimonials } from "../hooks/useTestimonials";
 import { useMessages } from "../hooks/useMessages";
 import Avatar from "../components/ui/Avatar";
 import { useRole } from "../hooks/useRole";
@@ -23,6 +25,7 @@ import {
   BookmarkIcon,
   EnvelopeIcon,
   BriefcaseIcon,
+  ChatBubbleBottomCenterTextIcon,
   NewspaperIcon,
   DocumentTextIcon,
   UsersIcon,
@@ -63,6 +66,8 @@ export default function Dashboard(): React.ReactElement {
 
   const { data: messages = [] } = useMessages();
   const unreadMessages = messages.filter((message) => !message.read).length;
+  const { data: testimonials = [] } = useAllTestimonials(isAdmin);
+  const pendingTestimonials = testimonials.filter((testimonial) => testimonial.status === "pending").length;
 
   const navItems: NavItem[] = [
     { screen: "home", label: "Overview", icon: HomeIcon, visible: true },
@@ -76,6 +81,13 @@ export default function Dashboard(): React.ReactElement {
     { screen: "messages", label: "Messages", icon: EnvelopeIcon, visible: isAdmin, badge: unreadMessages },
     { screen: "subscribers", label: "Subscribers", icon: NewspaperIcon, visible: isAdmin },
     { screen: "projects", label: "Projects", icon: BriefcaseIcon, visible: isAdmin },
+    {
+      screen: "testimonials",
+      label: "Testimonials",
+      icon: ChatBubbleBottomCenterTextIcon,
+      visible: isAdmin,
+      badge: pendingTestimonials,
+    },
     { screen: "categories", label: "Categories", icon: TagIcon, visible: canManageCategories },
     { screen: "users", label: "Users", icon: UsersIcon, visible: canManageUsers },
     { screen: "profile", label: "Profile & settings", icon: UserCircleIcon, visible: true },
@@ -221,6 +233,7 @@ export default function Dashboard(): React.ReactElement {
             {activeScreen === "messages" && <Messages />}
             {activeScreen === "subscribers" && <Subscribers />}
             {activeScreen === "projects" && <ProjectsManager />}
+            {activeScreen === "testimonials" && <TestimonialsManager />}
             {activeScreen === "profile" && <ProfileSetting />}
           </main>
         </div>

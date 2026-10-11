@@ -89,6 +89,25 @@ export interface Comment {
   updatedAt?: DateValue;
 }
 
+export type TestimonialStatus = "pending" | "approved" | "rejected";
+
+/** A client's testimonial, optionally tagged with the project it's about. */
+export interface Testimonial {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string | null;
+  /** e.g. "Founder, Yakoyo African Kitchen" */
+  authorTitle?: string | null;
+  /** Slug of the project the testimonial is about, if any. */
+  projectSlug?: string | null;
+  rating?: number | null;
+  content: string;
+  status: TestimonialStatus;
+  createdAt?: DateValue;
+  reviewedAt?: DateValue;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -157,6 +176,7 @@ export interface UIState {
     | "messages"
     | "analytics"
     | "projects"
+    | "testimonials"
     | "subscribers";
   setDashboardScreen: (screen: UIState["dashboardScreen"]) => void;
 }

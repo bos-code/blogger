@@ -1,7 +1,7 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
-import { COMMENT_MAX_LENGTH, useCommentActions, useComments } from "../hooks/useComments";
+import { COMMENT_MAX_LENGTH, useCommentActions, useComments, type CommentThread } from "../hooks/useComments";
 import { useAuthStore } from "../stores/authStore";
 import { useRole } from "../hooks/useRole";
 import { formatRelativeTime } from "../utils/date";
@@ -10,7 +10,11 @@ import Avatar from "./ui/Avatar";
 import type { Comment } from "../types";
 
 interface CommentsProps {
-  post: { id: string; title: string; authorId: string };
+  thread: CommentThread;
+  /** Section heading; defaults to "Comments". */
+  heading?: string;
+  /** Smaller layout for threads nested in cards (e.g. under a testimonial). */
+  compact?: boolean;
 }
 
 function CommentForm({
@@ -93,12 +97,13 @@ function CommentForm({
   );
 }
 
-export default function Comments({ post }: CommentsProps): React.ReactElement {
+export default function Comments({ thread, heading = "Comments", compact = false }: CommentsProps): React.ReactElement {
+  const headingId = useId();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const { isAdmin, isEmailVerified } = useRole();
-  const { comments, loading, error } = useComments(post.id);
-  const { addComment, editComment, deleteComment } = useCommentActions(post);
+  const { comments, loading, error } = useComments(thread.id);
+  const { addComment, editComment, deleteComment } = useCommentActions(thread);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
 
@@ -137,7 +142,7 @@ export default function Comments({ post }: CommentsProps): React.ReactElement {
           <div className="min-w-0 flex-1">
             <header className="flex flex-wrap items-baseline gap-x-2">
               <span className="font-semibold">{comment.authorName || "Anonymous"}</span>
-              {comment.authorId === post.authorId && (
+              {thread.ownerId && comment.authorId === thread.ownerId && (
                 <span className="badge badge-primary badge-xs">Author</span>
               )}
               <time className="text-xs text-base-content/55">
@@ -213,11 +218,17 @@ export default function Comments({ post }: CommentsProps): React.ReactElement {
   };
 
   return (
-    <section aria-labelledby="comments-heading">
-      <h2 id="comments-heading" className="mb-4 flex items-center gap-2 text-2xl font-bold">
-        <ChatBubbleLeftRightIcon className="h-6 w-6" />
-        Comments {comments.length > 0 && <span className="text-base-content/50">({comments.length})</span>}
-      </h2>
+    <section aria-labelledby={headingId}>
+      {compact ? (
+        <h3 id={headingId} className="mb-3 text-sm font-semibold text-base-content/70">
+          {heading} {comments.length > 0 && <span className="text-base-content/50">({comments.length})</span>}
+        </h3>
+      ) : (
+        <h2 id={headingId} className="mb-4 flex items-center gap-2 text-2xl font-bold">
+          <ChatBubbleLeftRightIcon className="h-6 w-6" />
+          {heading} {comments.length > 0 && <span className="text-base-content/50">({comments.length})</span>}
+        </h2>
+      )}
 
       {user ? (
         isEmailVerified ? (
@@ -268,7 +279,9 @@ export default function Comments({ post }: CommentsProps): React.ReactElement {
           {error}
         </p>
       ) : comments.length === 0 ? (
-        <p className="py-6 text-center text-base-content/60">No comments yet. Start the conversation.</p>
+        <p className={`${compact ? "py-2 text-sm" : "py-6 text-center"} text-base-content/60`}>
+          No comments yet. Start the conversation.
+        </p>
       ) : (
         <ol className="divide-y divide-base-300">{topLevel.map((comment) => renderComment(comment))}</ol>
       )}

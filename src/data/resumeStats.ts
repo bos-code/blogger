@@ -8,12 +8,12 @@ const resumeStats = {
     suffix: "",
   },
   stat2: {
-    value: 2,
+    value: 15,
     label: "Development\nTools",
-    suffix: "",
+    suffix: "+",
   },
   stat3: {
-    value: 1,
+    value: 3,
     label: "Years of\nExperience",
     suffix: "+",
   },

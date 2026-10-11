@@ -10,8 +10,9 @@ tiers: Firebase (Spark) and Vercel (Hobby).
 ## Features
 
 **Portfolio** — hero, about, skills, experience timeline, project grid with
-case-study pages (editable from the CMS), contact form, downloadable CV,
-light/dark themes.
+case-study pages (editable from the CMS), client testimonials tagged to
+projects (published after approval), comment threads on testimonials and
+projects, contact form, downloadable CV, light/dark themes.
 
 **Blog** — search, category/tag filters, featured post, series, related posts,
 table of contents, syntax-highlighted code with copy buttons, likes, bookmarks,
@@ -27,7 +28,8 @@ preview links, and optional AI title/excerpt suggestions.
 **Dashboard** — overview with a 30-day views chart and review queue; posts
 with bulk actions, featuring and reject-with-reason; users and roles;
 categories; projects; contact-message inbox; newsletter subscribers; saved
-posts; profile and appearance settings; in-app notifications.
+posts; testimonial moderation; profile and appearance settings; in-app
+notifications.
 
 **Email (optional)** — double opt-in newsletter, new-post emails, and owner
 alerts for contact messages and posts awaiting review, sent with Nodemailer

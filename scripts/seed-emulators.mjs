@@ -223,6 +223,32 @@ const main = async () => {
     createdAt: daysAgo(0.5),
   });
 
+  const testimonials = [
+    ["t1", reader, "Riley Reader", "Founder, Yakoyo African Kitchen", "yakoyo-kitchen", 5, "approved",
+      "Orders doubled in the first month. The ordering flow is simple for customers and the dashboard finally shows us what's selling."],
+    ["t2", writer, "Ada Writer", "Head of Academics, Privy Stars", "studypro", 5, "approved",
+      "Our students practise every day now, and teachers can see exactly who needs help. Communication was clear from start to finish."],
+    ["t3", admin, "Grace Adeyemi", "Owner, Veloria Essence Spa", "veloria-essence-spa", 4, "approved",
+      "Bookings come in through the site instead of endless DMs, and the confirmation emails look beautiful."],
+    ["t4", reader, "Riley Reader", "Marketing lead", null, 5, "pending",
+      "Fast, thoughtful and easy to work with. Would happily hire again for our next launch."],
+  ];
+  for (const [id, authorId, authorName, authorTitle, projectSlug, rating, status, content] of testimonials) {
+    await setDocument(`testimonials/${id}`, {
+      authorId, authorName, authorAvatar: null, authorTitle, projectSlug, rating, content, status,
+      createdAt: daysAgo(testimonials.findIndex((item) => item[0] === id) * 3 + 1),
+    });
+  }
+  await setDocument("comments/tc1", {
+    postId: "testimonial:t1",
+    authorId: writer,
+    authorName: "Ada Writer",
+    authorAvatar: null,
+    content: "The menu photos on that site are making me hungry.",
+    parentId: null,
+    createdAt: daysAgo(0.3),
+  });
+
   await setDocument("messages/m1", {
     name: "Jordan Client",
     email: "jordan@example.com",

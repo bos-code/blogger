@@ -361,7 +361,7 @@ export default function BlogPostDetail(): React.ReactElement {
             </section>
 
             <div className="mt-12">
-              <Comments post={post} />
+              <Comments thread={{ id: post.id, title: post.title, ownerId: post.authorId }} />
             </div>
           </article>
 

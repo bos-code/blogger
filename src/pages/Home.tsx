@@ -1,5 +1,6 @@
 import SectionContact from "../components/SectionContact";
 import Work from "../components/Sectionwork";
+import SectionTestimonials from "../components/SectionTestimonials";
 import AboutMe from "../components/about";
 import SectionBlog from "../components/sectionBlog";
 import Stack from "../components/sectionStack";
@@ -31,6 +32,7 @@ export default function Home(): React.ReactElement {
       <Stack />
       <Experience />
       <Work />
+      <SectionTestimonials />
       <SectionBlog />
       <SectionContact />
     </>

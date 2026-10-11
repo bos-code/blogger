@@ -7,6 +7,7 @@ import {
   DocumentTextIcon,
   EnvelopeIcon,
   AcademicCapIcon,
+  ChatBubbleBottomCenterTextIcon,
 } from "@heroicons/react/24/outline";
 
 const SECTIONS: Array<{ id: string; label: string; icon: ComponentType<{ className?: string }> }> = [
@@ -15,6 +16,7 @@ const SECTIONS: Array<{ id: string; label: string; icon: ComponentType<{ classNa
   { id: "stack", label: "Skills", icon: CodeBracketIcon },
   { id: "experience", label: "Experience", icon: AcademicCapIcon },
   { id: "work", label: "Work", icon: BriefcaseIcon },
+  { id: "testimonials", label: "Testimonials", icon: ChatBubbleBottomCenterTextIcon },
   { id: "blog", label: "Blog", icon: DocumentTextIcon },
   { id: "contact", label: "Contact", icon: EnvelopeIcon },
 ];

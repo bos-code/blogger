@@ -2,12 +2,19 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
 import { useProjects } from "../hooks/useProjects";
 import { useDocumentMeta } from "../hooks/useDocumentMeta";
+import { useApprovedTestimonials } from "../hooks/useTestimonials";
+import { projectThreadId } from "../hooks/useComments";
+import TestimonialCard from "../components/testimonials/TestimonialCard";
+import WriteTestimonial from "../components/testimonials/WriteTestimonial";
+import Comments from "../components/Comments";
 
 /** Case-study page for a portfolio project. */
 export default function ProjectDetail(): React.ReactElement {
   const { slug } = useParams<{ slug: string }>();
   const { data, isPending } = useProjects();
   const project = data?.projects.find((item) => item.slug === slug);
+  const { data: testimonials = [] } = useApprovedTestimonials();
+  const projectTestimonials = testimonials.filter((item) => item.projectSlug === slug);
 
   useDocumentMeta({
     title: project?.title ?? "Project",
@@ -76,6 +83,34 @@ export default function ProjectDetail(): React.ReactElement {
             </div>
           )}
         </aside>
+      </div>
+
+      <section aria-labelledby="project-testimonials" className="mt-16 border-t border-base-300 pt-10">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 id="project-testimonials" className="text-2xl font-bold">What the client said</h2>
+            <p className="mt-1 text-base-content/65">Testimonials tagged with this project.</p>
+          </div>
+          <WriteTestimonial projectSlug={project.slug} label="Leave a testimonial" className="btn btn-ghost gap-2 border border-base-300" />
+        </div>
+        {projectTestimonials.length > 0 ? (
+          <ul className="grid items-start gap-6 md:grid-cols-2">
+            {projectTestimonials.map((testimonial) => (
+              <li key={testimonial.id}>
+                <TestimonialCard testimonial={testimonial} hideProject />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="surface p-6 text-center text-base-content/60">No testimonials for this project yet.</p>
+        )}
+      </section>
+
+      <div className="mt-16 border-t border-base-300 pt-10">
+        <Comments
+          heading="Comments"
+          thread={{ id: projectThreadId(project.slug), title: project.title, link: `/projects/${project.slug}` }}
+        />
       </div>
     </article>
   );
