@@ -96,7 +96,8 @@ deploy the rules and indexes, and promote your first account to
 | `pnpm typecheck` | TypeScript (app, API, tests, config) |
 | `pnpm test` | Unit tests (Node test runner) |
 | `pnpm test:api` | API checks against running emulators |
-| `pnpm test:e2e` | Emulators + seed + API checks + Playwright (desktop & mobile) |
+| `pnpm test:rules` | Firestore security rules tests against running emulators |
+| `pnpm test:e2e` | Emulators + seed + API checks + rules tests + Playwright (desktop & mobile) |
 | `pnpm check` | Lint, typecheck, unit tests and build (runs in CI) |
 
 ## Project structure

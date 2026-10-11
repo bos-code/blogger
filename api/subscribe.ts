@@ -3,6 +3,11 @@ import { adminDb } from "./_lib/firebaseAdmin.js";
 import { isEmailConfigured, sendMail } from "./_lib/mail.js";
 import { EMAIL_PATTERN, errorResponse, json, readJson, siteUrl } from "./_lib/http.js";
 import { newToken, RESEND_COOLDOWN_MS, subscriberId } from "./_lib/subscribers.js";
+import { clientIp, rateLimit } from "./_lib/rateLimit.js";
+
+/** Sign-up attempts allowed per IP address per window (stops email bombing). */
+const IP_LIMIT = 5;
+const IP_WINDOW_MS = 15 * 60 * 1000;
 
 /** Starts a newsletter subscription and emails a confirmation link (double opt-in). */
 export async function POST(request: Request): Promise<Response> {
@@ -10,6 +15,10 @@ export async function POST(request: Request): Promise<Response> {
   const email = body?.email?.trim().toLowerCase() ?? "";
   if (!EMAIL_PATTERN.test(email) || email.length > 254) return errorResponse("Enter a valid email address.");
   if (!isEmailConfigured()) return errorResponse("Email subscriptions aren't set up yet.", 503);
+  const ip = clientIp(request);
+  if (ip && !(await rateLimit("subscribe", ip, IP_LIMIT, IP_WINDOW_MS))) {
+    return errorResponse("Too many sign-up attempts. Please try again in a few minutes.", 429);
+  }
 
   const ref = adminDb().collection("subscribers").doc(subscriberId(email));
   const existing = await ref.get();

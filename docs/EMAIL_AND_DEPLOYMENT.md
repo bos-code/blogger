@@ -78,3 +78,36 @@ The "Deploy Firebase rules" workflow then deploys whenever the rules change on
 ```bash
 pnpm dlx firebase-tools@13.35.1 deploy --only firestore:rules,firestore:indexes,storage
 ```
+
+## 4. Security
+
+What's in place:
+
+- **Firestore and Storage rules** are the security boundary. Roles can't be
+  self-assigned, comments and contact messages have a fixed shape and size,
+  view counters only accept `+1`, and subscribers and rate-limit records are
+  readable only by the server. `pnpm test:rules` checks all of this against
+  the emulator (it also runs in CI).
+- **Post content is sanitised** before it's shown. Embedded iframes are only
+  kept for YouTube, CodePen and CodeSandbox, and links that open a new tab
+  get `rel="noopener noreferrer"`.
+- **Security headers** (`vercel.json`): the site can't be framed by other
+  sites (clickjacking), MIME sniffing is off, plugins are blocked, and
+  camera, microphone and location access are disabled.
+- **Newsletter sign-ups are rate-limited** to 5 per IP address per 15
+  minutes, on top of the per-address cooldown, so the form can't be used to
+  flood someone's inbox. Counters live in the `rateLimits` collection under
+  a hash of the IP (raw addresses are never stored).
+
+After changing `firestore.rules`, deploy them again (GitHub Action or the
+Firebase Console, as in section 3).
+
+Recommended one-time settings in the Firebase Console:
+
+- **TTL policy** for old rate-limit records: Firestore → TTL policies →
+  collection group `rateLimits`, field `expiresAt`.
+- **Authorised domains** (Authentication → Settings): keep only your real
+  domains and `localhost`.
+- **App Check** (optional, free with reCAPTCHA v3) makes it harder for
+  scripts to write to Firestore directly, e.g. spamming the contact form.
+  It needs a reCAPTCHA site key and a small change in `src/firebaseconfig.ts`.

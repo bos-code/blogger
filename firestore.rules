@@ -185,10 +185,7 @@ service cloud.firestore {
         return request.resource.data.get('views', 0) is int &&
           request.resource.data.get('views', 0) ==
             resource.data.get('views', 0) + 1 &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'views',
-            'updatedAt'
-          ]);
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
       }
 
       allow read: if resource.data.status == 'approved' ||
@@ -242,9 +239,19 @@ service cloud.firestore {
 
       allow create: if isAuthenticated() &&
         getUserRole() != 'reader' &&
+        request.resource.data.keys().hasOnly([
+          'postId', 'authorId', 'authorName', 'authorAvatar', 'content', 'parentId', 'createdAt'
+        ]) &&
         request.resource.data.authorId == request.auth.uid &&
         request.resource.data.postId is string &&
+        request.resource.data.postId.size() <= 128 &&
         request.resource.data.authorName is string &&
+        request.resource.data.authorName.size() <= 100 &&
+        (request.resource.data.get('authorAvatar', null) == null ||
+          (request.resource.data.authorAvatar is string && request.resource.data.authorAvatar.size() <= 2048)) &&
+        (request.resource.data.get('parentId', null) == null ||
+          (request.resource.data.parentId is string && request.resource.data.parentId.size() <= 128)) &&
+        request.resource.data.createdAt == request.time &&
         request.resource.data.content is string &&
         request.resource.data.content.size() > 0 &&
         request.resource.data.content.size() <= 500;
@@ -327,9 +334,14 @@ service cloud.firestore {
     match /dailyStats/{day} {
       function isViewIncrement() {
         let before = resource == null ? 0 : resource.data.get('views', 0);
+        let postsBefore = resource == null ? {} : resource.data.get('posts', {});
+        let postsAfter = request.resource.data.get('posts', {});
         return request.resource.data.date == day &&
           request.resource.data.views == before + 1 &&
-          request.resource.data.get('posts', {}) is map &&
+          postsAfter is map &&
+          postsAfter.size() <= 2000 &&
+          postsAfter.diff(postsBefore).affectedKeys().size() <= 1 &&
+          postsAfter.diff(postsBefore).removedKeys().size() == 0 &&
           request.resource.data.keys().hasOnly(['date', 'views', 'posts']);
       }
 

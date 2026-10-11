@@ -1,0 +1,146 @@
+/**
+ * Firestore security rules tests. Needs the Firestore emulator on 127.0.0.1:8080:
+ *   pnpm emulators   # then, in another terminal
+ *   pnpm test:rules
+ */
+import { after, before, beforeEach, describe, test } from "node:test";
+import { readFileSync } from "node:fs";
+import {
+  assertFails,
+  assertSucceeds,
+  initializeTestEnvironment,
+  type RulesTestEnvironment,
+} from "@firebase/rules-unit-testing";
+import { deleteField, doc, getDoc, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+
+let env: RulesTestEnvironment;
+const OWNER_EMAIL = "chidera9713@gmail.com";
+
+// Verified email, as the app requires for most writes.
+const as = (uid: string, email = `${uid}@example.com`, verified = true) =>
+  env.authenticatedContext(uid, { email, email_verified: verified }).firestore();
+const anon = () => env.unauthenticatedContext().firestore();
+
+const seed = (path: string, data: Record<string, unknown>) =>
+  env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), path), data));
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: "demo-rules-test",
+    firestore: { rules: readFileSync("firestore.rules", "utf8"), host: "127.0.0.1", port: 8080 },
+  });
+});
+after(() => env.cleanup());
+beforeEach(async () => {
+  await env.clearFirestore();
+  await seed("users/alice", { role: "user", name: "Alice" });
+  await seed("users/reggie", { role: "reader", name: "Reggie" });
+  await seed("users/wendy", { role: "writer", name: "Wendy" });
+  await seed("users/adam", { role: "admin", name: "Adam" });
+  await seed("posts/p1", { title: "Hello", content: "<p>Hi</p>", authorId: "wendy", authorName: "Wendy", status: "approved", views: 3, likes: 0, likedBy: [] });
+});
+
+describe("users and roles", () => {
+  test("new accounts can only start as plain users", async () => {
+    await assertSucceeds(setDoc(doc(as("bob"), "users/bob"), { role: "user", name: "Bob" }));
+    await assertFails(setDoc(doc(as("carl"), "users/carl"), { role: "admin", name: "Carl" }));
+    await assertFails(setDoc(doc(as("dan"), "users/someone-else"), { role: "user" }));
+  });
+
+  test("users can't promote themselves", async () => {
+    await assertFails(updateDoc(doc(as("alice"), "users/alice"), { role: "admin" }));
+    await assertFails(updateDoc(doc(as("alice"), "users/alice"), { role: "super_admin" }));
+    await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { nickname: "Ali" }));
+  });
+
+  test("only the verified site owner becomes super admin", async () => {
+    await seed("users/owner", { role: "user" });
+    await assertFails(updateDoc(doc(as("owner", OWNER_EMAIL, false), "users/owner"), { role: "super_admin" }));
+    await assertSucceeds(updateDoc(doc(as("owner", OWNER_EMAIL), "users/owner"), { role: "super_admin" }));
+    await seed("users/impostor", { role: "user" });
+    await assertFails(updateDoc(doc(as("impostor", "someone@example.com"), "users/impostor"), { role: "super_admin" }));
+  });
+
+  test("admins can't create other admins", async () => {
+    await assertFails(updateDoc(doc(as("adam"), "users/alice"), { role: "admin" }));
+    await assertSucceeds(updateDoc(doc(as("adam"), "users/alice"), { role: "writer" }));
+  });
+
+  test("profiles are private", async () => {
+    await assertFails(getDoc(doc(as("alice"), "users/wendy")));
+    await assertFails(getDoc(doc(anon(), "users/alice")));
+    await assertSucceeds(getDoc(doc(as("adam"), "users/alice")));
+  });
+});
+
+describe("posts", () => {
+  test("anyone can add exactly one view, and nothing else", async () => {
+    await assertSucceeds(updateDoc(doc(anon(), "posts/p1"), { views: increment(1) }));
+    await assertFails(updateDoc(doc(anon(), "posts/p1"), { views: increment(2) }));
+    await assertFails(updateDoc(doc(anon(), "posts/p1"), { views: increment(1), updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(anon(), "posts/p1"), { title: "Defaced" }));
+  });
+
+  test("users can't edit someone else's post", async () => {
+    await assertFails(updateDoc(doc(as("alice"), "posts/p1"), { content: "<p>hacked</p>" }));
+  });
+});
+
+describe("comments", () => {
+  const comment = (extra: Record<string, unknown> = {}) => ({
+    postId: "p1",
+    authorId: "alice",
+    authorName: "Alice",
+    authorAvatar: null,
+    content: "Nice post",
+    parentId: null,
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+
+  test("verified users can comment as themselves", async () => {
+    await assertSucceeds(setDoc(doc(as("alice"), "comments/c1"), comment()));
+  });
+
+  test("rejects readers, impersonation, extra fields and long content", async () => {
+    await assertFails(setDoc(doc(as("reggie"), "comments/c2"), comment({ authorId: "reggie" })));
+    await assertFails(setDoc(doc(as("alice", "alice@example.com", false), "comments/c3"), comment()));
+    await assertFails(setDoc(doc(as("alice"), "comments/c4"), comment({ authorId: "wendy" })));
+    await assertFails(setDoc(doc(as("alice"), "comments/c5"), comment({ pinned: true })));
+    await assertFails(setDoc(doc(as("alice"), "comments/c6"), comment({ content: "x".repeat(501) })));
+    await assertFails(setDoc(doc(as("alice"), "comments/c7"), comment({ createdAt: new Date(2000, 0, 1) })));
+  });
+});
+
+describe("analytics", () => {
+  test("daily stats only accept a single +1", async () => {
+    const day = "2026-10-11";
+    await assertSucceeds(setDoc(doc(anon(), `dailyStats/${day}`), { date: day, views: increment(1), posts: { p1: increment(1) } }, { merge: true }));
+    await assertFails(setDoc(doc(anon(), `dailyStats/${day}`), { date: day, views: increment(5) }, { merge: true }));
+    await assertFails(
+      setDoc(doc(anon(), `dailyStats/${day}`), { date: day, views: increment(1), posts: { p2: increment(1), p3: increment(1) } }, { merge: true })
+    );
+    await assertFails(updateDoc(doc(anon(), `dailyStats/${day}`), { views: increment(1), "posts.p1": deleteField() }));
+    await assertFails(getDoc(doc(anon(), `dailyStats/${day}`)));
+  });
+});
+
+describe("server-only and private data", () => {
+  test("subscribers and rate limits are closed to clients", async () => {
+    await seed("subscribers/s1", { email: "x@example.com", token: "secret" });
+    await seed("rateLimits/r1", { count: 1 });
+    await assertFails(getDoc(doc(anon(), "subscribers/s1")));
+    await assertFails(getDoc(doc(as("alice"), "subscribers/s1")));
+    await assertFails(setDoc(doc(anon(), "subscribers/s2"), { email: "y@example.com" }));
+    await assertFails(getDoc(doc(as("adam"), "rateLimits/r1")));
+    await assertFails(setDoc(doc(anon(), "rateLimits/r2"), { count: 0 }));
+  });
+
+  test("contact messages: anyone can send, only admins can read", async () => {
+    const message = { name: "Jordan", email: "jordan@example.com", message: "Hello there, let's work together.", createdAt: serverTimestamp(), read: false };
+    await assertSucceeds(setDoc(doc(anon(), "messages/m1"), message));
+    await assertFails(setDoc(doc(anon(), "messages/m2"), { ...message, priority: "urgent" }));
+    await assertFails(getDoc(doc(anon(), "messages/m1")));
+    await assertSucceeds(getDoc(doc(as("adam"), "messages/m1")));
+  });
+});

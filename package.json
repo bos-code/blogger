@@ -14,9 +14,10 @@
     "dev:emulators": "vite --mode emulators",
     "emulators": "pnpm dlx firebase-tools@13.35.1 emulators:start --project demo-blogger",
     "seed:emulators": "node scripts/seed-emulators.mjs",
-    "test:e2e": "pnpm dlx firebase-tools@13.35.1 emulators:exec --project demo-blogger \"node scripts/seed-emulators.mjs && node scripts/test-api.mjs && playwright test\"",
+    "test:e2e": "pnpm dlx firebase-tools@13.35.1 emulators:exec --project demo-blogger \"node scripts/seed-emulators.mjs && node scripts/test-api.mjs && pnpm test:rules && playwright test\"",
     "test:e2e:ui": "playwright test --ui",
-    "test:api": "node scripts/test-api.mjs"
+    "test:api": "node scripts/test-api.mjs",
+    "test:rules": "node --test tests/rules/*.test.ts"
   },
   "packageManager": "pnpm@11.7.0",
   "dependencies": {
@@ -58,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@playwright/test": "1.56.1",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/react-query-devtools": "^5.91.2",

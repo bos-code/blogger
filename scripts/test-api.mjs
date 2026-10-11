@@ -99,6 +99,19 @@ await check("subscribe → confirm → unsubscribe", async () => {
   assert.equal((await snapshot.docs[0].ref.get()).exists, false);
 });
 
+await check("subscribe is rate limited per IP", async () => {
+  const { POST: subscribe } = await load("subscribe");
+  const ip = `203.0.113.${Math.floor(Math.random() * 250)}`;
+  const statuses = [];
+  for (let i = 0; i < 6; i++) {
+    const response = await subscribe(post("subscribe", { email: `limit-${Date.now()}-${i}@example.com` }, { "x-forwarded-for": ip }));
+    statuses.push(response.status);
+  }
+  assert.deepEqual(statuses, [200, 200, 200, 200, 200, 429]);
+  const other = await subscribe(post("subscribe", { email: `limit-other-${Date.now()}@example.com` }, { "x-forwarded-for": "198.51.100.7" }));
+  assert.equal(other.status, 200);
+});
+
 await check("notify-subscribers rejects non-admins", async () => {
   const response = await (await load("notify-subscribers")).POST(post("notify-subscribers", { postId: "use-effect" }));
   assert.equal(response.status, 403);

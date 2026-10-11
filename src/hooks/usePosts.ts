@@ -418,10 +418,8 @@ export const useIncrementPostView = () => {
 
   return useMutation<void, Error, string>({
     mutationFn: async (postId) => {
-      await updateDoc(doc(db, "posts", postId), {
-        views: increment(1),
-        updatedAt: serverTimestamp(),
-      });
+      // Views don't touch updatedAt: it marks content edits (sitemap, editor conflict checks).
+      await updateDoc(doc(db, "posts", postId), { views: increment(1) });
       // Daily totals for the analytics dashboard (best-effort).
       const day = new Date().toISOString().slice(0, 10);
       try {
