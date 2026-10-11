@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRightOnRectangleIcon,
@@ -413,7 +414,11 @@ export function Navbar(): React.ReactElement {
         </div>
       </nav>
 
-      {/* Mobile menu */}
+      {/*
+        Mobile menu, portalled to <body>: once scrolled, the header's backdrop blur makes it the
+        containing block for fixed descendants, which squashed the menu to the header's 64px.
+      */}
+      {createPortal(
       <AnimatePresence>
         {isMenuOpen && (
           <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
@@ -533,7 +538,9 @@ export function Navbar(): React.ReactElement {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+      )}
     </header>
   );
 }

@@ -44,6 +44,15 @@ test.describe("public site", () => {
       await expect(page.getByRole("navigation", { name: "Main" }).locator('[aria-current="page"]')).toHaveText("Work");
     }
 
+    // Opened while scrolled (header blurred), the mobile menu must still fill the screen.
+    if (isMobile) {
+      const menu = await openMenu();
+      const box = await menu.boundingBox();
+      expect(box?.height ?? 0).toBeGreaterThan((page.viewportSize()?.height ?? 0) - 2);
+      await expect(menu.getByRole("link", { name: "Contact", exact: true })).toBeInViewport();
+      await page.keyboard.press("Escape");
+    }
+
     await (await openMenu()).getByRole("link", { name: "Home", exact: true }).click();
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
   });
