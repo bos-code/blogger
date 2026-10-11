@@ -65,3 +65,22 @@ test("saved projects show without flashing the built-in list, and can be replace
   await expect(image).toHaveAttribute("src", /^\/project-images\/.+\.webp$/);
   expect(await image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
 });
+
+test("the whole project card opens the project page; its buttons still work", async ({ page }) => {
+  await page.goto("/#work");
+  const card = page.locator("#work article", { hasText: "Yakoyo African Kitchen" });
+  await card.scrollIntoViewIfNeeded();
+  // The live-site and code buttons sit above the card link.
+  const code = card.getByRole("link", { name: /Code|Live site/ }).first();
+  const codeBox = await code.boundingBox();
+  const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest("a")?.textContent ?? "", {
+    x: codeBox!.x + codeBox!.width / 2,
+    y: codeBox!.y + codeBox!.height / 2,
+  });
+  expect(hit).toMatch(/Code|Live site/);
+  // Clicking the picture, away from the title and buttons, opens the project page.
+  const box = await card.boundingBox();
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + 60);
+  await expect(page).toHaveURL(/\/projects\/yakoyo-kitchen$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Yakoyo African Kitchen" })).toBeVisible();
+});
