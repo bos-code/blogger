@@ -33,19 +33,39 @@ export interface MailInput {
   heading: string;
   paragraphs: string[];
   button?: { label: string; url: string };
+  /** Large picture above the heading (absolute URL), linked to `href`. */
+  image?: { url: string; alt: string; href?: string };
+  /** A personal message from the sender, shown as a quote. */
+  note?: { text: string; from: string };
   footer?: string;
   replyTo?: string;
   headers?: Record<string, string>;
 }
 
+const renderImage = (image: NonNullable<MailInput["image"]>): string => {
+  const img = `<img src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt)}" width="504" style="display:block;width:100%;max-width:504px;height:auto;border-radius:10px;border:1px solid #e1e5ea">`;
+  return `<tr><td style="padding:8px 28px 8px">${image.href ? `<a href="${escapeHtml(image.href)}">${img}</a>` : img}</td></tr>`;
+};
+
+const renderNote = (note: NonNullable<MailInput["note"]>): string =>
+  `<div style="margin:4px 0 16px;padding:12px 16px;border-left:3px solid #0b8f7c;background:#f3f8f7;border-radius:0 8px 8px 0">
+          ${note.text
+            .split(/\n+/)
+            .map((line) => `<p style="font-size:15px;line-height:1.6;margin:0 0 6px;font-style:italic">${escapeHtml(line)}</p>`)
+            .join("")}
+          <p style="font-size:13px;margin:6px 0 0;color:#5b6570">— ${escapeHtml(note.from)}</p>
+        </div>`;
+
 /** Simple, email-client-safe HTML layout. */
-export const renderEmail = ({ heading, paragraphs, button, footer }: MailInput): string => `<!doctype html>
+export const renderEmail = ({ heading, paragraphs, button, image, note, footer }: MailInput): string => `<!doctype html>
 <html><body style="margin:0;background:#f3f5f7;font-family:Arial,Helvetica,sans-serif;color:#1d252d">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;border:1px solid #e1e5ea">
       <tr><td style="padding:28px 28px 8px;font-family:monospace;font-weight:bold;color:#0b8f7c">&lt;/&gt; ${escapeHtml(SITE_NAME)}</td></tr>
+      ${image ? renderImage(image) : ""}
       <tr><td style="padding:8px 28px 0"><h1 style="font-size:22px;line-height:1.3;margin:0 0 12px">${escapeHtml(heading)}</h1>
         ${paragraphs.map((text) => `<p style="font-size:15px;line-height:1.6;margin:0 0 12px">${escapeHtml(text)}</p>`).join("")}
+        ${note ? renderNote(note) : ""}
       </td></tr>
       ${
         button
@@ -58,7 +78,13 @@ export const renderEmail = ({ heading, paragraphs, button, footer }: MailInput):
 </body></html>`;
 
 export const sendMail = async (input: MailInput): Promise<void> => {
-  const text = [input.heading, "", ...input.paragraphs, input.button ? `\n${input.button.label}: ${input.button.url}` : ""].join("\n");
+  const text = [
+    input.heading,
+    "",
+    ...input.paragraphs,
+    ...(input.note ? ["", `"${input.note.text}"`, `— ${input.note.from}`] : []),
+    input.button ? `\n${input.button.label}: ${input.button.url}` : "",
+  ].join("\n");
   await getTransporter().sendMail({
     from: `"${SITE_NAME}" <${process.env.GMAIL_USER || "no-reply@example.com"}>`,
     to: input.to,

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChatBubbleBottomCenterTextIcon } from "@heroicons/react/24/outline";
+import { ChatBubbleBottomCenterTextIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
 import Avatar from "../components/ui/Avatar";
@@ -11,16 +11,23 @@ import {
   useTestimonialContacts,
 } from "../hooks/useTestimonials";
 import { useProjects } from "../hooks/useProjects";
+import { useDeleteTestimonialRequest, useTestimonialRequests } from "../hooks/useTestimonialRequests";
+import RequestTestimonialModal from "./RequestTestimonial";
+import { toWhatsAppNumber } from "../utils/share";
 import { formatDate } from "../utils/date";
 import { showDeleteConfirm, showError, showSuccess } from "../utils/sweetalert";
-import type { Testimonial, TestimonialStatus } from "../types";
+import type { Testimonial, TestimonialRequest, TestimonialRequestStatus, TestimonialStatus } from "../types";
 
 /** Email → mailto; phone → WhatsApp chat (Nigerian 0-prefixed numbers become +234). */
-const contactHref = (contact: string): string => {
-  if (contact.includes("@")) return `mailto:${contact}`;
-  let digits = contact.replace(/\D/g, "");
-  if (digits.startsWith("0")) digits = `234${digits.slice(1)}`;
-  return `https://wa.me/${digits}`;
+const contactHref = (contact: string): string =>
+  contact.includes("@") ? `mailto:${contact}` : `https://wa.me/${toWhatsAppNumber(contact)}`;
+
+type Tab = TestimonialStatus | "requests";
+
+const REQUEST_STATUS: Record<TestimonialRequestStatus, { label: string; className: string }> = {
+  sent: { label: "Sent", className: "badge-ghost" },
+  opened: { label: "Opened", className: "badge-info" },
+  completed: { label: "Answered", className: "badge-success" },
 };
 
 const TABS: Array<{ status: TestimonialStatus; label: string }> = [
@@ -36,7 +43,12 @@ export default function TestimonialsManager(): React.ReactElement {
   const { data: contacts } = useTestimonialContacts();
   const moderate = useModerateTestimonial();
   const remove = useDeleteTestimonial();
-  const [tab, setTab] = useState<TestimonialStatus>("pending");
+  const { data: requests = [], isPending: requestsPending } = useTestimonialRequests();
+  const removeRequest = useDeleteTestimonialRequest();
+  const [tab, setTab] = useState<Tab>("pending");
+  const [requesting, setRequesting] = useState(false);
+  const [resending, setResending] = useState<TestimonialRequest | null>(null);
+  const openRequests = requests.filter((request) => request.status !== "completed").length;
 
   const counts = useMemo(() => {
     const result: Record<TestimonialStatus, number> = { pending: 0, approved: 0, rejected: 0 };
@@ -65,11 +77,33 @@ export default function TestimonialsManager(): React.ReactElement {
       }
     });
 
+  const handleDeleteRequest = (request: TestimonialRequest) =>
+    void showDeleteConfirm(`the request to ${request.clientName}`, async () => {
+      try {
+        await removeRequest.mutateAsync(request.id);
+      } catch {
+        showError("Couldn't delete", "Please try again.");
+      }
+    });
+
   return (
     <div>
       <PageHeader
         title="Testimonials"
         description="Client testimonials appear on the home page and on the tagged project once you publish them."
+        actions={
+          <button type="button" className="btn btn-primary gap-2" onClick={() => setRequesting(true)}>
+            <PaperAirplaneIcon className="h-5 w-5" /> Request a testimonial
+          </button>
+        }
+      />
+      <RequestTestimonialModal
+        open={requesting || resending !== null}
+        resend={resending}
+        onClose={() => {
+          setRequesting(false);
+          setResending(null);
+        }}
       />
 
       <div role="tablist" aria-label="Testimonial status" className="tabs tabs-box mb-4 w-fit">
@@ -86,10 +120,63 @@ export default function TestimonialsManager(): React.ReactElement {
             <span className="badge badge-sm">{counts[status]}</span>
           </button>
         ))}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "requests"}
+          className={`tab gap-2 ${tab === "requests" ? "tab-active" : ""}`}
+          onClick={() => setTab("requests")}
+        >
+          Requests
+          <span className="badge badge-sm">{openRequests}</span>
+        </button>
       </div>
 
       <div className="surface overflow-hidden">
-        {isPending ? (
+        {tab === "requests" ? (
+          requestsPending ? (
+            <div className="flex justify-center p-10">
+              <span className="loading loading-spinner" aria-label="Loading requests" />
+            </div>
+          ) : requests.length === 0 ? (
+            <EmptyState
+              icon={PaperAirplaneIcon}
+              title="No requests yet"
+              description="Ask a client for a testimonial about a project. They get a personal page with everything filled in."
+            />
+          ) : (
+            <ul className="divide-y divide-base-300">
+              {requests.map((request) => (
+                <li key={request.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                  <Avatar name={request.clientName} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="font-semibold">{request.clientName}</p>
+                      <span className={`badge badge-sm ${REQUEST_STATUS[request.status].className}`}>{REQUEST_STATUS[request.status].label}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-base-content/70">{request.projectTitle}</p>
+                    <p className="mt-1 text-xs text-base-content/55">
+                      Sent {formatDate(request.createdAt)}
+                      {request.emailedAt ? " · emailed" : ""}
+                      {request.completedAt ? ` · answered ${formatDate(request.completedAt)}` : request.openedAt ? ` · opened ${formatDate(request.openedAt)}` : ""}
+                      {[request.phone, request.email].filter(Boolean).length ? ` · ${[request.phone, request.email].filter(Boolean).join(", ")}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    {request.status !== "completed" && (
+                      <button type="button" className="btn btn-ghost btn-sm border border-base-300" onClick={() => setResending(request)}>
+                        Send again
+                      </button>
+                    )}
+                    <button type="button" className="btn btn-ghost btn-sm text-error" onClick={() => handleDeleteRequest(request)}>
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : isPending ? (
           <div className="flex justify-center p-10">
             <span className="loading loading-spinner" aria-label="Loading testimonials" />
           </div>
@@ -127,6 +214,7 @@ export default function TestimonialsManager(): React.ReactElement {
                   <p className="mt-2 text-xs text-base-content/55">
                     {formatDate(testimonial.createdAt)}
                     {projectTitle(testimonial.projectSlug) ? ` · Project: ${projectTitle(testimonial.projectSlug)}` : " · General"}
+                    {testimonial.requestId ? " · From your request" : ""}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">

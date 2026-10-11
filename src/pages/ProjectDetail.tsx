@@ -1,5 +1,6 @@
+import { lazy, Suspense, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, CodeBracketIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ArrowTopRightOnSquareIcon, CodeBracketIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { useProjects } from "../hooks/useProjects";
 import { useDocumentMeta } from "../hooks/useDocumentMeta";
 import { useApprovedTestimonials } from "../hooks/useTestimonials";
@@ -7,6 +8,11 @@ import { projectThreadId } from "../hooks/useComments";
 import TestimonialCard from "../components/testimonials/TestimonialCard";
 import WriteTestimonial from "../components/testimonials/WriteTestimonial";
 import Comments from "../components/Comments";
+import ShareMenu from "../components/share/ShareMenu";
+import { useAuthStore } from "../stores/authStore";
+import { absoluteUrl, projectShareImage } from "../utils/share";
+
+const RequestTestimonialModal = lazy(() => import("../dashboardUi/RequestTestimonial"));
 
 /** Case-study page for a portfolio project. */
 export default function ProjectDetail(): React.ReactElement {
@@ -15,6 +21,8 @@ export default function ProjectDetail(): React.ReactElement {
   const project = data?.projects.find((item) => item.slug === slug);
   const { data: testimonials = [] } = useApprovedTestimonials();
   const projectTestimonials = testimonials.filter((item) => item.projectSlug === slug);
+  const isAdmin = useAuthStore((state) => state.role === "admin" || state.role === "super_admin");
+  const [requesting, setRequesting] = useState(false);
 
   useDocumentMeta({
     title: project?.title ?? "Project",
@@ -55,7 +63,26 @@ export default function ProjectDetail(): React.ReactElement {
             <CodeBracketIcon className="h-4 w-4" /> View code
           </a>
         )}
+        <ShareMenu
+          title={project.title}
+          summary={project.summary}
+          url={absoluteUrl(`/projects/${project.slug}`)}
+          imageUrl={projectShareImage(project.imageUrl)}
+          buttonClassName="btn btn-ghost gap-2 border border-base-300"
+          label="Share"
+          align="start"
+        />
+        {isAdmin && (
+          <button type="button" className="btn btn-ghost gap-2 border border-base-300" onClick={() => setRequesting(true)}>
+            <PaperAirplaneIcon className="h-4 w-4" /> Request a testimonial
+          </button>
+        )}
       </div>
+      {isAdmin && requesting && (
+        <Suspense fallback={null}>
+          <RequestTestimonialModal open projectSlug={project.slug} onClose={() => setRequesting(false)} />
+        </Suspense>
+      )}
       {project.imageUrl && (
         <img src={project.imageUrl} alt={`Screenshot of ${project.title}`} className="mt-10 w-full rounded-2xl border border-base-300 shadow-lg" />
       )}

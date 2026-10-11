@@ -124,3 +124,11 @@ Recommended one-time settings in the Firebase Console:
 - **App Check** (optional, free with reCAPTCHA v3) makes it harder for
   scripts to write to Firestore directly, e.g. spamming the contact form.
   It needs a reCAPTCHA site key and a small change in `src/firebaseconfig.ts`.
+
+## 5. Sharing and testimonial requests
+
+- **Request a testimonial** (Dashboard → Testimonials, the chat icon on a project in Dashboard → Projects, or a project page while signed in as admin): pick the project, add the client's name and their WhatsApp number and/or email, and an optional note. The client gets a personal page (`/testimonial/<token>`) with their name, contact and project filled in. The link works once and needs no account. Send it by email from the site (with the project picture), by WhatsApp straight to their number, or through any app with the picture attached. Track it under Testimonials → Requests (Sent → Opened → Answered).
+- **Send a post** (paper-plane icon in Dashboard → Posts, or on the post itself): the same options, with the post's cover image, summary and your note.
+- **Link previews**: shared links to posts, projects and testimonial requests show a card with the image and title on WhatsApp, LinkedIn, X and others. Project cards use the 1200×630 images in `public/project-images/og/`.
+
+Emailing from the site uses the Gmail settings from step 2. Without them, use WhatsApp or "Send from my email". Redeploy `firestore.rules` after updating (it adds `testimonialRequests`).

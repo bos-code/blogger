@@ -11,7 +11,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { deleteDoc, deleteField, doc, getDoc, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 
 let env: RulesTestEnvironment;
 const OWNER_EMAIL = "chidera9713@gmail.com";
@@ -175,6 +175,16 @@ describe("testimonials", () => {
     await assertFails(getDoc(doc(as("alice"), "testimonialContacts/p1")));
     await assertFails(setDoc(doc(as("alice"), "testimonialContacts/x"), { contact: "x" }));
     await assertSucceeds(getDoc(doc(as("adam"), "testimonialContacts/p1")));
+  });
+
+  test("testimonial requests are admin-only and written by the server", async () => {
+    await seed("testimonialRequests/tok1", { clientName: "Ada", projectSlug: "x", status: "sent" });
+    await assertFails(getDoc(doc(anon(), "testimonialRequests/tok1")));
+    await assertFails(getDocs(collection(as("alice"), "testimonialRequests")));
+    await assertFails(setDoc(doc(as("adam"), "testimonialRequests/tok2"), { clientName: "x" }));
+    await assertFails(updateDoc(doc(as("adam"), "testimonialRequests/tok1"), { status: "completed" }));
+    await assertSucceeds(getDocs(collection(as("adam"), "testimonialRequests")));
+    await assertSucceeds(deleteDoc(doc(as("adam"), "testimonialRequests/tok1")));
   });
 
   test("clients can't fake admin alerts", async () => {

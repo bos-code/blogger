@@ -42,6 +42,7 @@ export interface PublicPost {
   seoTitle?: string | null;
   seoDescription?: string | null;
   coverImage?: string | null;
+  coverImageAlt?: string | null;
   authorName?: string | null;
   category?: string | null;
   tags?: string[];
@@ -113,4 +114,31 @@ export const toPlainText = (html: string): string =>
 export const describePost = (post: PublicPost, max = 200): string => {
   const text = post.seoDescription || post.excerpt || toPlainText(post.content ?? "");
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+};
+
+export interface PublicProject {
+  title: string;
+  slug: string;
+  summary?: string;
+  imageUrl?: string | null;
+}
+
+export const fetchPublicProject = async (slug: string): Promise<PublicProject | null> => {
+  if (!projectId() || !/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  const response = await fetch(`${baseUrl()}:runQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "projects" }],
+        where: { fieldFilter: { field: { fieldPath: "slug" }, op: "EQUAL", value: { stringValue: slug } } },
+        limit: 1,
+      },
+    }),
+  });
+  if (!response.ok) return null;
+  const rows = (await response.json()) as Array<{ document?: { fields: Record<string, FirestoreValue> } }>;
+  const doc = rows.find((row) => row.document)?.document;
+  if (!doc) return null;
+  return Object.fromEntries(Object.entries(doc.fields).map(([k, v]) => [k, fromValue(v)])) as unknown as PublicProject;
 };

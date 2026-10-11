@@ -12,15 +12,25 @@ import {
 import { showSuccess } from "../../utils/sweetalert";
 import { whatsappLink } from "../../data/site";
 
-function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone: () => void }) {
+export function TestimonialForm({
+  projectSlug,
+  onDone,
+  invite,
+}: {
+  projectSlug?: string;
+  /** Called after a successful submission, and on Cancel (when there is one). */
+  onDone: () => void;
+  /** Answering a personal request: name and contact are prefilled and the project is fixed. */
+  invite?: { token: string; name: string; contact: string; projectSlug: string; projectTitle: string };
+}) {
   const ids = { name: useId(), contact: useId(), project: useId(), title: useId(), content: useId(), website: useId() };
   const user = useAuthStore((state) => state.user);
   const { data } = useProjects();
   const submit = useSubmitTestimonial();
-  const [name, setName] = useState(user?.name ?? "");
-  const [contact, setContact] = useState(user?.email ?? "");
+  const [name, setName] = useState(invite?.name ?? user?.name ?? "");
+  const [contact, setContact] = useState(invite?.contact ?? user?.email ?? "");
   const [website, setWebsite] = useState("");
-  const [project, setProject] = useState(projectSlug ?? "");
+  const [project, setProject] = useState(invite?.projectSlug ?? projectSlug ?? "");
   const [title, setTitle] = useState("");
   const [rating, setRating] = useState<number | null>(5);
   const [content, setContent] = useState("");
@@ -30,9 +40,18 @@ function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone
     event.preventDefault();
     setError(null);
     try {
-      await submit.mutateAsync({ name, contact, content, authorTitle: title, projectSlug: project || null, rating, website });
+      await submit.mutateAsync({
+        name,
+        contact,
+        content,
+        authorTitle: title,
+        projectSlug: project || null,
+        rating,
+        website,
+        requestToken: invite?.token,
+      });
       onDone();
-      showSuccess("Thank you!", "Your testimonial will appear once it's approved.");
+      if (!invite) showSuccess("Thank you!", "Your testimonial will appear once it's approved.");
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "That didn't work. Please try again."
@@ -82,19 +101,25 @@ function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone
         <label htmlFor={ids.website}>Website</label>
         <input id={ids.website} tabIndex={-1} autoComplete="off" value={website} onChange={(event) => setWebsite(event.target.value)} />
       </div>
-      <div>
-        <label htmlFor={ids.project} className="field-label">
-          Project
-        </label>
-        <select id={ids.project} className="select w-full" value={project} onChange={(event) => setProject(event.target.value)}>
-          <option value="">General (not about one project)</option>
-          {(data?.projects ?? []).map((item) => (
-            <option key={item.slug} value={item.slug}>
-              {item.title}
-            </option>
-          ))}
-        </select>
-      </div>
+      {invite ? (
+        <p className="text-sm text-base-content/70">
+          Project: <span className="font-semibold text-base-content">{invite.projectTitle}</span>
+        </p>
+      ) : (
+        <div>
+          <label htmlFor={ids.project} className="field-label">
+            Project
+          </label>
+          <select id={ids.project} className="select w-full" value={project} onChange={(event) => setProject(event.target.value)}>
+            <option value="">General (not about one project)</option>
+            {(data?.projects ?? []).map((item) => (
+              <option key={item.slug} value={item.slug}>
+                {item.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label htmlFor={ids.title} className="field-label">
           Your role and company (optional)
@@ -140,9 +165,11 @@ function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone
         </p>
       )}
       <div className="flex justify-end gap-2">
-        <button type="button" className="btn btn-ghost" onClick={onDone} disabled={submit.isPending}>
-          Cancel
-        </button>
+        {!invite && (
+          <button type="button" className="btn btn-ghost" onClick={onDone} disabled={submit.isPending}>
+            Cancel
+          </button>
+        )}
         <button
           type="submit"
           className="btn btn-primary"

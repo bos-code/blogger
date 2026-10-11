@@ -338,6 +338,13 @@ service cloud.firestore {
         (isAuthenticated() && resource.data.get('authorId', null) == request.auth.uid);
     }
 
+    // Personal testimonial requests sent to clients (created by the API; the
+    // document id is the secret token in the client's link).
+    match /testimonialRequests/{token} {
+      allow read, delete: if isAdmin();
+      allow create, update: if false;
+    }
+
     // Private contact details for each testimonial (written by the API).
     match /testimonialContacts/{testimonialId} {
       allow read, delete: if isAdmin();

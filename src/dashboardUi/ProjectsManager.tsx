@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { BriefcaseIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { BriefcaseIcon, ChatBubbleLeftEllipsisIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
   matchesBuiltInList,
   useDeleteProject,
@@ -14,6 +14,7 @@ import { FALLBACK_PROJECTS } from "../data/projects";
 import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
 import Modal from "../components/ui/Modal";
+import RequestTestimonialModal from "./RequestTestimonial";
 import TagInput from "../components/ui/TagInput";
 import { slugify } from "../utils/posts";
 import { showConfirm, showDeleteConfirm, showError, showSuccess } from "../utils/sweetalert";
@@ -155,6 +156,7 @@ export default function ProjectsManager(): React.ReactElement {
   const deleteProject = useDeleteProject();
   const replaceProjects = useReplaceWithBuiltInProjects();
   const [editing, setEditing] = useState<{ id?: string; data: ProjectInput } | null>(null);
+  const [requestFor, setRequestFor] = useState<string | null>(null);
   const projects = data?.fromDatabase ? data.projects : [];
   const outOfSync = projects.length > 0 && !matchesBuiltInList(projects);
 
@@ -248,6 +250,15 @@ export default function ProjectsManager(): React.ReactElement {
                   </p>
                   <p className="truncate text-sm text-base-content/60">{project.summary}</p>
                 </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm btn-square text-primary"
+                  aria-label={`Request a testimonial for ${project.title}`}
+                  title="Request a testimonial"
+                  onClick={() => setRequestFor(project.slug)}
+                >
+                  <ChatBubbleLeftEllipsisIcon className="h-4 w-4" />
+                </button>
                 <button type="button" className="btn btn-ghost btn-sm btn-square" aria-label={`Edit ${project.title}`} onClick={() => setEditing({ id: project.id, data: toInput(project) })}>
                   <PencilIcon className="h-4 w-4" />
                 </button>
@@ -276,6 +287,7 @@ export default function ProjectsManager(): React.ReactElement {
       <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing?.id ? "Edit project" : "Add project"} size="lg">
         {editing && <ProjectForm initial={editing} onDone={() => setEditing(null)} />}
       </Modal>
+      <RequestTestimonialModal open={requestFor !== null} projectSlug={requestFor ?? undefined} onClose={() => setRequestFor(null)} />
     </div>
   );
 }

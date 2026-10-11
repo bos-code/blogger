@@ -10,6 +10,7 @@ import {
   StarIcon,
   DocumentTextIcon,
   PlusIcon,
+  PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import {
@@ -23,6 +24,7 @@ import {
 import { useAuthStore } from "../stores/authStore";
 import PremiumSpinner from "../components/PremiumSpinner";
 import PageHeader from "../components/ui/PageHeader";
+import SendPostModal from "./SendPost";
 import StatusBadge from "../components/ui/StatusBadge";
 import EmptyState from "../components/ui/EmptyState";
 import {
@@ -62,6 +64,7 @@ export default function Post(): React.ReactElement {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [sending, setSending] = useState<BlogPost | null>(null);
 
   // Admins manage every post; writers manage only their own.
   const managedPosts = useMemo(
@@ -273,6 +276,17 @@ export default function Post(): React.ReactElement {
               <XCircleIcon className="h-5 w-5" />
             </button>
           </>
+        )}
+        {isAdmin && post.status === "approved" && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-square text-primary"
+            onClick={() => setSending(post)}
+            aria-label={`Send "${post.title}" to someone`}
+            title="Send to someone"
+          >
+            <PaperAirplaneIcon className="h-4 w-4" />
+          </button>
         )}
         {isAdmin && post.status === "approved" && (
           <button
@@ -498,6 +512,7 @@ export default function Post(): React.ReactElement {
           </>
         )}
       </div>
+      <SendPostModal post={sending} onClose={() => setSending(null)} />
     </div>
   );
 }

@@ -34,3 +34,10 @@ playwright-report
 
 # Firebase emulator logs
 *-debug.log
+
+# tsc -b output for the Vite config
+vite.config.js
+vite.config.d.ts
+vite.apiDevServer.js
+vite.apiDevServer.d.ts
+tsconfig.tsbuildinfo

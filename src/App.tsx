@@ -27,6 +27,7 @@ const LegalPage = lazy(() => import("./pages/LegalPage"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const PreviewPage = lazy(() => import("./pages/PreviewPage"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const TestimonialRequestPage = lazy(() => import("./pages/TestimonialRequestPage"));
 
 function App(): React.ReactElement {
   const initAuth = useAuthStore((state) => state.initAuth);
@@ -72,6 +73,7 @@ function App(): React.ReactElement {
           <Route path="/blog/:id/:slug?" element={<BlogPostDetail />} />
           <Route path="/author/:authorId" element={<AuthorPage />} />
           <Route path="/projects/:slug" element={<ProjectDetail />} />
+          <Route path="/testimonial/:token" element={<TestimonialRequestPage />} />
           <Route path="/preview/:id" element={<PreviewPage />} />
           <Route path="/subscribe/confirm" element={<SubscriptionPage action="confirm" />} />
           <Route path="/unsubscribe" element={<SubscriptionPage action="unsubscribe" />} />

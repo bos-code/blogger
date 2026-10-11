@@ -104,8 +104,43 @@ export interface Testimonial {
   rating?: number | null;
   content: string;
   status: TestimonialStatus;
+  /** Set when it answers a personal request (TestimonialRequest id). */
+  requestId?: string | null;
   createdAt?: DateValue;
   reviewedAt?: DateValue;
+}
+
+export type TestimonialRequestStatus = "sent" | "opened" | "completed";
+
+/** A personal request asking a client for a testimonial about one project. */
+export interface TestimonialRequest {
+  /** Also the secret token in the client's link. */
+  id: string;
+  clientName: string;
+  email?: string | null;
+  phone?: string | null;
+  note?: string | null;
+  projectSlug: string;
+  projectTitle: string;
+  projectImage?: string | null;
+  status: TestimonialRequestStatus;
+  createdAt?: DateValue;
+  emailedAt?: DateValue | null;
+  openedAt?: DateValue | null;
+  completedAt?: DateValue | null;
+  testimonialId?: string | null;
+}
+
+/** What the client's request page shows (from GET /api/testimonial?request=). */
+export interface TestimonialRequestInvite {
+  clientName: string;
+  contact: string;
+  projectSlug: string;
+  projectTitle: string;
+  projectImage: string | null;
+  note: string | null;
+  from: string;
+  completed: boolean;
 }
 
 export interface Project {

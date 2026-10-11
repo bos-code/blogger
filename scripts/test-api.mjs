@@ -147,6 +147,64 @@ await check("testimonial: anyone can submit; contact stays private", async () =>
   assert.equal((await send(good)).status, 429);
 });
 
+await check("testimonial requests: admin-only, personal link works once", async () => {
+  const { POST: submit, GET: invite } = await load("testimonial");
+  const { getApps } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const db = getFirestore(getApps()[0]);
+  const request = { action: "request", clientName: "Ada Obi", email: "ada@example.com", phone: "0803 555 1234", projectSlug: "forkify", projectTitle: "Forkify", projectImage: "/project-images/forkify.webp" };
+
+  assert.equal((await submit(post("testimonial", request))).status, 403);
+  const signIn = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "admin@example.com", password: "password123", returnSecureToken: true }),
+  }).then((r) => r.json());
+  const auth = { Authorization: `Bearer ${signIn.idToken}` };
+  assert.equal((await submit(post("testimonial", { ...request, projectImage: "javascript:alert(1)" }, auth))).status, 400);
+  const created = await submit(post("testimonial", request, auth));
+  const { id, url, emailed } = await created.json();
+  assert.equal(created.status, 200);
+  assert.equal(emailed, true);
+  assert.equal(url, `https://example.test/testimonial/${id}`);
+
+  assert.equal((await invite(new Request("https://example.test/api/testimonial?request=nope"))).status, 404);
+  const opened = await (await invite(new Request(`https://example.test/api/testimonial?request=${id}`))).json();
+  assert.equal(opened.clientName, "Ada Obi");
+  assert.equal(opened.contact, "ada@example.com");
+  assert.equal((await db.collection("testimonialRequests").doc(id).get()).get("status"), "opened");
+
+  // Answering uses the request's project, skips the IP limit, and works once.
+  const answer = { name: "Ada Obi", contact: "ada@example.com", content: "Brilliant to work with, highly recommended.", projectSlug: "other", requestToken: id };
+  const response = await submit(post("testimonial", answer));
+  assert.equal(response.status, 200);
+  const testimonial = await db.collection("testimonials").doc((await response.json()).id).get();
+  assert.equal(testimonial.get("projectSlug"), "forkify");
+  assert.equal(testimonial.get("requestId"), id);
+  assert.equal((await db.collection("testimonialRequests").doc(id).get()).get("status"), "completed");
+  assert.equal((await submit(post("testimonial", answer))).status, 409);
+  assert.equal((await submit(post("testimonial", { ...answer, requestToken: "x".repeat(22) }))).status, 404);
+
+  // Link previews show the project picture, never the client's details.
+  const html = await (await (await load("share")).GET(new Request(`https://example.test/api/share?request=${id}`))).text();
+  assert.match(html, /og:image" content="https:\/\/example\.test\/project-images\/og\/forkify\.jpg"/);
+  assert.doesNotMatch(html, /ada@example\.com|Ada/);
+});
+
+await check("share: sending a post by email is admin-only", async () => {
+  const { POST: send } = await load("share");
+  assert.equal((await send(post("share", { postId: "use-effect", email: "kemi@example.com" }))).status, 403);
+  const signIn = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: "admin@example.com", password: "password123", returnSecureToken: true }),
+  }).then((r) => r.json());
+  const auth = { Authorization: `Bearer ${signIn.idToken}` };
+  assert.equal((await send(post("share", { postId: "writer-draft", email: "kemi@example.com" }, auth))).status, 400);
+  const response = await send(post("share", { postId: "use-effect", name: "Kemi", email: "kemi@example.com", note: "Thought of you" }, auth));
+  assert.equal(response.status, 200, await response.clone().text());
+});
+
 await check("notify-subscribers rejects non-admins", async () => {
   const response = await (await load("notify-subscribers")).POST(post("notify-subscribers", { postId: "use-effect" }));
   assert.equal(response.status, 403);

@@ -61,6 +61,8 @@ export interface TestimonialInput {
   rating?: number | null;
   /** Honeypot field; real people leave it empty. */
   website?: string;
+  /** Token from a personal request link, when answering one. */
+  requestToken?: string;
 }
 
 /**
@@ -92,10 +94,14 @@ export const useSubmitTestimonial = () => {
           projectSlug: input.projectSlug || null,
           rating: input.rating ?? null,
           website: input.website ?? "",
+          ...(input.requestToken ? { requestToken: input.requestToken } : {}),
         },
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["testimonials"] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["testimonials"] });
+      void queryClient.invalidateQueries({ queryKey: ["testimonialRequests"] });
+    },
   });
 };
 

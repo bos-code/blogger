@@ -1,6 +1,9 @@
-import { BookmarkIcon, LinkIcon, ShareIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
+import { BookmarkIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
 import { LikeButton } from "../BlogPostCard";
+import ShareMenu from "../share/ShareMenu";
+import SendPostModal from "../../dashboardUi/SendPost";
 import { useBookmarks, useToggleBookmark } from "../../hooks/useBookmarks";
 import { useAuthStore } from "../../stores/authStore";
 import { showToast } from "../../utils/sweetalert";
@@ -16,6 +19,8 @@ export default function PostActions({
 }): React.ReactElement {
   const user = useAuthStore((state) => state.user);
   const emailVerified = useAuthStore((state) => state.emailVerified);
+  const isAdmin = useAuthStore((state) => state.role === "admin" || state.role === "super_admin");
+  const [sending, setSending] = useState(false);
   const { data: bookmarks = [] } = useBookmarks();
   const toggleBookmark = useToggleBookmark();
   const saved = bookmarks.includes(post.id);
@@ -31,27 +36,6 @@ export default function PostActions({
         onError: () => void showToast("error", "Couldn't update saved posts"),
       }
     );
-  };
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      void showToast("success", "Link copied");
-    } catch {
-      void showToast("error", "Couldn't copy the link");
-    }
-  };
-
-  const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: post.title, url });
-      } catch {
-        // Share sheet dismissed.
-      }
-    } else {
-      await copyLink();
-    }
   };
 
   const buttonClass = "btn btn-ghost btn-sm btn-circle";
@@ -74,12 +58,22 @@ export default function PostActions({
       >
         {saved ? <BookmarkSolidIcon className="h-5 w-5 text-primary" /> : <BookmarkIcon className="h-5 w-5" />}
       </button>
-      <button type="button" className={buttonClass} onClick={() => void share()} aria-label="Share" title="Share">
-        <ShareIcon className="h-5 w-5" />
-      </button>
-      <button type="button" className={buttonClass} onClick={() => void copyLink()} aria-label="Copy link" title="Copy link">
-        <LinkIcon className="h-5 w-5" />
-      </button>
+      <ShareMenu
+        title={post.title}
+        summary={post.excerpt || post.seoDescription}
+        url={url}
+        imageUrl={post.coverImage}
+        buttonClassName={buttonClass}
+        align={layout === "column" ? "right" : "center"}
+      />
+      {isAdmin && post.status === "approved" && (
+        <>
+          <button type="button" className={buttonClass} onClick={() => setSending(true)} aria-label="Send to someone" title="Send to someone">
+            <PaperAirplaneIcon className="h-5 w-5" />
+          </button>
+          <SendPostModal post={sending ? post : null} onClose={() => setSending(false)} />
+        </>
+      )}
     </div>
   );
 }
