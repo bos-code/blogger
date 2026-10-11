@@ -1,36 +1,30 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { readAdminCredentials } from "./adminCredentials.js";
 
 /**
- * Initialises the Admin SDK from FIREBASE_SERVICE_ACCOUNT (the service
- * account JSON). With FIRESTORE_EMULATOR_HOST set, the emulators are used
- * and no credentials are needed.
+ * Initialises the Admin SDK from the credentials in the environment (see
+ * adminCredentials.ts). With FIRESTORE_EMULATOR_HOST set, the emulators are
+ * used and no credentials are needed.
  */
 const getApp = (): App => {
   const existing = getApps()[0];
   if (existing) return existing;
 
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "demo-blogger";
-
   if (process.env.FIRESTORE_EMULATOR_HOST) {
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "demo-blogger";
     return initializeApp({ projectId });
   }
 
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  if (!raw) {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT is not configured.");
+  const credentials = readAdminCredentials(process.env);
+  if (!credentials) {
+    throw new Error(
+      "Firebase Admin credentials are not configured (FIREBASE_SERVICE_ACCOUNT, or FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY)."
+    );
   }
-  const serviceAccount = JSON.parse(raw) as { project_id: string; client_email: string; private_key: string };
-  return initializeApp({
-    credential: cert({
-      projectId: serviceAccount.project_id,
-      clientEmail: serviceAccount.client_email,
-      privateKey: serviceAccount.private_key.replace(/\\n/g, "\n"),
-    }),
-    projectId: serviceAccount.project_id,
-  });
+  return initializeApp({ credential: cert(credentials), projectId: credentials.projectId });
 };
 
 export const adminDb = () => getFirestore(getApp());

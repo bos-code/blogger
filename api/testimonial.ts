@@ -3,6 +3,7 @@ import { adminDb, getCaller } from "./_lib/firebaseAdmin.js";
 import { isEmailConfigured, ownerEmail, sendMail } from "./_lib/mail.js";
 import { EMAIL_PATTERN, errorResponse, json, readJson, siteUrl } from "./_lib/http.js";
 import { clientIp, rateLimit } from "./_lib/rateLimit.js";
+import { isAdminConfigured } from "./_lib/adminCredentials.js";
 
 /** Submissions allowed per IP address per hour. */
 const IP_LIMIT = 3;
@@ -27,7 +28,7 @@ interface Body {
  * separately in an admin-only collection so they are never made public.
  */
 export async function POST(request: Request): Promise<Response> {
-  if (!process.env.FIREBASE_SERVICE_ACCOUNT && !process.env.FIRESTORE_EMULATOR_HOST) {
+  if (!isAdminConfigured(process.env)) {
     return errorResponse(
       "Testimonials can't be submitted on this site yet. Please send yours to me on WhatsApp instead.",
       503

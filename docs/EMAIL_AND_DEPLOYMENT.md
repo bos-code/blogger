@@ -34,9 +34,17 @@ subscriptions aren't set up yet and alerts are skipped.
 ### Firebase service account
 
 1. Firebase Console → Project settings → Service accounts → **Generate new
-   private key**.
-2. Paste the whole JSON file as a single-line value of
-   `FIREBASE_SERVICE_ACCOUNT` in Vercel. Keep this file private.
+   private key**. Keep this file private.
+2. In Vercel, add the credentials in **one** of these ways:
+   - **Three separate values** (easiest, works on a phone). Open the file and
+     copy each value *between the quotes*:
+     - `FIREBASE_CLIENT_EMAIL` ← `client_email`
+       (ends in `.iam.gserviceaccount.com`)
+     - `FIREBASE_PRIVATE_KEY` ← `private_key`, from `-----BEGIN PRIVATE KEY-----`
+       to `-----END PRIVATE KEY-----` (the `\n` bits can stay as they are)
+     - the project ID is taken from `VITE_FIREBASE_PROJECT_ID`, which you
+       already have (or set `FIREBASE_PROJECT_ID`).
+   - **Or the whole file** as `FIREBASE_SERVICE_ACCOUNT`.
 
 Redeploy after adding variables.
 
