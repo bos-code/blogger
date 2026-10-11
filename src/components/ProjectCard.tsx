@@ -14,7 +14,7 @@ function ProjectCard({ project }: { project: Project }): React.ReactElement {
             alt={`Screenshot of ${project.title}`}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <ProjectCover project={project} />
