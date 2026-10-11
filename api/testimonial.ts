@@ -27,6 +27,12 @@ interface Body {
  * separately in an admin-only collection so they are never made public.
  */
 export async function POST(request: Request): Promise<Response> {
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT && !process.env.FIRESTORE_EMULATOR_HOST) {
+    return errorResponse(
+      "Testimonials can't be submitted on this site yet. Please send yours to me on WhatsApp instead.",
+      503
+    );
+  }
   const body = await readJson<Body>(request);
   if (!body) return errorResponse("Invalid request.");
   // Bots that fill the hidden field get a normal-looking success and nothing is saved.

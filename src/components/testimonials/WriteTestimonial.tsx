@@ -10,6 +10,7 @@ import {
   useSubmitTestimonial,
 } from "../../hooks/useTestimonials";
 import { showSuccess } from "../../utils/sweetalert";
+import { whatsappLink } from "../../data/site";
 
 function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone: () => void }) {
   const ids = { name: useId(), contact: useId(), project: useId(), title: useId(), content: useId(), website: useId() };
@@ -127,7 +128,15 @@ function TestimonialForm({ projectSlug, onDone }: { projectSlug?: string; onDone
       </div>
       {error && (
         <p role="alert" className="rounded-lg bg-error/10 px-3 py-2 text-sm text-error">
-          {error}
+          {error}{" "}
+          <a
+            href={whatsappLink(`Hi Chidera, here's my testimonial:\n\n${content.trim()}`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link font-semibold"
+          >
+            Send it on WhatsApp
+          </a>
         </p>
       )}
       <div className="flex justify-end gap-2">
