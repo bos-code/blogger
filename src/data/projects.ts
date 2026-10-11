@@ -13,6 +13,8 @@ import timeTableMockup from "../assets/projects/time-table.webp";
 import mathExamEditorMockup from "../assets/projects/math-exam-editor.webp";
 import streamvibeMockup from "../assets/projects/streamvibe.webp";
 import banqueeMockup from "../assets/projects/banquee.webp";
+import reggzMockup from "../assets/projects/316-reggz.webp";
+import fastUiMockup from "../assets/projects/fast-ui.webp";
 import type { Project } from "../types";
 
 /**
@@ -80,6 +82,21 @@ A separate admin dashboard (React, Vite and Firebase) lets the spa confirm, canc
     order: 4,
   },
   {
+    id: "316-reggz",
+    slug: "316-reggz",
+    title: "316 REGGZ",
+    imageUrl: reggzMockup,
+    summary: "Image-led portfolio for an independent Lagos creative studio, built like an album rather than a filing cabinet.",
+    description: `316 REGGZ is a creative studio in Lagos working across design, motion, branding and visual direction. The website puts the artwork first: large images, typography with attitude, and motion as part of the storytelling.
+
+At its centre is the Album, a growing archive of music artwork, brand identities, campaign visuals and motion work, with a page for each project, plus company, works and contact pages.
+
+Built with Next.js, TypeScript and Sass, with GSAP animation, Swiper carousels and a masonry gallery, statically generated for speed.`,
+    liveUrl: "https://316-reggz-website.vercel.app",
+    tech: ["Next.js", "TypeScript", "Sass", "GSAP", "Swiper"],
+    order: 5,
+  },
+  {
     id: "blogger",
     slug: "blogger",
     title: "Portfolio & Publishing CMS",
@@ -92,7 +109,7 @@ Firebase handles auth, Firestore and storage, with permissions enforced by secur
 Quality is covered by unit tests, API checks against the Firebase emulators and Playwright end-to-end tests on desktop and mobile in CI.`,
     repoUrl: "https://github.com/bos-code/blogger",
     tech: ["React 19", "TypeScript", "Firebase", "TipTap", "TanStack Query", "Playwright"],
-    order: 5,
+    order: 6,
   },
   {
     id: "finance-tracker",
@@ -107,7 +124,7 @@ Transactions can be captured offline; changes are queued and synced to Supabase 
 Supabase Auth handles accounts and password resets, and the app is protected by a secure PIN with optional biometrics.`,
     repoUrl: "https://github.com/bos-code/finance_tracker",
     tech: ["React Native", "Expo", "Supabase", "TanStack Query", "NativeWind"],
-    order: 6,
+    order: 7,
   },
   {
     id: "chinel-media",
@@ -121,7 +138,7 @@ The home page uses interactive 3D scenes built with Three.js and React Three Fib
 
 Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React Hook Form and Zod.`,
     tech: ["Next.js", "Three.js", "React Three Fiber", "GSAP", "TypeScript"],
-    order: 7,
+    order: 8,
   },
   {
     id: "derashare",
@@ -137,7 +154,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     liveUrl: "https://derashare.vercel.app",
     repoUrl: "https://github.com/bos-code/Derashare",
     tech: ["Next.js", "TypeScript", "WebSockets", "Node.js", "PWA"],
-    order: 8,
+    order: 9,
   },
   {
     id: "starlite-tools",
@@ -152,7 +169,7 @@ The catalogue has 193 statically generated product pages, search, category, bran
 Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     repoUrl: "https://github.com/bos-code/starlight",
     tech: ["Next.js", "React 19", "TypeScript", "Tailwind CSS"],
-    order: 9,
+    order: 10,
   },
   {
     id: "ventum",
@@ -167,7 +184,7 @@ Visitors browse brands and products and send enquiries. Staff sign in to an admi
 A scheduled GitHub Action sends an activity report so the business sees new enquiries without logging in. Built with Next.js server actions and GSAP animation.`,
     repoUrl: "https://github.com/bos-code/ventum-automation",
     tech: ["Next.js", "TypeScript", "Appwrite", "GSAP", "GitHub Actions"],
-    order: 10,
+    order: 11,
   },
   {
     id: "dera-library",
@@ -182,7 +199,7 @@ A custom native module walks shared storage when all-files access is granted, wi
 Built with Expo Router, React Native, Reanimated and FlashList.`,
     repoUrl: "https://github.com/bos-code/Dera_library",
     tech: ["React Native", "Expo", "SQLite", "Kotlin module"],
-    order: 11,
+    order: 12,
   },
   {
     id: "time-table",
@@ -195,7 +212,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
 A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher and class clashes and spreads lessons across the week. The React + Vite front end handles data entry, validation and the generated timetable.`,
     repoUrl: "https://github.com/bos-code/time-table",
     tech: ["React", "FastAPI", "OR-Tools", "Material UI", "Tailwind CSS"],
-    order: 12,
+    order: 13,
   },
   {
     id: "math-exam-editor",
@@ -208,7 +225,23 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 13,
+    order: 14,
+  },
+  {
+    id: "fast-ui",
+    slug: "fast-ui",
+    title: "FastUI",
+    imageUrl: fastUiMockup,
+    summary: "Dark, animated agency landing page with a swipeable work gallery, pricing, FAQ and contact sections.",
+    description: `FastUI is a responsive landing page for a design agency, with a glassmorphism navigation bar, a gradient hero, and sections for services, a work gallery, pricing, FAQs and contact.
+
+The work gallery is a SwiperJS carousel that adapts from desktop to touch-friendly swiping on phones, and GSAP drives the entrance animations.
+
+Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
+    liveUrl: "https://fast-ui-murex.vercel.app",
+    repoUrl: "https://github.com/bos-code/fast-ui",
+    tech: ["Tailwind CSS", "SwiperJS", "GSAP", "Vite"],
+    order: 15,
   },
   {
     id: "streamvibe",
@@ -219,7 +252,7 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 14,
+    order: 16,
   },
   {
     id: "banquee",
@@ -230,6 +263,6 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 15,
+    order: 17,
   },
 ];
