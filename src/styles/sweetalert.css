@@ -5,11 +5,23 @@
   z-index: 9999 !important;
 }
 
-.swal2-container.swal2-backdrop-show {
+.swal2-container.swal2-backdrop-show:not(:has(.swal2-toast)) {
   background-color: color-mix(in oklab, var(--color-base-300) 55%, transparent) !important;
   /* Blur behind the dialog without touching the app's own layout or fixed elements. */
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
+}
+
+/* Toasts sit in a full-height corner container: keep it invisible and let clicks through. */
+.swal2-container:has(.swal2-toast) {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  pointer-events: none;
+}
+
+.swal2-container:has(.swal2-toast) .swal2-toast {
+  pointer-events: auto;
 }
 
 .swal2-popup.swal-popup {

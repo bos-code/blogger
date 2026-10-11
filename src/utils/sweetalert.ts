@@ -40,6 +40,7 @@ const mergeCustomClass = (
  */
 const Toast = Swal.mixin({
   toast: true,
+  backdrop: false,
   position: "top-end",
   showConfirmButton: false,
   showCloseButton: true,
