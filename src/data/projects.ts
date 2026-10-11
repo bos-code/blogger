@@ -2,7 +2,6 @@ import yakoyoKitchenMockup from "../assets/projects/yakoyo-kitchen.webp";
 import studyproMockup from "../assets/projects/studypro.webp";
 import tissageDeLohMockup from "../assets/projects/tissage-de-loh.webp";
 import veloriaEssenceSpaMockup from "../assets/projects/veloria-essence-spa.webp";
-import moidoctarMockup from "../assets/projects/moidoctar.webp";
 import bloggerMockup from "../assets/projects/blogger.webp";
 import financeTrackerMockup from "../assets/projects/finance-tracker.webp";
 import chinelMediaMockup from "../assets/projects/chinel-media.webp";
@@ -81,22 +80,6 @@ A separate admin dashboard (React, Vite and Firebase) lets the spa confirm, canc
     order: 4,
   },
   {
-    id: "moidoctar",
-    slug: "moidoctar",
-    title: "MoiDoctar",
-    imageUrl: moidoctarMockup,
-    summary: "AI-assisted health triage: describe symptoms on an interactive body map, get guidance, track medication and find real care nearby.",
-    description: `MoiDoctar helps people make sense of symptoms before they reach a clinic. Users pinpoint pain on an interactive body map, answer a guided triage flow and get an AI-assisted assessment, then keep a history of symptoms and medication reminders.
-
-The React + TypeScript front end talks to a FastAPI backend with endpoints for auth, triage, symptoms, medication, support and an admin area. AI requests go through an LLM gateway with request logging and cost tracking, and fall back gracefully when it is unavailable.
-
-Nearby Care uses the browser's location and the OpenStreetMap Overpass API to list real hospitals, clinics and pharmacies sorted by distance, and notifications are stored as real events rather than seeded data.`,
-    liveUrl: "https://moidoctar8.pxxlspace.cv",
-    repoUrl: "https://github.com/MOI-DOCTAR-ORG/moidoctar",
-    tech: ["React", "TypeScript", "FastAPI", "Python", "TanStack Query", "Tailwind CSS"],
-    order: 5,
-  },
-  {
     id: "blogger",
     slug: "blogger",
     title: "Portfolio & Publishing CMS",
@@ -109,7 +92,7 @@ Firebase handles auth, Firestore and storage, with permissions enforced by secur
 Quality is covered by unit tests, API checks against the Firebase emulators and Playwright end-to-end tests on desktop and mobile in CI.`,
     repoUrl: "https://github.com/bos-code/blogger",
     tech: ["React 19", "TypeScript", "Firebase", "TipTap", "TanStack Query", "Playwright"],
-    order: 6,
+    order: 5,
   },
   {
     id: "finance-tracker",
@@ -124,7 +107,7 @@ Transactions can be captured offline; changes are queued and synced to Supabase 
 Supabase Auth handles accounts and password resets, and the app is protected by a secure PIN with optional biometrics.`,
     repoUrl: "https://github.com/bos-code/finance_tracker",
     tech: ["React Native", "Expo", "Supabase", "TanStack Query", "NativeWind"],
-    order: 7,
+    order: 6,
   },
   {
     id: "chinel-media",
@@ -138,7 +121,7 @@ The home page uses interactive 3D scenes built with Three.js and React Three Fib
 
 Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React Hook Form and Zod.`,
     tech: ["Next.js", "Three.js", "React Three Fiber", "GSAP", "TypeScript"],
-    order: 8,
+    order: 7,
   },
   {
     id: "derashare",
@@ -154,7 +137,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     liveUrl: "https://derashare.vercel.app",
     repoUrl: "https://github.com/bos-code/Derashare",
     tech: ["Next.js", "TypeScript", "WebSockets", "Node.js", "PWA"],
-    order: 9,
+    order: 8,
   },
   {
     id: "starlite-tools",
@@ -169,7 +152,7 @@ The catalogue has 193 statically generated product pages, search, category, bran
 Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     repoUrl: "https://github.com/bos-code/starlight",
     tech: ["Next.js", "React 19", "TypeScript", "Tailwind CSS"],
-    order: 10,
+    order: 9,
   },
   {
     id: "ventum",
@@ -184,7 +167,7 @@ Visitors browse brands and products and send enquiries. Staff sign in to an admi
 A scheduled GitHub Action sends an activity report so the business sees new enquiries without logging in. Built with Next.js server actions and GSAP animation.`,
     repoUrl: "https://github.com/bos-code/ventum-automation",
     tech: ["Next.js", "TypeScript", "Appwrite", "GSAP", "GitHub Actions"],
-    order: 11,
+    order: 10,
   },
   {
     id: "dera-library",
@@ -199,7 +182,7 @@ A custom native module walks shared storage when all-files access is granted, wi
 Built with Expo Router, React Native, Reanimated and FlashList.`,
     repoUrl: "https://github.com/bos-code/Dera_library",
     tech: ["React Native", "Expo", "SQLite", "Kotlin module"],
-    order: 12,
+    order: 11,
   },
   {
     id: "time-table",
@@ -212,7 +195,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
 A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher and class clashes and spreads lessons across the week. The React + Vite front end handles data entry, validation and the generated timetable.`,
     repoUrl: "https://github.com/bos-code/time-table",
     tech: ["React", "FastAPI", "OR-Tools", "Material UI", "Tailwind CSS"],
-    order: 13,
+    order: 12,
   },
   {
     id: "math-exam-editor",
@@ -225,7 +208,7 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 14,
+    order: 13,
   },
   {
     id: "streamvibe",
@@ -236,7 +219,7 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 15,
+    order: 14,
   },
   {
     id: "banquee",
@@ -247,6 +230,6 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 16,
+    order: 15,
   },
 ];

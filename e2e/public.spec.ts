@@ -16,6 +16,38 @@ test.describe("public site", () => {
     expect(errors).toEqual([]);
   });
 
+  test("nav section links scroll, highlight and always close the mobile menu", async ({ page, isMobile }) => {
+    await page.goto("/blog");
+    const openMenu = async () => {
+      if (!isMobile) return page.getByRole("navigation", { name: "Main" });
+      await page.getByRole("button", { name: "Open menu" }).click();
+      return page.getByRole("dialog", { name: "Menu" });
+    };
+    const inView = (id: string) =>
+      page.evaluate((id) => {
+        const top = document.getElementById(id)?.getBoundingClientRect().top;
+        return top !== undefined && top >= 0 && top < 200;
+      }, id);
+
+    await (await openMenu()).getByRole("link", { name: "Work", exact: true }).click();
+    await expect(page).toHaveURL(/\/#work$/);
+    await expect.poll(() => inView("work")).toBe(true);
+
+    // Clicking the same section again after scrolling away still works,
+    // and on mobile the menu closes and scrolling is unlocked.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await (await openMenu()).getByRole("link", { name: "Work", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Menu" })).toHaveCount(0);
+    await expect.poll(() => inView("work")).toBe(true);
+    expect(await page.evaluate(() => document.body.style.overflow)).toBe("");
+    if (!isMobile) {
+      await expect(page.getByRole("navigation", { name: "Main" }).locator('[aria-current="page"]')).toHaveText("Work");
+    }
+
+    await (await openMenu()).getByRole("link", { name: "Home", exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  });
+
   test("experience timeline, RSS feed and newsletter signup", async ({ page }) => {
     await page.goto("/#experience");
     await expect(page.getByRole("heading", { name: "Where I've been" })).toBeVisible();

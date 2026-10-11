@@ -1,4 +1,4 @@
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -30,6 +30,75 @@ const NAV_LINKS = [
   { to: "/blog", label: "Blog" },
   { to: "/#contact", label: "Contact" },
 ];
+
+/** Home-page sections and the nav link each one belongs to. */
+const SECTION_LINKS: Record<string, string> = {
+  hero: "/",
+  about: "/#about",
+  stack: "/#about",
+  experience: "/#about",
+  work: "/#work",
+  blog: "/blog",
+  contact: "/#contact",
+};
+
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/**
+ * Scrolls to a home-page section below the sticky header. The home page is
+ * lazy-loaded, so when arriving from another route the section may not exist
+ * yet; retry briefly until it does.
+ */
+function scrollToSection(id: string, attempts = 20): void {
+  const target = document.getElementById(id);
+  if (!target) {
+    if (attempts > 0) window.setTimeout(() => scrollToSection(id, attempts - 1), 100);
+    return;
+  }
+  const headerHeight = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+  const top = target.getBoundingClientRect().top + window.scrollY - headerHeight - 8;
+  window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion() ? "auto" : "smooth" });
+}
+
+/** Tracks which home-page section is in view, for highlighting the nav. */
+function useActiveSection(enabled: boolean): string | null {
+  const [active, setActive] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) {
+      setActive(null);
+      return;
+    }
+    let observer: IntersectionObserver | null = null;
+    let retry = 0;
+    // Sections render after the lazy home page loads; wait for them.
+    const start = () => {
+      const elements = Object.keys(SECTION_LINKS)
+        .map((id) => document.getElementById(id))
+        .filter((element): element is HTMLElement => Boolean(element));
+      if (elements.length < 2) {
+        retry = window.setTimeout(start, 150);
+        return;
+      }
+      observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.find((entry) => entry.isIntersecting);
+          if (visible) setActive(visible.target.id);
+        },
+        { rootMargin: "-40% 0px -55% 0px" }
+      );
+      elements.forEach((element) => observer?.observe(element));
+    };
+    start();
+    return () => {
+      window.clearTimeout(retry);
+      observer?.disconnect();
+    };
+  }, [enabled]);
+
+  return active;
+}
 
 function SearchForm({
   onSubmitted,
@@ -119,14 +188,34 @@ export function Navbar(): React.ReactElement {
     setIsUserMenuOpen(false);
   }, [location.pathname, location.search, location.hash]);
 
-  // Scroll to in-page sections for /#section links.
+  // Arriving on /#section from another page: scroll once the section exists.
   useEffect(() => {
-    if (!location.hash) return;
-    const target = document.getElementById(location.hash.slice(1));
-    if (target) {
-      requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth" }));
-    }
+    if (location.pathname === "/" && location.hash) scrollToSection(location.hash.slice(1));
   }, [location.pathname, location.hash]);
+
+  const isHome = location.pathname === "/";
+  const activeSection = useActiveSection(isHome);
+
+  /**
+   * Section links and Home on the home page scroll in place, so repeated
+   * clicks still work (the URL alone wouldn't change). Every link closes the
+   * mobile menu, even when it points at the current URL.
+   */
+  const handleNavClick = (event: React.MouseEvent<HTMLAnchorElement>, to: string) => {
+    const menuWasOpen = isMenuOpen;
+    setIsMenuOpen(false);
+    if (!isHome || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    if (to !== "/" && !to.startsWith("/#")) return;
+    event.preventDefault();
+    window.history.replaceState(null, "", to);
+    const scroll = () =>
+      to === "/"
+        ? window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" })
+        : scrollToSection(to.slice(2));
+    // Let the mobile menu release its scroll lock first.
+    if (menuWasOpen) window.setTimeout(scroll, 50);
+    else scroll();
+  };
 
   // Mobile sheet: lock scroll and close on Escape.
   useEffect(() => {
@@ -182,10 +271,10 @@ export function Navbar(): React.ReactElement {
   };
 
   const isLinkActive = (to: string, end?: boolean) => {
+    // On the home page, highlight whichever section is in view.
+    if (isHome) return (activeSection ? SECTION_LINKS[activeSection] : "/") === to;
     if (to.includes("#")) return false;
-    if (to === "/blog") {
-      return location.pathname.startsWith("/blog");
-    }
+    if (to === "/blog") return location.pathname.startsWith("/blog");
     return end ? location.pathname === to : location.pathname.startsWith(to);
   };
 
@@ -206,7 +295,7 @@ export function Navbar(): React.ReactElement {
     >
       <nav
         aria-label="Main"
-        className="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8"
+        className="mx-auto flex h-16 max-w-[1440px] items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8"
       >
         <button
           type="button"
@@ -218,7 +307,7 @@ export function Navbar(): React.ReactElement {
           <Bars3Icon className="h-6 w-6" />
         </button>
 
-        <Link to="/" className="flex items-center gap-2 font-semibold">
+        <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold">
           <span className="font-mono text-xl font-bold text-primary">{"</>"}</span>
           <span className="font-mono capitalize">john dera</span>
         </Link>
@@ -226,9 +315,14 @@ export function Navbar(): React.ReactElement {
         <ul className="ml-6 hidden items-center gap-1 lg:flex">
           {NAV_LINKS.map((link) => (
             <li key={link.to}>
-              <NavLink to={link.to} className={linkClass(isLinkActive(link.to, link.end))}>
+              <Link
+                to={link.to}
+                onClick={(event) => handleNavClick(event, link.to)}
+                aria-current={isLinkActive(link.to, link.end) ? "page" : undefined}
+                className={linkClass(isLinkActive(link.to, link.end))}
+              >
                 {link.label}
-              </NavLink>
+              </Link>
             </li>
           ))}
         </ul>
@@ -307,11 +401,11 @@ export function Navbar(): React.ReactElement {
               </AnimatePresence>
             </div>
           ) : (
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="flex items-center gap-2">
               <Link to="/login" className="btn btn-ghost btn-sm">
                 Log in
               </Link>
-              <Link to="/signup" className="btn btn-primary btn-sm">
+              <Link to="/signup" className="btn btn-primary btn-sm hidden sm:inline-flex">
                 Sign up
               </Link>
             </div>
@@ -361,8 +455,10 @@ export function Navbar(): React.ReactElement {
               <ul className="flex flex-col gap-1 px-4">
                 {NAV_LINKS.map((link) => (
                   <li key={link.to}>
-                    <NavLink
+                    <Link
                       to={link.to}
+                      onClick={(event) => handleNavClick(event, link.to)}
+                      aria-current={isLinkActive(link.to, link.end) ? "page" : undefined}
                       className={`block rounded-xl px-4 py-3 text-base font-medium ${
                         isLinkActive(link.to, link.end)
                           ? "bg-primary/15 text-primary"
@@ -370,7 +466,7 @@ export function Navbar(): React.ReactElement {
                       }`}
                     >
                       {link.label}
-                    </NavLink>
+                    </Link>
                   </li>
                 ))}
               </ul>
