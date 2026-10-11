@@ -62,6 +62,19 @@ Built with Next.js, TypeScript, Supabase (PostgreSQL and Auth), Stripe, GSAP and
     order: 4,
   },
   {
+    id: "veloria-essence-spa",
+    slug: "veloria-essence-spa",
+    title: "Veloria Essence Spa",
+    summary: "Luxury spa website with online booking requests, branded email confirmations and a separate admin dashboard for bookings and content.",
+    description: `Veloria Essence Spa is a premium spa and wellness brand. Its website introduces the spa, its services, packages and prices, a gallery, testimonials and FAQs, and lets visitors request appointments online or reach the spa on WhatsApp.
+
+Booking and contact requests are validated with Zod and trigger branded emails built with React Email: a confirmation to the customer, an alert to the spa, and reschedule requests. Staff also get Telegram notifications. The home page uses GSAP and Three.js for a calm, animated luxury feel.
+
+A separate admin dashboard (React, Vite and Firebase) lets the spa confirm, cancel or complete bookings on a schedule view, and manage services, testimonials, media, locations on a map and business details, behind a passcode gate.`,
+    tech: ["Next.js", "Firebase", "React Email", "GSAP", "Three.js", "Zod"],
+    order: 5,
+  },
+  {
     id: "moidoctar",
     slug: "moidoctar",
     title: "MoiDoctar",
@@ -74,7 +87,7 @@ Nearby Care uses the browser's location and the OpenStreetMap Overpass API to li
     liveUrl: "https://moidoctar8.pxxlspace.cv",
     repoUrl: "https://github.com/MOI-DOCTAR-ORG/moidoctar",
     tech: ["React", "TypeScript", "FastAPI", "Python", "TanStack Query", "Tailwind CSS"],
-    order: 5,
+    order: 6,
   },
   {
     id: "blogger",
@@ -88,7 +101,7 @@ Firebase handles auth, Firestore and storage, with permissions enforced by secur
 Quality is covered by unit tests, API checks against the Firebase emulators and Playwright end-to-end tests on desktop and mobile in CI.`,
     repoUrl: "https://github.com/bos-code/blogger",
     tech: ["React 19", "TypeScript", "Firebase", "TipTap", "TanStack Query", "Playwright"],
-    order: 6,
+    order: 7,
   },
   {
     id: "finance-tracker",
@@ -102,7 +115,7 @@ Transactions can be captured offline; changes are queued and synced to Supabase 
 Supabase Auth handles accounts and password resets, and the app is protected by a secure PIN with optional biometrics.`,
     repoUrl: "https://github.com/bos-code/finance_tracker",
     tech: ["React Native", "Expo", "Supabase", "TanStack Query", "NativeWind"],
-    order: 7,
+    order: 8,
   },
   {
     id: "chinel-media",
@@ -115,7 +128,7 @@ The home page uses interactive 3D scenes built with Three.js and React Three Fib
 
 Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React Hook Form and Zod.`,
     tech: ["Next.js", "Three.js", "React Three Fiber", "GSAP", "TypeScript"],
-    order: 8,
+    order: 9,
   },
   {
     id: "derashare",
@@ -130,7 +143,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     liveUrl: "https://derashare.vercel.app",
     repoUrl: "https://github.com/bos-code/Derashare",
     tech: ["Next.js", "TypeScript", "WebSockets", "Node.js", "PWA"],
-    order: 9,
+    order: 10,
   },
   {
     id: "starlite-tools",
@@ -144,7 +157,7 @@ The catalogue has 193 statically generated product pages, search, category, bran
 Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     repoUrl: "https://github.com/bos-code/starlight",
     tech: ["Next.js", "React 19", "TypeScript", "Tailwind CSS"],
-    order: 10,
+    order: 11,
   },
   {
     id: "ventum",
@@ -158,7 +171,7 @@ Visitors browse brands and products and send enquiries. Staff sign in to an admi
 A scheduled GitHub Action sends an activity report so the business sees new enquiries without logging in. Built with Next.js server actions and GSAP animation.`,
     repoUrl: "https://github.com/bos-code/ventum-automation",
     tech: ["Next.js", "TypeScript", "Appwrite", "GSAP", "GitHub Actions"],
-    order: 11,
+    order: 12,
   },
   {
     id: "dera-library",
@@ -172,7 +185,7 @@ A custom native module walks shared storage when all-files access is granted, wi
 Built with Expo Router, React Native, Reanimated and FlashList.`,
     repoUrl: "https://github.com/bos-code/Dera_library",
     tech: ["React Native", "Expo", "SQLite", "Kotlin module"],
-    order: 12,
+    order: 13,
   },
   {
     id: "time-table",
@@ -184,7 +197,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
 A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher and class clashes and spreads lessons across the week. The React + Vite front end handles data entry, validation and the generated timetable.`,
     repoUrl: "https://github.com/bos-code/time-table",
     tech: ["React", "FastAPI", "OR-Tools", "Material UI", "Tailwind CSS"],
-    order: 13,
+    order: 14,
   },
   {
     id: "math-exam-editor",
@@ -196,7 +209,7 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 14,
+    order: 15,
   },
   {
     id: "streamvibe",
@@ -207,7 +220,7 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 15,
+    order: 16,
   },
   {
     id: "banquee",
@@ -218,6 +231,6 @@ Existing question banks can be imported from Excel with a preview step, and fini
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 16,
+    order: 17,
   },
 ];
