@@ -4,11 +4,24 @@ import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
 import Avatar from "../components/ui/Avatar";
 import { Stars } from "../components/testimonials/Stars";
-import { useAllTestimonials, useDeleteTestimonial, useModerateTestimonial } from "../hooks/useTestimonials";
+import {
+  useAllTestimonials,
+  useDeleteTestimonial,
+  useModerateTestimonial,
+  useTestimonialContacts,
+} from "../hooks/useTestimonials";
 import { useProjects } from "../hooks/useProjects";
 import { formatDate } from "../utils/date";
 import { showDeleteConfirm, showError, showSuccess } from "../utils/sweetalert";
 import type { Testimonial, TestimonialStatus } from "../types";
+
+/** Email → mailto; phone → WhatsApp chat (Nigerian 0-prefixed numbers become +234). */
+const contactHref = (contact: string): string => {
+  if (contact.includes("@")) return `mailto:${contact}`;
+  let digits = contact.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = `234${digits.slice(1)}`;
+  return `https://wa.me/${digits}`;
+};
 
 const TABS: Array<{ status: TestimonialStatus; label: string }> = [
   { status: "pending", label: "Pending" },
@@ -20,6 +33,7 @@ const TABS: Array<{ status: TestimonialStatus; label: string }> = [
 export default function TestimonialsManager(): React.ReactElement {
   const { data: testimonials = [], isPending } = useAllTestimonials();
   const { data: projectData } = useProjects();
+  const { data: contacts } = useTestimonialContacts();
   const moderate = useModerateTestimonial();
   const remove = useDeleteTestimonial();
   const [tab, setTab] = useState<TestimonialStatus>("pending");
@@ -97,6 +111,19 @@ export default function TestimonialsManager(): React.ReactElement {
                     {testimonial.rating ? <Stars rating={testimonial.rating} className="h-3.5 w-3.5" /> : null}
                   </div>
                   <p className="mt-2 whitespace-pre-line text-base-content/85">{testimonial.content}</p>
+                  {contacts?.get(testimonial.id) && (
+                    <p className="mt-2 text-sm">
+                      Contact:{" "}
+                      <a
+                        href={contactHref(contacts.get(testimonial.id)!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link link-primary"
+                      >
+                        {contacts.get(testimonial.id)}
+                      </a>
+                    </p>
+                  )}
                   <p className="mt-2 text-xs text-base-content/55">
                     {formatDate(testimonial.createdAt)}
                     {projectTitle(testimonial.projectSlug) ? ` · Project: ${projectTitle(testimonial.projectSlug)}` : " · General"}

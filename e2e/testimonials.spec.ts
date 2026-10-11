@@ -7,13 +7,14 @@ test.skip(({ isMobile }) => isMobile, "Runs once on desktop; it changes shared d
 test("client testimonial: submit, approve, publish, comment", async ({ browser }) => {
   const quote = `Working together was smooth and the app is fast ${Date.now()}`;
 
-  // A client leaves a testimonial on a project page.
+  // A client leaves a testimonial on a project page, without an account.
   const client = await browser.newPage();
-  await login(client, "reader@example.com");
   await client.goto("/projects/forkify");
   await client.getByRole("button", { name: "Leave a testimonial" }).click();
   const dialog = client.getByRole("dialog", { name: "Write a testimonial" });
   await expect(dialog.getByLabel("Project")).toHaveValue("forkify");
+  await dialog.getByLabel("Your name").fill("Tola Client");
+  await dialog.getByLabel("Email or phone").fill("0803 123 4567");
   await dialog.getByLabel("Your role and company (optional)").fill("Product lead, Forkify");
   await dialog.locator("label").filter({ has: client.getByRole("radio", { name: "4 stars" }) }).click();
   await expect(dialog.getByRole("radio", { name: "4 stars" })).toBeChecked();
@@ -21,10 +22,7 @@ test("client testimonial: submit, approve, publish, comment", async ({ browser }
   await dialog.getByRole("button", { name: "Submit testimonial" }).click();
   await expect(dialog).toBeHidden();
 
-  // It's private until approved: the client sees it as pending, visitors don't see it.
-  await client.goto("/#testimonials");
-  const pendingCard = client.locator("#testimonials article", { hasText: quote });
-  await expect(pendingCard.getByText("Awaiting approval")).toBeVisible();
+  // It's private until approved.
   const visitor = await browser.newPage();
   await visitor.goto("/#testimonials");
   await expect(visitor.locator("#testimonials article").first()).toBeVisible();
@@ -36,6 +34,7 @@ test("client testimonial: submit, approve, publish, comment", async ({ browser }
   await openDashboardScreen(admin, "Testimonials");
   const row = admin.locator("li", { hasText: quote });
   await expect(row.getByText("Project: Forkify")).toBeVisible();
+  await expect(row.getByRole("link", { name: "0803 123 4567" })).toHaveAttribute("href", "https://wa.me/2348031234567");
   await row.getByRole("button", { name: "Approve" }).click();
   await expect(admin.locator("li", { hasText: quote })).toHaveCount(0);
 
@@ -44,6 +43,8 @@ test("client testimonial: submit, approve, publish, comment", async ({ browser }
   const card = visitor.locator("#testimonials article", { hasText: quote });
   await expect(card.getByRole("link", { name: "on Forkify" })).toBeVisible();
   await expect(card.getByRole("img", { name: "Rated 4 out of 5" })).toBeVisible();
+  await expect(card.getByText("Tola Client")).toBeVisible();
+  await expect(visitor.getByText("0803 123 4567")).toHaveCount(0);
   await visitor.goto("/projects/forkify");
   await expect(visitor.getByText(quote)).toBeVisible();
 

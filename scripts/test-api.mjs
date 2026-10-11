@@ -19,7 +19,7 @@ process.env.SITE_URL = "https://example.test";
 // Inside the repo so bundled handlers resolve node_modules.
 const outdir = join(process.cwd(), "node_modules/.cache/api-test");
 mkdirSync(outdir, { recursive: true });
-const handlers = ["preview", "rss", "sitemap", "share", "robots", "subscribe", "subscribe-confirm", "unsubscribe", "notify-subscribers", "contact-alert"];
+const handlers = ["preview", "rss", "sitemap", "share", "robots", "subscribe", "subscribe-confirm", "unsubscribe", "notify-subscribers", "contact-alert", "testimonial"];
 await build({
   entryPoints: handlers.map((name) => `api/${name}.ts`),
   outdir,
@@ -110,6 +110,41 @@ await check("subscribe is rate limited per IP", async () => {
   assert.deepEqual(statuses, [200, 200, 200, 200, 200, 429]);
   const other = await subscribe(post("subscribe", { email: `limit-other-${Date.now()}@example.com` }, { "x-forwarded-for": "198.51.100.7" }));
   assert.equal(other.status, 200);
+});
+
+await check("testimonial: anyone can submit; contact stays private", async () => {
+  const { POST: submit } = await load("testimonial");
+  const { getApps } = await import("firebase-admin/app");
+  const { getFirestore } = await import("firebase-admin/firestore");
+  const db = getFirestore(getApps()[0]);
+  const ip = `198.18.0.${Math.floor(Math.random() * 250)}`;
+  const send = (body) => submit(post("testimonial", body, { "x-forwarded-for": ip }));
+  const good = { name: "Tola Client", contact: "0803 123 4567", content: "Great work on our site, fast and reliable.", projectSlug: "forkify", rating: 5 };
+
+  assert.equal((await send({ ...good, contact: "not a contact" })).status, 400);
+  assert.equal((await send({ ...good, content: "short" })).status, 400);
+  assert.equal((await send({ ...good, rating: 9 })).status, 400);
+
+  const response = await send(good);
+  assert.equal(response.status, 200);
+  const { id } = await response.json();
+  const saved = await db.collection("testimonials").doc(id).get();
+  assert.equal(saved.get("status"), "pending");
+  assert.equal(saved.get("authorId"), null);
+  assert.equal(saved.get("contact"), undefined, "contact must not be on the public document");
+  assert.equal((await db.collection("testimonialContacts").doc(id).get()).get("contact"), "0803 123 4567");
+  const alerts = await db.collection("notifications").where("type", "==", "pending_testimonial").get();
+  assert.ok(alerts.size >= 1);
+
+  // Honeypot: looks successful, saves nothing.
+  const before = (await db.collection("testimonials").get()).size;
+  assert.equal((await send({ ...good, website: "http://spam.example" })).status, 200);
+  assert.equal((await db.collection("testimonials").get()).size, before);
+
+  // Rate limit: 3 per hour per IP (one already used above).
+  assert.equal((await send(good)).status, 200);
+  assert.equal((await send(good)).status, 200);
+  assert.equal((await send(good)).status, 429);
 });
 
 await check("notify-subscribers rejects non-admins", async () => {

@@ -7,7 +7,8 @@ import { showSuccess } from "../utils/sweetalert";
 import SectionHead from "./sectionHead";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
-import { site } from "../data/site";
+import { site, whatsappLink } from "../data/site";
+import WhatsApp from "../assets/whatsapp";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LIMITS = { name: [3, 100], message: [10, 5000] } as const;
@@ -86,6 +87,15 @@ function SectionContact(): React.ReactElement {
         <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
           <aside className="surface flex flex-col gap-5 p-6 sm:p-8">
             <h3 className="text-lg font-semibold">Other ways to reach me</h3>
+            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="btn btn-success gap-2 self-start">
+              <WhatsApp /> Text me on WhatsApp
+            </a>
+            <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-primary">
+              <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                <WhatsApp />
+              </span>
+              <span>{site.phone}</span>
+            </a>
             <a href={`mailto:${site.email}`} className="flex items-center gap-3 hover:text-primary">
               <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
                 <EnvelopeIcon className="h-5 w-5" />

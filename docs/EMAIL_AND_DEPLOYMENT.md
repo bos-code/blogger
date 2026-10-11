@@ -94,6 +94,11 @@ What's in place:
 - **Security headers** (`vercel.json`): the site can't be framed by other
   sites (clickjacking), MIME sniffing is off, plugins are blocked, and
   camera, microphone and location access are disabled.
+- **Testimonials are submitted through `/api/testimonial`** (no account
+  needed): validated on the server, rate-limited to 3 per IP per hour, with a
+  hidden spam trap. The contact details go to the admin-only
+  `testimonialContacts` collection and are never shown publicly. If email is
+  configured, you also get an email for each new testimonial.
 - **Newsletter sign-ups are rate-limited** to 5 per IP address per 15
   minutes, on top of the per-address cooldown, so the form can't be used to
   flood someone's inbox. Counters live in the `rateLimits` collection under

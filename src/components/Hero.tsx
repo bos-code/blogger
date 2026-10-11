@@ -10,7 +10,8 @@ import dera from "../assets/dera.webp";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
 import resumeStats from "../data/resumeStats";
-import { site } from "../data/site";
+import { site, whatsappLink } from "../data/site";
+import WhatsApp from "../assets/whatsapp";
 
 const STACK = ["TypeScript", "React", "Next.js", "Tailwind CSS", "Firebase", "Git"];
 
@@ -129,6 +130,12 @@ export default function Hero(): React.ReactElement {
               <a href={`mailto:${site.email}`} className="flex items-center gap-3 hover:text-primary">
                 <EnvelopeIcon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                 <span className="truncate">{site.email}</span>
+              </a>
+            </li>
+            <li>
+              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 hover:text-primary">
+                <WhatsApp className="h-5 w-5 shrink-0 text-primary" />
+                <span>WhatsApp {site.phone}</span>
               </a>
             </li>
             <li className="flex items-center gap-3">

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { RssIcon } from "@heroicons/react/24/outline";
 import Github from "../assets/github";
 import LinkedIn from "../assets/linkedin";
-import { site } from "../data/site";
+import { site, whatsappLink } from "../data/site";
 
 const LINKS = [
   { to: "/#about", label: "About" },
@@ -57,6 +57,11 @@ function FooterComp(): React.ReactElement {
             <li>
               <a href={`mailto:${site.email}`} className="inline-block py-1.5 hover:text-primary">
                 Email me
+              </a>
+            </li>
+            <li>
+              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 hover:text-primary">
+                Text me on WhatsApp
               </a>
             </li>
             <li>

@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -10,7 +9,8 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { db } from "../firebaseconfig";
+import { auth, db } from "../firebaseconfig";
+import { apiRequest } from "../services/api";
 import { useAuthStore } from "../stores/authStore";
 import { createNotification } from "./useNotifications";
 import { toTimestamp } from "../utils/date";
@@ -52,47 +52,63 @@ export const useMyTestimonials = () => {
 export const useAllTestimonials = (enabled = true) => useQuery({ queryKey: KEYS.all, queryFn: () => read(), enabled });
 
 export interface TestimonialInput {
+  name: string;
+  /** Email or phone, private to the site owner. */
+  contact: string;
   content: string;
   authorTitle?: string;
   projectSlug?: string | null;
   rating?: number | null;
+  /** Honeypot field; real people leave it empty. */
+  website?: string;
 }
 
+/**
+ * Submits a testimonial through /api/testimonial. Anyone can submit (no
+ * account needed); signed-in users are linked to theirs so they can see it
+ * while it waits for approval.
+ */
 export const useSubmitTestimonial = () => {
   const queryClient = useQueryClient();
-  const user = useAuthStore((state) => state.user);
   return useMutation<void, Error, TestimonialInput>({
     mutationFn: async (input) => {
-      if (!user) throw new Error("Sign in to leave a testimonial.");
       const content = input.content.trim();
+      if (input.name.trim().length < 2) throw new Error("Please enter your name.");
+      if (!input.contact.trim()) throw new Error("Please add an email address or phone number.");
       if (content.length < TESTIMONIAL_MIN_LENGTH) {
         throw new Error(`Please write at least ${TESTIMONIAL_MIN_LENGTH} characters.`);
       }
       if (content.length > TESTIMONIAL_MAX_LENGTH) {
         throw new Error(`Testimonials can be at most ${TESTIMONIAL_MAX_LENGTH} characters.`);
       }
-      const authorName = user.nickname || user.name || "Anonymous";
-      await addDoc(collection(db, "testimonials"), {
-        authorId: user.uid,
-        authorName,
-        authorAvatar: user.photoURL || null,
-        authorTitle: input.authorTitle?.trim() || null,
-        projectSlug: input.projectSlug || null,
-        rating: input.rating ?? null,
-        content,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      void createNotification({
-        userId: "admins",
-        type: "pending_testimonial",
-        message: `${authorName} left a testimonial waiting for your approval`,
-        link: "/admin",
+      const token = await auth.currentUser?.getIdToken().catch(() => undefined);
+      await apiRequest("testimonial", {
+        token,
+        body: {
+          name: input.name.trim(),
+          contact: input.contact.trim(),
+          content,
+          authorTitle: input.authorTitle?.trim() || null,
+          projectSlug: input.projectSlug || null,
+          rating: input.rating ?? null,
+          website: input.website ?? "",
+        },
       });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["testimonials"] }),
   });
 };
+
+/** Private contact details for testimonials, keyed by testimonial id (admins only). */
+export const useTestimonialContacts = (enabled = true) =>
+  useQuery({
+    queryKey: ["testimonials", "contacts"],
+    queryFn: async () => {
+      const snapshot = await getDocs(collection(db, "testimonialContacts"));
+      return new Map(snapshot.docs.map((item) => [item.id, String(item.get("contact") ?? "")]));
+    },
+    enabled,
+  });
 
 export const useModerateTestimonial = () => {
   const queryClient = useQueryClient();
@@ -115,7 +131,11 @@ export const useModerateTestimonial = () => {
 export const useDeleteTestimonial = () => {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
-    mutationFn: async (id) => deleteDoc(doc(db, "testimonials", id)),
+    mutationFn: async (id) => {
+      await deleteDoc(doc(db, "testimonials", id));
+      // Contact details go with it (admins only; ignored for others).
+      await deleteDoc(doc(db, "testimonialContacts", id)).catch(() => undefined);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["testimonials"] }),
   });
 };

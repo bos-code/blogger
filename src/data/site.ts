@@ -11,6 +11,9 @@ export const site = {
   fullName: "Chidera Okonkwo",
   role: "Frontend engineer",
   email: "chidera9713@gmail.com",
+  phone: "0816 003 7598",
+  /** WhatsApp number in international format, digits only. */
+  whatsapp: "2348160037598",
   location: "Lagos, Nigeria",
   availability: "Full-time / Freelance",
   resumeUrl: "/John-Dera-Resume.pdf",
@@ -19,3 +22,7 @@ export const site = {
     linkedin: "https://www.linkedin.com/in/chidera-okonkwo-38694433a",
   },
 } as const;
+
+/** "Text me on WhatsApp" link, optionally with a pre-filled message. */
+export const whatsappLink = (message = "Hi Chidera, I found you through your website.") =>
+  `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(message)}`;

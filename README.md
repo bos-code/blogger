@@ -11,8 +11,9 @@ tiers: Firebase (Spark) and Vercel (Hobby).
 
 **Portfolio** — hero, about, skills, experience timeline, project grid with
 case-study pages (editable from the CMS), client testimonials tagged to
-projects (published after approval), comment threads on testimonials and
-projects, contact form, downloadable CV, light/dark themes.
+projects (anyone can submit, with a private contact; published after
+approval), comment threads on testimonials and
+projects, contact form, WhatsApp link, downloadable CV, light/dark themes.
 
 **Blog** — search, category/tag filters, featured post, series, related posts,
 table of contents, syntax-highlighted code with copy buttons, likes, bookmarks,
