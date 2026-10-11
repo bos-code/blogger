@@ -45,7 +45,7 @@
     "daisyui": "^5.0.43",
     "dompurify": "^3.4.12",
     "firebase": "^11.9.1",
-    "firebase-admin": "^14.5.0",
+    "firebase-admin": "^13.10.0",
     "framer-motion": "^12.23.22",
     "highlight.js": "^11.11.1",
     "lowlight": "2.9.0",
