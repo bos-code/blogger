@@ -200,6 +200,21 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
     order: 13,
   },
   {
+    id: "forkify",
+    slug: "forkify",
+    title: "Forkify",
+    imageUrl: "/project-images/forkify.webp",
+    summary: "Recipe browser on TheMealDB: search and filter dishes, open full recipes side by side, bookmark them and build a shopping list.",
+    description: `Forkify is a recipe app for finding something to cook tonight. Search TheMealDB or filter by category, skim the recipe cards, and open a complete recipe with ingredients and steps in a side panel without leaving the results.
+
+Recipes can be bookmarked and their ingredients added to a shopping list, both saved in the browser, and recent searches appear as quick chips. Loading skeletons and clear empty and error states keep it usable on slow connections.
+
+Built with React, React Router and TanStack Query for fetching and caching, styled with Tailwind CSS and DaisyUI on Vite.`,
+    repoUrl: "https://github.com/prosper-alex/forkify-app",
+    tech: ["React", "TanStack Query", "React Router", "Tailwind CSS", "DaisyUI"],
+    order: 14,
+  },
+  {
     id: "math-exam-editor",
     slug: "math-exam-editor",
     title: "Math Exam Editor",
@@ -210,7 +225,7 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 14,
+    order: 15,
   },
   {
     id: "fast-ui",
@@ -226,7 +241,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://fast-ui-murex.vercel.app",
     repoUrl: "https://github.com/bos-code/fast-ui",
     tech: ["Tailwind CSS", "SwiperJS", "GSAP", "Vite"],
-    order: 15,
+    order: 16,
   },
   {
     id: "streamvibe",
@@ -237,7 +252,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 16,
+    order: 17,
   },
   {
     id: "banquee",
@@ -248,6 +263,6 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 17,
+    order: 18,
   },
 ];
