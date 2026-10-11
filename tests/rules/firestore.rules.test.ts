@@ -11,7 +11,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { deleteField, doc, getDoc, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { deleteDoc, deleteField, doc, getDoc, increment, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 
 let env: RulesTestEnvironment;
 const OWNER_EMAIL = "chidera9713@gmail.com";
@@ -122,6 +122,24 @@ describe("analytics", () => {
     );
     await assertFails(updateDoc(doc(anon(), `dailyStats/${day}`), { views: increment(1), "posts.p1": deleteField() }));
     await assertFails(getDoc(doc(anon(), `dailyStats/${day}`)));
+  });
+});
+
+describe("projects", () => {
+  const project = (extra: Record<string, unknown> = {}) => ({
+    title: "Yakoyo", slug: "yakoyo", summary: "Ordering platform", imageUrl: "/project-images/yakoyo-kitchen.webp",
+    tech: ["Next.js"], order: 1, createdAt: serverTimestamp(), ...extra,
+  });
+
+  test("anyone can read; only admins write well-formed projects", async () => {
+    await assertSucceeds(setDoc(doc(as("adam"), "projects/x1"), project()));
+    await assertSucceeds(getDoc(doc(anon(), "projects/x1")));
+    await assertFails(setDoc(doc(as("wendy"), "projects/x2"), project()));
+    await assertFails(setDoc(doc(as("adam"), "projects/x3"), project({ html: "<script>" })));
+    await assertFails(setDoc(doc(as("adam"), "projects/x4"), project({ summary: "" })));
+    await assertFails(setDoc(doc(as("adam"), "projects/x5"), project({ tech: Array.from({ length: 21 }, (_, i) => `t${i}`) })));
+    await assertFails(setDoc(doc(anon(), "projects/x6"), project()));
+    await assertSucceeds(deleteDoc(doc(as("adam"), "projects/x1")));
   });
 });
 

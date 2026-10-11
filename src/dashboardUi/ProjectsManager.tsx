@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { BriefcaseIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useDeleteProject, useProjects, useSaveProject, type ProjectInput } from "../hooks/useProjects";
+import {
+  matchesBuiltInList,
+  useDeleteProject,
+  useProjects,
+  useReplaceWithBuiltInProjects,
+  useSaveProject,
+  type ProjectInput,
+} from "../hooks/useProjects";
 import { useAuthStore } from "../stores/authStore";
 import { uploadImageToStorage } from "../services/storageService";
 import { FALLBACK_PROJECTS } from "../data/projects";
@@ -9,7 +16,7 @@ import EmptyState from "../components/ui/EmptyState";
 import Modal from "../components/ui/Modal";
 import TagInput from "../components/ui/TagInput";
 import { slugify } from "../utils/posts";
-import { showDeleteConfirm, showError, showSuccess } from "../utils/sweetalert";
+import { showConfirm, showDeleteConfirm, showError, showSuccess } from "../utils/sweetalert";
 import type { Project } from "../types";
 
 const EMPTY: ProjectInput = {
@@ -144,31 +151,32 @@ function ProjectForm({
 
 /** Admin CRUD for the portfolio projects shown on the home page. */
 export default function ProjectsManager(): React.ReactElement {
-  const { data } = useProjects();
+  const { data, isPending } = useProjects();
   const deleteProject = useDeleteProject();
-  const saveProject = useSaveProject();
+  const replaceProjects = useReplaceWithBuiltInProjects();
   const [editing, setEditing] = useState<{ id?: string; data: ProjectInput } | null>(null);
-  const [importing, setImporting] = useState(false);
   const projects = data?.fromDatabase ? data.projects : [];
+  const outOfSync = projects.length > 0 && !matchesBuiltInList(projects);
 
   const toInput = (project: Project): ProjectInput => {
     const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = project;
     return { ...EMPTY, ...rest };
   };
 
-  const importDefaults = async () => {
-    setImporting(true);
+  const applyBuiltInList = async (replacing: boolean) => {
+    if (replacing) {
+      const result = await showConfirm(
+        "Replace saved projects?",
+        `Your ${projects.length} saved projects will be replaced with the ${FALLBACK_PROJECTS.length} built-in ones. Edits you made here will be lost.`,
+        { confirmText: "Replace", confirmColor: "warning" }
+      );
+      if (!result || !("isConfirmed" in result) || !result.isConfirmed) return;
+    }
     try {
-      for (const project of FALLBACK_PROJECTS) {
-        // Bundled screenshots are relative asset URLs; store absolute URLs so they keep working.
-        const imageUrl = project.imageUrl ? new URL(project.imageUrl, window.location.origin).href : null;
-        await saveProject.mutateAsync({ data: { ...toInput(project), imageUrl } });
-      }
-      showSuccess("Projects imported", "You can now edit them here.");
+      await replaceProjects.mutateAsync();
+      showSuccess(replacing ? "Projects replaced" : "Projects imported", "The home page now shows this list.");
     } catch {
-      showError("Import failed", "Please try again.");
-    } finally {
-      setImporting(false);
+      showError("That didn't work", "Please try again.");
     }
   };
 
@@ -184,15 +192,42 @@ export default function ProjectsManager(): React.ReactElement {
         }
       />
 
+      {outOfSync && (
+        <div role="status" className="mb-4 flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-sm">
+            The home page shows these {projects.length} saved projects, which differ from the {FALLBACK_PROJECTS.length}{" "}
+            built-in ones in the code. Replace them to show the built-in list.
+          </p>
+          <button
+            type="button"
+            className="btn btn-warning btn-sm"
+            onClick={() => void applyBuiltInList(true)}
+            disabled={replaceProjects.isPending}
+          >
+            {replaceProjects.isPending && <span className="loading loading-spinner loading-xs" />}
+            Use the built-in list
+          </button>
+        </div>
+      )}
+
       <div className="surface overflow-hidden">
-        {projects.length === 0 ? (
+        {isPending ? (
+          <div className="flex justify-center p-10">
+            <span className="loading loading-spinner" aria-label="Loading projects" />
+          </div>
+        ) : projects.length === 0 ? (
           <EmptyState
             icon={BriefcaseIcon}
             title="No projects saved yet"
             description="The home page is currently showing the built-in project list. Import it to start editing, or add your own."
             action={
-              <button type="button" className="btn btn-ghost border border-base-300" onClick={() => void importDefaults()} disabled={importing}>
-                {importing && <span className="loading loading-spinner loading-xs" />}
+              <button
+                type="button"
+                className="btn btn-ghost border border-base-300"
+                onClick={() => void applyBuiltInList(false)}
+                disabled={replaceProjects.isPending}
+              >
+                {replaceProjects.isPending && <span className="loading loading-spinner loading-xs" />}
                 Import the current {FALLBACK_PROJECTS.length} projects
               </button>
             }

@@ -1,26 +1,11 @@
-import yakoyoKitchenMockup from "../assets/projects/yakoyo-kitchen.webp";
-import studyproMockup from "../assets/projects/studypro.webp";
-import tissageDeLohMockup from "../assets/projects/tissage-de-loh.webp";
-import veloriaEssenceSpaMockup from "../assets/projects/veloria-essence-spa.webp";
-import bloggerMockup from "../assets/projects/blogger.webp";
-import financeTrackerMockup from "../assets/projects/finance-tracker.webp";
-import chinelMediaMockup from "../assets/projects/chinel-media.webp";
-import derashareMockup from "../assets/projects/derashare.webp";
-import starliteToolsMockup from "../assets/projects/starlite-tools.webp";
-import ventumMockup from "../assets/projects/ventum.webp";
-import deraLibraryMockup from "../assets/projects/dera-library.webp";
-import timeTableMockup from "../assets/projects/time-table.webp";
-import mathExamEditorMockup from "../assets/projects/math-exam-editor.webp";
-import streamvibeMockup from "../assets/projects/streamvibe.webp";
-import banqueeMockup from "../assets/projects/banquee.webp";
-import reggzMockup from "../assets/projects/316-reggz.webp";
-import fastUiMockup from "../assets/projects/fast-ui.webp";
 import type { Project } from "../types";
 
 /**
  * Built-in project list, shown until projects are added from the dashboard
  * (Dashboard → Projects). Kept so the portfolio never renders empty.
- * Images are device mockups (desktop, tablet, phone) captured from local builds.
+ * Images are device mockups captured from local builds. They live in
+ * public/project-images (fixed URLs, no build hash) so copies saved to
+ * Firestore from the dashboard keep working after every deploy.
  * Projects added without an image get a generated cover (see ProjectCover).
  */
 export const FALLBACK_PROJECTS: Project[] = [
@@ -28,7 +13,7 @@ export const FALLBACK_PROJECTS: Project[] = [
     id: "yakoyo-kitchen",
     slug: "yakoyo-kitchen",
     title: "Yakoyo African Kitchen",
-    imageUrl: yakoyoKitchenMockup,
+    imageUrl: "/project-images/yakoyo-kitchen.webp",
     summary: "Online ordering and catering platform for a Nigerian restaurant in Delaware, with Stripe payments and a full operations dashboard.",
     description: `Yakoyo African Kitchen brings an authentic Nigerian menu online for a restaurant in Wilmington, Delaware. Customers browse the menu, build a cart, pay online and request catering quotes.
 
@@ -43,7 +28,7 @@ Built with Next.js, TypeScript, Prisma on PostgreSQL, Supabase Auth, Stripe and 
     id: "studypro",
     slug: "studypro",
     title: "StudyPro",
-    imageUrl: studyproMockup,
+    imageUrl: "/project-images/studypro.webp",
     summary: "Study platform for Nigerian schools: topic practice, timed tests, exam preparation, progress tracking, leaderboards and an admin content studio.",
     description: `StudyPro helps secondary-school students practise and prepare for exams. Students sign in with a student ID and passcode, practise by topic, take timed tests and external-exam tracks, and follow their results, history and place on the leaderboard.
 
@@ -57,7 +42,7 @@ The Next.js 16 front end talks to a NestJS API backed by Prisma and PostgreSQL, 
     id: "tissage-de-loh",
     slug: "tissage-de-loh",
     title: "Tissage De Loh",
-    imageUrl: tissageDeLohMockup,
+    imageUrl: "/project-images/tissage-de-loh.webp",
     summary: "Custom e-commerce rebuild for a hair and wig brand, moving off WordPress to Next.js, Supabase and Stripe.",
     description: `Tissage De Loh sells wigs, closures, frontals and bundles. The store was rebuilt from WordPress into a custom full-stack shop.
 
@@ -71,7 +56,7 @@ Built with Next.js, TypeScript, Supabase (PostgreSQL and Auth), Stripe, GSAP and
     id: "veloria-essence-spa",
     slug: "veloria-essence-spa",
     title: "Veloria Essence Spa",
-    imageUrl: veloriaEssenceSpaMockup,
+    imageUrl: "/project-images/veloria-essence-spa.webp",
     summary: "Luxury spa website with online booking requests, branded email confirmations and a separate admin dashboard for bookings and content.",
     description: `Veloria Essence Spa is a premium spa and wellness brand. Its website introduces the spa, its services, packages and prices, a gallery, testimonials and FAQs, and lets visitors request appointments online or reach the spa on WhatsApp.
 
@@ -85,7 +70,7 @@ A separate admin dashboard (React, Vite and Firebase) lets the spa confirm, canc
     id: "316-reggz",
     slug: "316-reggz",
     title: "316 REGGZ",
-    imageUrl: reggzMockup,
+    imageUrl: "/project-images/316-reggz.webp",
     summary: "Image-led portfolio for an independent Lagos creative studio, built like an album rather than a filing cabinet.",
     description: `316 REGGZ is a creative studio in Lagos working across design, motion, branding and visual direction. The website puts the artwork first: large images, typography with attitude, and motion as part of the storytelling.
 
@@ -100,7 +85,7 @@ Built with Next.js, TypeScript and Sass, with GSAP animation, Swiper carousels a
     id: "blogger",
     slug: "blogger",
     title: "Portfolio & Publishing CMS",
-    imageUrl: bloggerMockup,
+    imageUrl: "/project-images/blogger.webp",
     summary: "This site: a portfolio with a full blog CMS, Notion-style editor, review workflow, roles, newsletter and analytics on free tiers.",
     description: `The site you're on. Visitors browse projects and articles; writers draft in a Notion-style TipTap editor with slash commands, tables, embeds, autosave, version history and shareable preview links; admins review, publish and run everything from a dashboard.
 
@@ -115,7 +100,7 @@ Quality is covered by unit tests, API checks against the Firebase emulators and 
     id: "finance-tracker",
     slug: "finance-tracker",
     title: "Finance Tracker",
-    imageUrl: financeTrackerMockup,
+    imageUrl: "/project-images/finance-tracker.webp",
     summary: "Mobile-first personal finance app with offline transaction entry, savings goals, cashflow analytics and PIN/biometric lock.",
     description: `A personal finance app for Android built with Expo and React Native. Users record revenue and expenditure with categories and notes, browse them as a list or calendar, and see monthly and yearly cashflow trends and category breakdowns.
 
@@ -130,7 +115,7 @@ Supabase Auth handles accounts and password resets, and the app is protected by 
     id: "chinel-media",
     slug: "chinel-media",
     title: "Chinel Media",
-    imageUrl: chinelMediaMockup,
+    imageUrl: "/project-images/chinel-media.webp",
     summary: "Website for a creative printing and media agency, with interactive 3D scenes, scroll animation and case-study pages.",
     description: `Chinel Media is a branding, printing and media agency. Its website presents services, portfolio case studies, clients, the team, the agency's process and insights.
 
@@ -144,7 +129,7 @@ Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React H
     id: "derashare",
     slug: "derashare",
     title: "Dera Share",
-    imageUrl: derashareMockup,
+    imageUrl: "/project-images/derashare.webp",
     summary: "Real-time text bridge between two paired devices: 6-digit rooms, WebSockets, no account and no database.",
     description: `Dera Share moves text between your phone and laptop instantly. One device opens a temporary room, the other joins with a 6-digit code, and anything typed or pasted appears on both sides in real time.
 
@@ -160,7 +145,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     id: "starlite-tools",
     slug: "starlite-tools",
     title: "Starlite Tools Showroom",
-    imageUrl: starliteToolsMockup,
+    imageUrl: "/project-images/starlite-tools.webp",
     summary: "Industrial product catalogue and quote-request site with 193 product pages, filters, comparison and a WhatsApp handoff.",
     description: `A digital showroom for an industrial tools distributor, built for contractors, technicians, dealers and bulk buyers.
 
@@ -175,7 +160,7 @@ Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     id: "ventum",
     slug: "ventum",
     title: "Ventum Global Automation",
-    imageUrl: ventumMockup,
+    imageUrl: "/project-images/ventum.webp",
     summary: "Business website and admin console for an automation supplier: product catalogue, enquiries and an installable admin PWA.",
     description: `A website for an automation and electrical supplier in Lagos, paired with a private admin console.
 
@@ -190,7 +175,7 @@ A scheduled GitHub Action sends an activity report so the business sees new enqu
     id: "dera-library",
     slug: "dera-library",
     title: "Dera Library",
-    imageUrl: deraLibraryMockup,
+    imageUrl: "/project-images/dera-library.webp",
     summary: "Offline-first Android document library that finds the files already on your phone and organises them into one searchable library.",
     description: `Dera Library turns the documents scattered across a phone (downloads, WhatsApp and Telegram folders, SD cards) into one searchable library without copying, moving or uploading anything.
 
@@ -205,7 +190,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
     id: "time-table",
     slug: "time-table",
     title: "TimeTink",
-    imageUrl: timeTableMockup,
+    imageUrl: "/project-images/time-table.webp",
     summary: "School timetable generator that builds clash-free timetables from teachers, classes and weekly lesson counts using a constraint solver.",
     description: `Building a school timetable by hand takes days. Here, staff add teachers, configure the school week, and assign each teacher a subject, class and number of lessons per week.
 
@@ -218,7 +203,7 @@ A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher a
     id: "math-exam-editor",
     slug: "math-exam-editor",
     title: "Math Exam Editor",
-    imageUrl: mathExamEditorMockup,
+    imageUrl: "/project-images/math-exam-editor.webp",
     summary: "Browser-based editor for WAEC-style maths exams with rich text, LaTeX input, Excel import and Excel/JSON export.",
     description: `A front-end-only tool for building mathematics exams. Questions are written in a TipTap rich-text editor with MathLive for LaTeX input and KaTeX for display.
 
@@ -231,7 +216,7 @@ Existing question banks can be imported from Excel with a preview step, and fini
     id: "fast-ui",
     slug: "fast-ui",
     title: "FastUI",
-    imageUrl: fastUiMockup,
+    imageUrl: "/project-images/fast-ui.webp",
     summary: "Dark, animated agency landing page with a swipeable work gallery, pricing, FAQ and contact sections.",
     description: `FastUI is a responsive landing page for a design agency, with a glassmorphism navigation bar, a gradient hero, and sections for services, a work gallery, pricing, FAQs and contact.
 
@@ -247,7 +232,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     id: "streamvibe",
     slug: "streamvibe",
     title: "StreamVibe",
-    imageUrl: streamvibeMockup,
+    imageUrl: "/project-images/streamvibe.webp",
     summary: "Media discovery app built on the TMDb REST API with dynamic endpoints and an MVC-style front-end architecture.",
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
@@ -258,7 +243,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     id: "banquee",
     slug: "banquee",
     title: "Banquee",
-    imageUrl: banqueeMockup,
+    imageUrl: "/project-images/banquee.webp",
     summary: "Responsive landing page for a digital banking product with SwiperJS animations, deployed on Vercel.",
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",

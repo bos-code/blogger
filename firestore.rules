@@ -321,13 +321,32 @@ service cloud.firestore {
 
     // Portfolio projects shown on the home page.
     match /projects/{projectId} {
+      function optionalString(field, max) {
+        return request.resource.data.get(field, null) == null ||
+          (request.resource.data[field] is string && request.resource.data[field].size() <= max);
+      }
+
+      function isValidProject() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+            'title', 'slug', 'summary', 'description', 'imageUrl', 'liveUrl', 'repoUrl',
+            'tech', 'role', 'order', 'createdAt', 'updatedAt'
+          ]) &&
+          data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+          data.slug is string && data.slug.size() > 0 && data.slug.size() <= 120 &&
+          data.summary is string && data.summary.size() > 0 && data.summary.size() <= 400 &&
+          optionalString('description', 8000) &&
+          optionalString('imageUrl', 2048) &&
+          optionalString('liveUrl', 2048) &&
+          optionalString('repoUrl', 2048) &&
+          optionalString('role', 200) &&
+          data.get('tech', []) is list && data.get('tech', []).size() <= 20 &&
+          (data.get('order', 0) is int || data.get('order', 0) is float);
+      }
+
       allow read: if true;
-      allow create, update, delete: if isAdmin() &&
-        (request.resource == null || (
-          request.resource.data.title is string &&
-          request.resource.data.title.size() > 0 &&
-          request.resource.data.title.size() <= 120
-        ));
+      allow create, update: if isAdmin() && isValidProject();
+      allow delete: if isAdmin();
     }
 
     // Daily view totals written as readers open posts; read by admins.

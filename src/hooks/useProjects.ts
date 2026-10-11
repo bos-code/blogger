@@ -7,6 +7,7 @@ import {
   getDocs,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebaseconfig";
 import { FALLBACK_PROJECTS } from "../data/projects";
@@ -22,6 +23,10 @@ const sortProjects = (projects: Project[]) =>
 /**
  * Portfolio projects from Firestore (publicly readable). Falls back to the
  * built-in list when none have been added or the request fails.
+ *
+ * There is deliberately no placeholder list: showing the built-in projects
+ * while Firestore loads made the page swap lists a moment later whenever
+ * saved projects existed. Callers show a loading state instead.
  */
 export const useProjects = () =>
   useQuery<{ projects: Project[]; fromDatabase: boolean }>({
@@ -41,8 +46,35 @@ export const useProjects = () =>
       }
     },
     staleTime: 10 * 60 * 1000,
-    placeholderData: { projects: FALLBACK_PROJECTS, fromDatabase: false },
   });
+
+/** True when the saved projects are exactly the built-in list (same slugs). */
+export const matchesBuiltInList = (projects: Project[]): boolean => {
+  const saved = projects.map((project) => project.slug).sort().join("|");
+  const builtIn = FALLBACK_PROJECTS.map((project) => project.slug).sort().join("|");
+  return saved === builtIn;
+};
+
+/**
+ * Replaces every saved project with the built-in list in one atomic batch
+ * (admins only), e.g. after the built-in list has been updated in code.
+ */
+export const useReplaceWithBuiltInProjects = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: async () => {
+      const existing = await getDocs(collection(db, "projects"));
+      const batch = writeBatch(db);
+      const keep = new Set(FALLBACK_PROJECTS.map((project) => project.id));
+      existing.docs.filter((projectDoc) => !keep.has(projectDoc.id)).forEach((projectDoc) => batch.delete(projectDoc.ref));
+      FALLBACK_PROJECTS.forEach(({ id, ...project }) => {
+        batch.set(doc(db, "projects", id), { ...project, createdAt: serverTimestamp() });
+      });
+      await batch.commit();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+};
 
 export const useSaveProject = () => {
   const queryClient = useQueryClient();

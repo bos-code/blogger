@@ -6,7 +6,7 @@ import { useDocumentMeta } from "../hooks/useDocumentMeta";
 /** Case-study page for a portfolio project. */
 export default function ProjectDetail(): React.ReactElement {
   const { slug } = useParams<{ slug: string }>();
-  const { data, isFetching } = useProjects();
+  const { data, isPending } = useProjects();
   const project = data?.projects.find((item) => item.slug === slug);
 
   useDocumentMeta({
@@ -18,7 +18,7 @@ export default function ProjectDetail(): React.ReactElement {
   if (!project) {
     return (
       <div className="page-container flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
-        {isFetching ? (
+        {isPending ? (
           <span className="loading loading-spinner loading-lg" aria-label="Loading project" />
         ) : (
           <>
