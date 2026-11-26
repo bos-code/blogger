@@ -9,9 +9,9 @@ export interface TimelineEntry {
 
 export const TIMELINE: TimelineEntry[] = [
   {
-    title: "Software engineering",
+    title: "Software Engineer",
     organisation: "Kariya Technologies",
-    period: "Present",
+    period: "2026 – Present",
     kind: "work",
     points: [
       "Contribute to endpoint security software and its integration with web and backend systems.",
@@ -19,18 +19,32 @@ export const TIMELINE: TimelineEntry[] = [
     ],
   },
   {
-    title: "Professional experience",
+    title: "Frontend Developer",
     organisation: "Merx Africa",
-    period: "",
+    period: "February 2026",
     kind: "work",
-    points: [],
+    points: ["Built responsive layouts and reusable UI components aligned with client brand and design requirements."],
   },
   {
-    title: "Professional experience",
-    organisation: "Liveizy",
-    period: "",
+    title: "Frontend & Mobile Developer",
+    organisation: "Liveizy Limited",
+    period: "2025 – 2026",
     kind: "work",
-    points: [],
+    points: ["Built onboarding and responsive interfaces for a property and billing platform.", "Collaborated on production issue investigation and fixes."],
+  },
+  {
+    title: "React Native Developer",
+    organisation: "Gigxy",
+    period: "November 2025 – March 2026",
+    kind: "work",
+    points: ["Built Expo marketplace booking, offer and cancellation flows.", "Integrated Stripe Connect, Firebase Cloud Messaging and Google Places."],
+  },
+  {
+    title: "Volunteer Technical Lead & Frontend Lead",
+    organisation: "MOI Doctar",
+    period: "From 2025",
+    kind: "work",
+    points: ["Guided frontend development for a digital-health product.", "Built React/TypeScript screens and typed API integrations."],
   },
   {
     title: "Independent software development",

@@ -39,6 +39,17 @@ The Next.js 16 front end talks to a NestJS API backed by Prisma and PostgreSQL, 
     order: 2,
   },
   {
+    id: "dera-assistant",
+    slug: "dera-assistant",
+    title: "DERA Windows Assistant",
+    summary: "Offline-first Windows desktop assistant in Go, with guarded local tools and optional AI integration. In development.",
+    description: `DERA is a personal Windows assistant designed to operate locally. Its command-line and desktop interfaces support deterministic commands for application and system tasks, with optional conversational model integration.
+
+The project includes a policy gate, confirmation prompts, restricted file access, cancellation and emergency stop. Automated tests cover bounded model turns and tool execution. Development is ongoing; advanced voice and automation features are not presented as finished.`,
+    tech: ["Go", "Win32", "OpenAI-compatible API", "Automated testing"],
+    order: 3,
+  },
+  {
     id: "tissage-de-loh",
     slug: "tissage-de-loh",
     title: "Tissage De Loh",
@@ -50,7 +61,7 @@ Shoppers browse the catalogue, pay with Stripe, place custom orders and look up 
 
 Built with Next.js, TypeScript, Supabase (PostgreSQL and Auth), Stripe, GSAP and Zod, with tests run by Vitest and deployment on Vercel.`,
     tech: ["Next.js", "TypeScript", "Supabase", "Stripe", "GSAP"],
-    order: 3,
+    order: 4,
   },
   {
     id: "veloria-essence-spa",
@@ -64,7 +75,7 @@ Booking and contact requests are validated with Zod and trigger branded emails b
 
 A separate admin dashboard (React, Vite and Firebase) lets the spa confirm, cancel or complete bookings on a schedule view, and manage services, testimonials, media, locations on a map and business details, behind a passcode gate.`,
     tech: ["Next.js", "Firebase", "React Email", "GSAP", "Three.js", "Zod"],
-    order: 4,
+    order: 5,
   },
   {
     id: "316-reggz",
@@ -79,7 +90,7 @@ At its centre is the Album, a growing archive of music artwork, brand identities
 Built with Next.js, TypeScript and Sass, with GSAP animation, Swiper carousels and a masonry gallery, statically generated for speed.`,
     liveUrl: "https://316-reggz-website.vercel.app",
     tech: ["Next.js", "TypeScript", "Sass", "GSAP", "Swiper"],
-    order: 5,
+    order: 6,
   },
   {
     id: "blogger",
@@ -94,7 +105,7 @@ Firebase handles auth, Firestore and storage, with permissions enforced by secur
 Quality is covered by unit tests, API checks against the Firebase emulators and Playwright end-to-end tests on desktop and mobile in CI.`,
     repoUrl: "https://github.com/bos-code/blogger",
     tech: ["React 19", "TypeScript", "Firebase", "TipTap", "TanStack Query", "Playwright"],
-    order: 6,
+    order: 7,
   },
   {
     id: "finance-tracker",
@@ -109,7 +120,7 @@ Transactions can be captured offline; changes are queued and synced to Supabase 
 Supabase Auth handles accounts and password resets, and the app is protected by a secure PIN with optional biometrics.`,
     repoUrl: "https://github.com/bos-code/finance_tracker",
     tech: ["React Native", "Expo", "Supabase", "TanStack Query", "NativeWind"],
-    order: 7,
+    order: 8,
   },
   {
     id: "chinel-media",
@@ -123,7 +134,7 @@ The home page uses interactive 3D scenes built with Three.js and React Three Fib
 
 Built with Next.js, TypeScript and Tailwind CSS, with forms validated by React Hook Form and Zod.`,
     tech: ["Next.js", "Three.js", "React Three Fiber", "GSAP", "TypeScript"],
-    order: 8,
+    order: 9,
   },
   {
     id: "derashare",
@@ -139,7 +150,7 @@ It installs as a PWA, and CI runs formatting, linting, type checks, server integ
     liveUrl: "https://derashare.vercel.app",
     repoUrl: "https://github.com/bos-code/Derashare",
     tech: ["Next.js", "TypeScript", "WebSockets", "Node.js", "PWA"],
-    order: 9,
+    order: 10,
   },
   {
     id: "starlite-tools",
@@ -154,7 +165,7 @@ The catalogue has 193 statically generated product pages, search, category, bran
 Built with the Next.js App Router, React 19, TypeScript and Tailwind CSS 4.`,
     repoUrl: "https://github.com/bos-code/starlight",
     tech: ["Next.js", "React 19", "TypeScript", "Tailwind CSS"],
-    order: 10,
+    order: 11,
   },
   {
     id: "ventum",
@@ -169,7 +180,7 @@ Visitors browse brands and products and send enquiries. Staff sign in to an admi
 A scheduled GitHub Action sends an activity report so the business sees new enquiries without logging in. Built with Next.js server actions and GSAP animation.`,
     repoUrl: "https://github.com/bos-code/ventum-automation",
     tech: ["Next.js", "TypeScript", "Appwrite", "GSAP", "GitHub Actions"],
-    order: 11,
+    order: 12,
   },
   {
     id: "dera-library",
@@ -184,7 +195,7 @@ A custom native module walks shared storage when all-files access is granted, wi
 Built with Expo Router, React Native, Reanimated and FlashList.`,
     repoUrl: "https://github.com/bos-code/Dera_library",
     tech: ["React Native", "Expo", "SQLite", "Kotlin module"],
-    order: 12,
+    order: 13,
   },
   {
     id: "time-table",
@@ -197,7 +208,7 @@ Built with Expo Router, React Native, Reanimated and FlashList.`,
 A FastAPI backend feeds that demand into Google OR-Tools, which blocks teacher and class clashes and spreads lessons across the week. The React + Vite front end handles data entry, validation and the generated timetable.`,
     repoUrl: "https://github.com/bos-code/time-table",
     tech: ["React", "FastAPI", "OR-Tools", "Material UI", "Tailwind CSS"],
-    order: 13,
+    order: 14,
   },
   {
     id: "forkify",
@@ -212,7 +223,7 @@ Recipes can be bookmarked and their ingredients added to a shopping list, both s
 Built with React, React Router and TanStack Query for fetching and caching, styled with Tailwind CSS and DaisyUI on Vite.`,
     repoUrl: "https://github.com/prosper-alex/forkify-app",
     tech: ["React", "TanStack Query", "React Router", "Tailwind CSS", "DaisyUI"],
-    order: 14,
+    order: 15,
   },
   {
     id: "math-exam-editor",
@@ -225,7 +236,7 @@ Built with React, React Router and TanStack Query for fetching and caching, styl
 Existing question banks can be imported from Excel with a preview step, and finished exams export to Excel or JSON. Everything runs in memory, with no backend.`,
     repoUrl: "https://github.com/bos-code/editor",
     tech: ["React", "TypeScript", "TipTap", "MathLive", "KaTeX", "SheetJS"],
-    order: 15,
+    order: 16,
   },
   {
     id: "fast-ui",
@@ -241,7 +252,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://fast-ui-murex.vercel.app",
     repoUrl: "https://github.com/bos-code/fast-ui",
     tech: ["Tailwind CSS", "SwiperJS", "GSAP", "Vite"],
-    order: 16,
+    order: 17,
   },
   {
     id: "streamvibe",
@@ -252,7 +263,7 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://stream-vibe-movies.vercel.app/",
     repoUrl: "https://github.com/bos-code/stream-vibe-movies",
     tech: ["React", "TMDb API", "REST"],
-    order: 17,
+    order: 18,
   },
   {
     id: "banquee",
@@ -263,6 +274,6 @@ Built with Tailwind CSS, SwiperJS and GSAP on Vite, and deployed on Vercel.`,
     liveUrl: "https://banquee-eta.vercel.app/",
     repoUrl: "https://github.com/bos-code/Banquee",
     tech: ["React", "SwiperJS", "Vercel"],
-    order: 18,
+    order: 19,
   },
 ];

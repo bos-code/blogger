@@ -64,7 +64,7 @@ test.describe("public site", () => {
     await page.goto("/#experience");
     await expect(page.getByRole("heading", { name: "Where I've been" })).toBeVisible();
     await expect(page.getByText("Lagos State University (LASU)")).toBeVisible();
-    for (const employer of ["Kariya Technologies", "Merx Africa", "Liveizy"]) {
+    for (const employer of ["Kariya Technologies", "Merx Africa", "Liveizy Limited", "Gigxy", "MOI Doctar"]) {
       await expect(page.locator("#experience").getByText(employer, { exact: true })).toBeVisible();
     }
 

@@ -7,7 +7,7 @@ const SKILL_GROUPS = [
   },
   {
     title: "Backend & desktop",
-    skills: ["Go", "Node.js", "NestJS", "REST APIs", "PostgreSQL", "Prisma", "Firebase", "Supabase", "Wails"],
+    skills: ["Go", "Node.js", "NestJS", "Python", "PHP", "REST APIs", "PostgreSQL", "Prisma", "Firebase", "Supabase", "Wails"],
   },
   {
     title: "UI & state management",
