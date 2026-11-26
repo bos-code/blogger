@@ -12,7 +12,7 @@ function Experience(): React.ReactElement {
           {TIMELINE.map((entry) => {
             const Icon = entry.kind === "work" ? BriefcaseIcon : AcademicCapIcon;
             return (
-              <li key={entry.title} className="relative">
+              <li key={entry.organisation} className="relative">
                 <span className="absolute -left-[3.05rem] top-1 flex h-9 w-9 items-center justify-center rounded-full border border-base-300 bg-base-100 text-primary">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
@@ -22,11 +22,13 @@ function Experience(): React.ReactElement {
                     <span className="font-mono text-xs text-base-content/60">{entry.period}</span>
                   </div>
                   <p className="text-sm text-primary">{entry.organisation}</p>
-                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-base-content/75 marker:text-primary">
-                    {entry.points.map((point) => (
-                      <li key={point}>{point}</li>
-                    ))}
-                  </ul>
+                  {entry.points.length > 0 && (
+                    <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-base-content/75 marker:text-primary">
+                      {entry.points.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </li>
             );

@@ -4,7 +4,7 @@
 const resumeStats = {
   stat1: {
     value: 3,
-    label: "Programming\nLanguages",
+    label: "Application\nPlatforms",
     suffix: "",
   },
   stat2: {

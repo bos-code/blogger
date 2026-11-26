@@ -23,7 +23,7 @@ function FooterComp(): React.ReactElement {
             <span className="font-mono capitalize">john dera</span>
           </Link>
           <p className="mt-3 max-w-sm text-sm text-base-content/70">
-            Front-end developer building fast, accessible interfaces — and writing about it.
+            Software engineer building web, desktop and mobile applications, and writing about technology.
           </p>
           <div className="mt-4 flex gap-2">
             <a href={site.socials.github} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm btn-square border border-base-300" aria-label="GitHub">

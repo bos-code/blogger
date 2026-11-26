@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 
 const SITE_NAME = "John Dera";
-const DEFAULT_TITLE = "John Dera | Front-End Developer";
+const DEFAULT_TITLE = "John Dera | Software Engineer";
 const DEFAULT_DESCRIPTION =
-  "John Dera — front-end developer portfolio and blog. Projects, articles on React and the web, and ways to get in touch.";
+  "John Dera — software engineer building web, desktop and mobile applications. Explore projects, experience and technical articles.";
 
 interface DocumentMeta {
   title?: string;
