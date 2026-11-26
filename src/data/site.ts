@@ -9,7 +9,7 @@ export const site = {
   name: "John Dera",
   shortName: "Dera",
   fullName: "Chidera Okonkwo",
-  role: "Frontend engineer",
+  role: "Software Engineer",
   email: "chidera9713@gmail.com",
   phone: "0816 003 7598",
   /** WhatsApp number in international format, digits only. */

@@ -13,7 +13,7 @@ import resumeStats from "../data/resumeStats";
 import { site, whatsappLink } from "../data/site";
 import WhatsApp from "../assets/whatsapp";
 
-const STACK = ["TypeScript", "React", "Next.js", "Tailwind CSS", "Firebase", "Git"];
+const STACK = ["Go", "TypeScript", "React", "Next.js", "React Native", "PostgreSQL"];
 
 /** Counts up from 0 to `target` once (skipped when reduced motion is preferred). */
 function useCountUp(target: number, skip: boolean): number {
@@ -72,7 +72,7 @@ export default function Hero(): React.ReactElement {
           >
             Hey, I&apos;m <span className="text-primary">Chidera</span>.
             <br />
-            I build fast, accessible interfaces for the web.
+            I build software for web, desktop and mobile.
           </motion.h1>
           <motion.p {...fadeUp(0.05)} className="mt-2 font-mono text-sm text-secondary">
             {"</h1>"}
@@ -81,8 +81,8 @@ export default function Hero(): React.ReactElement {
             {...fadeUp(0.1)}
             className="mx-auto mt-6 max-w-xl text-lg text-base-content/75 lg:mx-0"
           >
-            Frontend engineer working with React, Next.js and React Native — turning designs into
-            responsive, maintainable products, and writing about what I learn along the way.
+            Software engineer working across full-stack development, desktop and mobile applications,
+            and cybersecurity. I build practical, reliable software and write about what I learn.
           </motion.p>
 
           <motion.div

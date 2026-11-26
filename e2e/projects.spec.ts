@@ -60,6 +60,7 @@ test("saved projects show without flashing the built-in list, and can be replace
 
   await page.goto("/");
   await expect(page.locator("#project-list h3").first()).toHaveText("Yakoyo African Kitchen");
+  await expect(page.locator("#project-list h3").filter({ hasText: "DERA Windows Assistant" })).toBeVisible();
   await expect(page.getByText("Old Portfolio")).toHaveCount(0);
   const image = page.locator("#project-list img").first();
   await expect(image).toHaveAttribute("src", /^\/project-images\/.+\.webp$/);

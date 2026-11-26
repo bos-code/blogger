@@ -6,6 +6,9 @@ test.describe("public site", () => {
     const errors = trackPageErrors(page);
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Chidera");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("web, desktop and mobile");
+    await expect(page).toHaveTitle("John Dera | Software Engineer");
+    await expect(page.locator("#hero").getByText("Software Engineer", { exact: true })).toBeVisible();
     for (const id of ["about", "stack", "work", "blog", "contact"]) {
       await expect(page.locator(`#${id}`)).toBeVisible();
     }
@@ -61,6 +64,9 @@ test.describe("public site", () => {
     await page.goto("/#experience");
     await expect(page.getByRole("heading", { name: "Where I've been" })).toBeVisible();
     await expect(page.getByText("Lagos State University (LASU)")).toBeVisible();
+    for (const employer of ["Kariya Technologies", "Merx Africa", "Liveizy Limited", "Gigxy", "MOI Doctar"]) {
+      await expect(page.locator("#experience").getByText(employer, { exact: true })).toBeVisible();
+    }
 
     const rss = await page.request.get("/rss.xml");
     expect(rss.status()).toBe(200);
